@@ -1,6 +1,6 @@
 # Tiny World Builder
 
-<img width="1200" height="973" alt="HIADXbhWsAASKB-" src="https://github.com/user-attachments/assets/ab3db0e8-b86a-4102-8215-4a4603978c8b" />
+<img width="1324" height="1016" alt="Screenshot 2026-05-11 at 07 09 24" src="https://github.com/user-attachments/assets/1b19a5f7-def5-42bf-b85f-01714f502afa" />
 
 ## Run
 
