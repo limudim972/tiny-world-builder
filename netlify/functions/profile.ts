@@ -1,17 +1,92 @@
 import type { Config } from '@netlify/functions';
 import { db } from '../../db/index.js';
 import { profiles } from '../../db/schema.js';
-import { and, eq, ne, sql } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import { getAuthUserId, unauthorized, corsHeaders, corsResponse } from './auth.js';
 
-async function ensureProfileSchema() {
-  // Netlify can deploy function code before database migrations have applied.
-  // Make the new profile fields safe to use and avoid opaque 502s.
-  await db.execute(sql`ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "display_name" text DEFAULT ''`);
+async function getProfileByAuthId(auth0Id: string) {
   try {
-    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS "profiles_username_unique" ON "profiles" ("username")`);
+    const [profile] = await db.select().from(profiles).where(eq(profiles.auth0Id, auth0Id));
+    return profile || null;
   } catch (err) {
-    console.warn('Could not create username unique index yet:', err);
+    // Fallback for deployments where the display_name migration has not run yet.
+    const message = err instanceof Error ? err.message : String(err);
+    if (!message.includes('display_name')) throw err;
+    const [profile] = await db
+      .select({
+        id: profiles.id,
+        auth0Id: profiles.auth0Id,
+        username: profiles.username,
+        about: profiles.about,
+        image: profiles.image,
+        createdAt: profiles.createdAt,
+        updatedAt: profiles.updatedAt,
+      })
+      .from(profiles)
+      .where(eq(profiles.auth0Id, auth0Id));
+    return profile ? { ...profile, displayName: profile.username } : null;
+  }
+}
+
+async function saveProfileWithFallback(auth0Id: string, existing: any, values: { username: string; displayName: string; about: string; image: string }) {
+  try {
+    if (existing) {
+      const [updated] = await db
+        .update(profiles)
+        .set({
+          username: values.username,
+          displayName: values.displayName,
+          about: values.about,
+          image: values.image,
+          updatedAt: new Date(),
+        })
+        .where(eq(profiles.auth0Id, auth0Id))
+        .returning();
+      return updated;
+    }
+    const [created] = await db
+      .insert(profiles)
+      .values({ auth0Id, username: values.username, displayName: values.displayName, about: values.about, image: values.image })
+      .returning();
+    return created;
+  } catch (err) {
+    // Fallback for deployments where the display_name migration has not run yet.
+    const message = err instanceof Error ? err.message : String(err);
+    if (!message.includes('display_name')) throw err;
+    if (existing) {
+      const [updated] = await db
+        .update(profiles)
+        .set({
+          username: values.username,
+          about: values.about,
+          image: values.image,
+          updatedAt: new Date(),
+        })
+        .where(eq(profiles.auth0Id, auth0Id))
+        .returning({
+          id: profiles.id,
+          auth0Id: profiles.auth0Id,
+          username: profiles.username,
+          about: profiles.about,
+          image: profiles.image,
+          createdAt: profiles.createdAt,
+          updatedAt: profiles.updatedAt,
+        });
+      return { ...updated, displayName: values.displayName };
+    }
+    const [created] = await db
+      .insert(profiles)
+      .values({ auth0Id, username: values.username, about: values.about, image: values.image })
+      .returning({
+        id: profiles.id,
+        auth0Id: profiles.auth0Id,
+        username: profiles.username,
+        about: profiles.about,
+        image: profiles.image,
+        createdAt: profiles.createdAt,
+        updatedAt: profiles.updatedAt,
+      });
+    return { ...created, displayName: values.displayName };
   }
 }
 
@@ -25,13 +100,11 @@ export default async (req: Request) => {
     const auth0Id = await getAuthUserId();
     if (!auth0Id) return unauthorized();
 
-    await ensureProfileSchema();
-
     if (req.method === 'GET') {
-    const [profile] = await db.select().from(profiles).where(eq(profiles.auth0Id, auth0Id));
-    if (!profile) return Response.json(null, { headers });
-    return Response.json(profile, { headers });
-  }
+      const profile = await getProfileByAuthId(auth0Id);
+      if (!profile) return Response.json(null, { headers });
+      return Response.json(profile, { headers });
+    }
 
     if (req.method === 'PUT') {
     const body = await req.json();
@@ -53,35 +126,17 @@ export default async (req: Request) => {
       return Response.json({ error: 'photo is too large; choose a smaller image' }, { status: 400, headers });
     }
 
-    const [existing] = await db.select().from(profiles).where(eq(profiles.auth0Id, auth0Id));
+    const existing = await getProfileByAuthId(auth0Id);
     const duplicateWhere = existing
       ? and(eq(profiles.username, username), ne(profiles.auth0Id, auth0Id))
       : eq(profiles.username, username);
-    const [duplicate] = await db.select().from(profiles).where(duplicateWhere).limit(1);
+    const [duplicate] = await db.select({ id: profiles.id }).from(profiles).where(duplicateWhere).limit(1);
     if (duplicate) {
       return Response.json({ error: 'username is already taken' }, { status: 409, headers });
     }
 
-    if (existing) {
-      const [updated] = await db
-        .update(profiles)
-        .set({
-          username,
-          displayName,
-          about,
-          image,
-          updatedAt: new Date(),
-        })
-        .where(eq(profiles.auth0Id, auth0Id))
-        .returning();
-      return Response.json(updated, { headers });
-    }
-
-    const [created] = await db
-      .insert(profiles)
-      .values({ auth0Id, username, displayName, about, image })
-      .returning();
-    return Response.json(created, { status: 201, headers });
+    const saved = await saveProfileWithFallback(auth0Id, existing, { username, displayName, about, image });
+    return Response.json(saved, { status: existing ? 200 : 201, headers });
   }
 
     return new Response('Method not allowed', { status: 405, headers });
