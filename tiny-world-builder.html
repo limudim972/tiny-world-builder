@@ -6953,6 +6953,7 @@
     if (nextKind === 'bridge') nextTerrain = 'water';
     else if (CROP_KINDS.has(nextKind)) nextTerrain = 'dirt';
     else if (nextTerrain === 'water' && nextKind !== 'house' && nextKind !== 'rock') nextKind = null;
+    else if (nextTerrain === 'lava' && nextKind !== 'rock') nextKind = null;
 
     const terrainChanged = prev.terrain !== nextTerrain;
     const kindChanged    = (prev.kind || null) !== nextKind;
@@ -10078,56 +10079,25 @@
   // -------- animation loop --------
   let prevT = 0;
   let smokeTimer = 0;
-  // Item 5 — additive perf controls.
-  //   docHidden = true while the tab is in the background. We still queue
-  //     the next rAF (browsers throttle it anyway) but skip all per-frame
-  //     work so we don't spin animation state forward off-screen.
-  //   perfFrameTimes / perfDpr drive a coarse low-fps DPR backoff: if the
-  //     average frame time stays >30ms for ~90 frames we drop pixelRatio
-  //     by one notch (min 1.0), then restore when the average recovers.
+  // Item 5 — Page Visibility pause only. The earlier DPR backoff path
+  // was removed because renderer.setPixelRatio reallocates the shadow
+  // map and left it blank until the next click forced a re-render
+  // (tinyworld's existing render-settings resolution slider already
+  // covers manual perf tuning).
   let docHidden = false;
   document.addEventListener('visibilitychange', () => {
     docHidden = !!document.hidden;
   });
-  const perfFrameTimes = [];
-  let perfLastT = 0;
-  let perfDprScale = 1.0;
-  let perfRefractoryFrames = 0;
-  const PERF_TARGET_MS = 28;   // ~36fps threshold to consider "slow"
-  const PERF_RESTORE_MS = 19;  // ~52fps to restore
-  function perfTick(now) {
-    if (perfLastT) perfFrameTimes.push(now - perfLastT);
-    perfLastT = now;
-    if (perfFrameTimes.length > 90) perfFrameTimes.shift();
-    if (perfRefractoryFrames > 0) { perfRefractoryFrames--; return; }
-    if (perfFrameTimes.length < 60) return;
-    const sum = perfFrameTimes.reduce((a, b) => a + b, 0);
-    const avg = sum / perfFrameTimes.length;
-    if (avg > PERF_TARGET_MS && perfDprScale > 0.65) {
-      perfDprScale = Math.max(0.65, perfDprScale - 0.15);
-      try { renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, BASE_DPR_CAP) * renderResolutionScale * perfDprScale); } catch (_) {}
-      perfRefractoryFrames = 180;
-      console.debug('[perf] DPR backoff ->', perfDprScale.toFixed(2), 'avg', avg.toFixed(1) + 'ms');
-    } else if (avg < PERF_RESTORE_MS && perfDprScale < 1.0) {
-      perfDprScale = Math.min(1.0, perfDprScale + 0.15);
-      try { renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, BASE_DPR_CAP) * renderResolutionScale * perfDprScale); } catch (_) {}
-      perfRefractoryFrames = 240;
-      console.debug('[perf] DPR restore ->', perfDprScale.toFixed(2), 'avg', avg.toFixed(1) + 'ms');
-    }
-  }
 
   function animate(now) {
     requestAnimationFrame(animate);
     if (docHidden) {
-      // Tab is in background — keep the rAF heartbeat going (browsers
-      // throttle it to ~1Hz anyway) but skip every animated subsystem
-      // and the render call. Saves CPU/GPU when the user is on another
-      // tab without leaking time-skew (prevT is reset on resume).
+      // Tab is backgrounded — keep the rAF heartbeat (browsers throttle
+      // it anyway) but skip per-frame work + render. prevT reset so the
+      // first frame after resume doesn't see a giant dt.
       prevT = 0;
-      perfLastT = 0;
       return;
     }
-    perfTick(now);
     const t = now / 1000;
     const dt = prevT ? Math.min(t - prevT, 0.05) : 0;
     prevT = t;
@@ -10276,9 +10246,13 @@
             "grass",
             "path",
             "dirt",
-            "water"
+            "water",
+            "stone",
+            "lava",
+            "sand",
+            "snow"
           ],
-          "description": "Tile material. 'water' should not host kinds (no kinds float). 'dirt' is auto-applied under crops by the renderer; you may set it explicitly."
+          "description": "Tile material. 'water' / 'lava' should not host kinds (no kinds float). 'dirt' is auto-applied under crops by the renderer; you may set it explicitly. 'stone' / 'snow' read as mountain caps; 'sand' as a water-edge beach."
         },
         "kind": {
           "type": [
@@ -10772,10 +10746,37 @@
       if (elevBuckets.hills && elevBuckets.hills.has(k)) return 'hills';
       return 'plains';
     }
-    function elevFloors(tier) {
-      if (tier === 'mountains') return 4 + Math.floor(rng() * 4);
-      if (tier === 'hills') return 2 + Math.floor(rng() * 2);
-      return 1;
+    // Build a smoothed terrainFloors grid: pick a per-cell target based on
+    // tier, then clamp every cell so it differs from its 4 neighbours by
+    // at most 1.  Result is a continuous heightmap — no sawtooth edges
+    // between plains and mountain cells.
+    const tfGrid = [];
+    for (let x = 0; x < size; x++) {
+      tfGrid[x] = [];
+      for (let z = 0; z < size; z++) {
+        const tier = elevTier(x, z);
+        tfGrid[x][z] = (tier === 'mountains') ? (4 + Math.floor(rng() * 3))
+                     : (tier === 'hills')     ? (2 + Math.floor(rng() * 2))
+                     : 1;
+      }
+    }
+    // Several smoothing passes — each pass clamps every cell to be within
+    // ±1 of its lowest neighbour so terraces appear naturally.
+    for (let pass = 0; pass < 4; pass++) {
+      for (let x = 0; x < size; x++) {
+        for (let z = 0; z < size; z++) {
+          let minN = Infinity;
+          if (x > 0)        minN = Math.min(minN, tfGrid[x-1][z]);
+          if (x < size - 1) minN = Math.min(minN, tfGrid[x+1][z]);
+          if (z > 0)        minN = Math.min(minN, tfGrid[x][z-1]);
+          if (z < size - 1) minN = Math.min(minN, tfGrid[x][z+1]);
+          if (minN === Infinity) continue;
+          if (tfGrid[x][z] > minN + 1) tfGrid[x][z] = minN + 1;
+        }
+      }
+    }
+    function elevFloors(x, z) {
+      return tfGrid[x] && tfGrid[x][z] ? tfGrid[x][z] : 1;
     }
 
     const out = { v: 4, gridSize: size, cells: [] };
@@ -10813,7 +10814,7 @@
       for (let z = 0; z < size; z++) {
         const biome = fastBiome(x, z);
         const tier = elevTier(x, z);
-        const tf = elevFloors(tier);
+        const tf = elevFloors(x, z);
         let terrain = 'grass';
         let kind = null;
         let floors = 1;
@@ -10864,10 +10865,39 @@
           floors = 2 + Math.floor(rng() * 3);
         }
 
-        // Suppress kinds on water (bridges are placed later if needed).
-        if (terrain === 'water') { kind = null; bType = null; }
+        // Suppress kinds on water + lava (bridges are placed later if needed).
+        if (terrain === 'water' || terrain === 'lava') { kind = null; bType = null; }
 
-        pushCell(x, z, terrain, kind, floors, tf, bType, null);
+        // Rare lava pockets inside mountain biomes — a small volcanic
+        // accent, only on bare elevated cells.
+        if (!kind && tier === 'mountains' && terrain === 'stone' && rng() < 0.08) {
+          terrain = 'lava';
+        }
+
+        // Stilts fix — any kind that isn't 'rock' sits on flat ground.
+        // Elevation manifests as raised BARE terrain cells (grass / stone
+        // hills, snow caps), not as pillars under objects.  Rock is the
+        // one kind that can ride elevated terrain because it reads as a
+        // mountain outcrop.
+        let effectiveTf = tf;
+        if (kind && kind !== 'rock') effectiveTf = 1;
+
+        // Promote mountain-tier bare grass cells to stone or snow caps so
+        // hills actually read as different material, not just taller grass.
+        if (!kind && tier === 'mountains' && terrain === 'grass') {
+          terrain = (rng() < 0.65) ? 'stone' : 'snow';
+        }
+        // Beach band: water-edge plains become sand cells.
+        if (!kind && tier === 'plains' && terrain === 'grass') {
+          if (biomeLookup[(x - 1) + ',' + z] === 'water'
+           || biomeLookup[(x + 1) + ',' + z] === 'water'
+           || biomeLookup[x + ',' + (z - 1)] === 'water'
+           || biomeLookup[x + ',' + (z + 1)] === 'water') {
+            if (rng() < 0.7) terrain = 'sand';
+          }
+        }
+
+        pushCell(x, z, terrain, kind, floors, effectiveTf, bType, null);
       }
     }
 

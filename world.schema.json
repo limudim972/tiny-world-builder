@@ -37,7 +37,7 @@
         "z": { "type": "integer", "minimum": 0, "maximum": 7 },
         "terrain": {
           "type": "string",
-          "enum": ["grass", "path", "dirt", "water"],
+          "enum": ["grass", "path", "dirt", "water", "stone", "lava", "sand", "snow"],
           "description": "Tile material. 'water' should not host kinds (no kinds float). 'dirt' is auto-applied under crops by the renderer; you may set it explicitly."
         },
         "kind": {
