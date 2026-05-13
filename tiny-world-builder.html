@@ -16237,6 +16237,13 @@
       activeSeason = normalized;
       document.body.classList.add('season-' + normalized);
       if (typeof applySeasonFoliage === 'function') applySeasonFoliage(normalized);
+      // Snow is winter-only. If the user changes to any non-winter season,
+      // clear snow immediately instead of leaving impossible summer snowfall.
+      if (normalized !== 'winter' && weather === 'snow') {
+        weather = 'clear';
+        applyWeather(weather);
+        try { localStorage.setItem(WEATHER_LS, weather); } catch (_) {}
+      }
       applyLights();
     }
     function applyWeather(weatherV) {
@@ -16444,9 +16451,14 @@
           const p = e.target.closest('.pill');
           if (!p) return;
           season = p.getAttribute('data-season');
+          const previousWeather = weather;
           applySeason(season);
           paintPills();
+          paintReadout();
           try { localStorage.setItem(SEASON_LS, season); } catch (_) {}
+          if (weather !== previousWeather) {
+            try { localStorage.setItem(WEATHER_LS, weather); } catch (_) {}
+          }
         });
       }
       if (weatherPills) {
