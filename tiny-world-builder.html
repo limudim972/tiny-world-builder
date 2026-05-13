@@ -9762,6 +9762,123 @@
     }
   }
 
+  // ---------- weather particles (rain + snow) ----------
+  // A single THREE.Points layer recycled between rain & snow. Drops fall
+  // from a tall ceiling over a wide footprint, wrapping in X/Z so the
+  // user can pan without leaving the rain volume. Tied to body class so
+  // the time-weather popup's pills drive it directly.
+  const WEATHER_PARTICLES = 800;
+  const WEATHER_CEIL = 14;
+  const WEATHER_FLOOR = TOP_H + 0.02;
+  const WEATHER_RADIUS = 16;  // half-width of the falling volume
+  let weatherMode = 'clear';
+  const weatherGeom = new THREE.BufferGeometry();
+  const weatherPos = new Float32Array(WEATHER_PARTICLES * 3);
+  for (let i = 0; i < WEATHER_PARTICLES; i++) {
+    weatherPos[i * 3]     = (Math.random() - 0.5) * WEATHER_RADIUS * 2;
+    weatherPos[i * 3 + 1] = WEATHER_FLOOR + Math.random() * (WEATHER_CEIL - WEATHER_FLOOR);
+    weatherPos[i * 3 + 2] = (Math.random() - 0.5) * WEATHER_RADIUS * 2;
+  }
+  weatherGeom.setAttribute('position', new THREE.BufferAttribute(weatherPos, 3));
+  const weatherMatRain = new THREE.PointsMaterial({
+    color: 0xb8c8e0, size: 0.05, transparent: true, opacity: 0.65, depthWrite: false,
+  });
+  const weatherMatSnow = new THREE.PointsMaterial({
+    color: 0xfdfdfd, size: 0.10, transparent: true, opacity: 0.85, depthWrite: false,
+  });
+  const weatherPoints = new THREE.Points(weatherGeom, weatherMatRain);
+  weatherPoints.frustumCulled = false;
+  weatherPoints.visible = false;
+  scene.add(weatherPoints);
+  // Splash ring: a small ring geometry instanced from a pool — when a
+  // raindrop hits the floor we recycle a ring at that XZ with a short
+  // fade-out. Snow doesn't splash.
+  const SPLASH_POOL = 24;
+  const splashRings = [];
+  const splashGeo = new THREE.RingGeometry(0.05, 0.10, 12);
+  const splashMat = new THREE.MeshBasicMaterial({ color: 0xb8c8e0, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false });
+  for (let i = 0; i < SPLASH_POOL; i++) {
+    const m = new THREE.Mesh(splashGeo, splashMat.clone());
+    m.rotation.x = -Math.PI / 2;
+    m.visible = false;
+    m.userData = { life: 0 };
+    scene.add(m);
+    splashRings.push(m);
+  }
+  function popSplash(x, z) {
+    for (const m of splashRings) {
+      if (!m.visible) {
+        m.position.set(x, WEATHER_FLOOR + 0.005, z);
+        m.scale.setScalar(0.6);
+        m.material.opacity = 0.6;
+        m.userData.life = 0.32;
+        m.visible = true;
+        return;
+      }
+    }
+  }
+  function setWeatherMode(mode) {
+    weatherMode = mode;
+    if (mode === 'rain' || mode === 'snow') {
+      weatherPoints.material = (mode === 'rain') ? weatherMatRain : weatherMatSnow;
+      weatherPoints.visible = true;
+    } else {
+      weatherPoints.visible = false;
+    }
+  }
+  // Watch body class for weather changes — this is the integration with
+  // the existing time-weather popup which writes body.weather-* classes.
+  function syncWeatherFromBodyClass() {
+    if (document.body.classList.contains('weather-rain')) setWeatherMode('rain');
+    else if (document.body.classList.contains('weather-snow')) setWeatherMode('snow');
+    else setWeatherMode('clear');
+  }
+  const weatherObs = new MutationObserver(syncWeatherFromBodyClass);
+  weatherObs.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  syncWeatherFromBodyClass();
+
+  function tickWeather(dt) {
+    if (weatherMode !== 'rain' && weatherMode !== 'snow') {
+      // Still fade splashes if any are mid-life.
+      for (const m of splashRings) {
+        if (!m.visible) continue;
+        m.userData.life -= dt;
+        if (m.userData.life <= 0) m.visible = false;
+      }
+      return;
+    }
+    const pos = weatherGeom.attributes.position.array;
+    const fall = (weatherMode === 'rain') ? 9.0 : 1.6;     // units/sec
+    const drift = (weatherMode === 'snow') ? 0.6 : 0.15;   // lateral wobble
+    for (let i = 0; i < WEATHER_PARTICLES; i++) {
+      const ix = i * 3, iy = ix + 1, iz = ix + 2;
+      pos[iy] -= fall * dt;
+      if (weatherMode === 'snow') {
+        pos[ix] += Math.sin((pos[iy] + i) * 0.8) * drift * dt;
+        pos[iz] += Math.cos((pos[iy] - i) * 0.7) * drift * dt;
+      }
+      if (pos[iy] <= WEATHER_FLOOR) {
+        if (weatherMode === 'rain' && Math.random() < 0.06) {
+          popSplash(pos[ix], pos[iz]);
+        }
+        // Recycle to ceiling, fresh XZ.
+        pos[ix] = (Math.random() - 0.5) * WEATHER_RADIUS * 2;
+        pos[iy] = WEATHER_CEIL;
+        pos[iz] = (Math.random() - 0.5) * WEATHER_RADIUS * 2;
+      }
+    }
+    weatherGeom.attributes.position.needsUpdate = true;
+    // Fade any active splashes.
+    for (const m of splashRings) {
+      if (!m.visible) continue;
+      m.userData.life -= dt;
+      if (m.userData.life <= 0) { m.visible = false; continue; }
+      const t = m.userData.life / 0.32;
+      m.material.opacity = 0.55 * t;
+      m.scale.setScalar(0.6 + (1 - t) * 1.4);
+    }
+  }
+
   function updateClouds(dt) {
     if (!clouds || !clouds.length) return;
     const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
@@ -10351,6 +10468,7 @@
     if (rippleAnims.length) tickRippleAnims(dt);
     if (fp.active) tickFP(dt);
     if (typeof window.__showcaseTick === 'function') window.__showcaseTick(dt);
+    tickWeather(dt);
     updateClouds(dt);
     updateCropDuster(dt);
     // Drain the ghost-board build queue in small slices so visible-distance
