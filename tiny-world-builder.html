@@ -3638,6 +3638,16 @@
     return obj;
   }
 
+  function disableShadows(obj) {
+    obj.traverse(c => {
+      if (c.isMesh) {
+        c.castShadow = false;
+        c.receiveShadow = false;
+      }
+    });
+    return obj;
+  }
+
   function groundReceiveOnly(obj) {
     obj.traverse(c => {
       if (c.isMesh) {
@@ -4129,6 +4139,7 @@
     }
 
     castReceive(g);
+    disableShadows(g);
 
     if (orientation === 'x') {
       g.rotation.y = Math.PI / 2;
@@ -4193,6 +4204,7 @@
     g.add(house);
     g.userData = { kind: 'house' };
     castReceive(g);
+    disableShadows(house);
     return g;
   }
 
@@ -4275,6 +4287,7 @@
     }
 
     castReceive(g);
+    disableShadows(g);
     g.userData = { kind: 'house' };
     return g;
   }
@@ -4330,6 +4343,7 @@
     }
 
     composite.userData = { kind: 'house' };
+    disableShadows(composite);
     return composite;
   }
 
