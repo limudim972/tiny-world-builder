@@ -9,7 +9,7 @@ Auto should not call the model on every placement.
 
 Current intended model:
 
-- Capture the current home board as sparse 8x8 JSON using `snapshotCells()`.
+- Capture the current rectangular home board as sparse JSON using `snapshotCells()`.
 - Ask the model for a ranked batch of candidate tile actions matching `AUTO_SUGGESTIONS_SCHEMA`.
 - Spend `autoSuggestionQueue` locally for multiple Auto placements.
 - Refresh after `AUTO_REFRESH_EVERY` Auto placements or when the queue runs out.
