@@ -12,7 +12,7 @@ revealed forever after that (a breadcrumb trail behind the user).
 Mental model:
 
 - Every user has one editable home board (size `GRID`, default 8).
-- The home `GRID x GRID` region is **always** at full opacity, full
+- The home `GRID_W x GRID_D` region is **always** at full opacity, full
   color, full scale — never fades, never pops.
 - Preview boards surround the home board and preview other users' content.
 - Nothing is rendered in grayscale — all tiles use their full color.
@@ -66,7 +66,7 @@ override those settings from Settings → World.
 
 Validation:
 
-- The home `GRID x GRID` board never fades and never scale-pops.
+- The home `GRID_W x GRID_D` board never fades and never scale-pops.
 - Panning forward should reveal new Preview pieces one cell at a time
   with a tiny scale-up pop.
 - Panning back over previously-revealed territory should keep that
@@ -76,4 +76,4 @@ Validation:
 - No tile should appear washed-out / desaturated.
 - `pickTile()` over a Preview board should still return `null`.
 - Home board outline should remain visible at every grid size
-  (8 / 12 / 16 / 20).
+  (the current rectangular board span).

@@ -2218,7 +2218,7 @@
     <div class="minimap-card">
       <canvas id="minimap-canvas" width="240" height="240"></canvas>
       <div class="minimap-foot">
-        <span id="minimap-size">8×8</span>
+        <span id="minimap-size">3×3</span>
         <span id="minimap-fps" data-tooltip="Frames per second">60 fps</span>
       </div>
     </div>
@@ -2380,7 +2380,7 @@
   </div>
 
   <div class="controls">
-    <button class="btn icon" id="home" data-tooltip="Center on your grid" aria-label="Center on your 8 by 8 grid">
+    <button class="btn icon" id="home" data-tooltip="Center on your grid" aria-label="Center on your home grid">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"/></svg>
     </button>
     <button class="btn icon" id="persp" data-tooltip="Perspective" aria-label="Toggle camera mode">
@@ -2667,17 +2667,20 @@
             </div>
             <div class="range-row">
               <span>Preview window</span>
-              <input id="render-visible-size" type="range" min="8" max="72" step="1" />
+              <input id="render-visible-size" type="range" min="2" max="6" step="1" />
               <output id="render-visible-size-value"></output>
             </div>
             <label>Home board size
               <select id="render-home-grid">
-                <option value="8">8 × 8</option>
-                <option value="12">12 × 12</option>
-                <option value="16">16 × 16</option>
-                <option value="20">20 × 20</option>
-                <option value="32">32 × 32</option>
-                <option value="48">48 × 48</option>
+                <option value="2x2">2 × 2</option>
+                <option value="2x3">2 × 3</option>
+                <option value="2x4">2 × 4</option>
+                <option value="3x2">3 × 2</option>
+                <option value="3x3">3 × 3</option>
+                <option value="3x4">3 × 4</option>
+                <option value="4x2">4 × 2</option>
+                <option value="4x3">4 × 3</option>
+                <option value="4x4">4 × 4</option>
               </select>
             </label>
             <div class="range-row">
@@ -2783,22 +2786,89 @@
      ===================================================================== */
 
   // -------- constants --------
-  // GRID is the home board edge length. Mutable: the user can resize it
-  // to 8 / 12 / 16 / 20 / 32 / 48 from Render Settings. Tiles outside the current
-  // home grid are still tracked in world[][] (used by ghost boards and
-  // export) but rendered grayscale; growing GRID brings those tiles into
-  // the home area and rebuilds them in full colour.
-  const HOME_GRID_DEFAULT = 8;
-  const HOME_GRID_MIN = 8;
-  // Expanded grid options so users can produce OWB-scale worlds.  32+
-  // uses the same per-cell renderer (no instancing) so it taxes the
-  // GPU on weak machines — the low-fps DPR backoff in the animate
-  // loop and the resolution-scale slider in Settings are the safety
-  // valves.  HOME_GRID_MAX bumps with the option list so the
-  // world[][] pre-allocation still covers every reachable cell.
-  const HOME_GRID_MAX = 48;
-  const HOME_GRID_OPTIONS = [8, 12, 16, 20, 32, 48];
-  let GRID = HOME_GRID_DEFAULT;
+  // The editable home board is rectangular. GRID remains a mutable span
+  // used by square preview-window code, while GRID_W / GRID_D are the
+  // saved board dimensions that control actual home tiles.
+  const HOME_GRID_DEFAULT = '3x3';
+  const HOME_GRID_MIN = 2;
+  const HOME_GRID_MAX = 4;
+  const HOME_GRID_OPTIONS = [
+    { key: '2x2', width: 2, depth: 2 },
+    { key: '2x3', width: 2, depth: 3 },
+    { key: '2x4', width: 2, depth: 4 },
+    { key: '3x2', width: 3, depth: 2 },
+    { key: '3x3', width: 3, depth: 3 },
+    { key: '3x4', width: 3, depth: 4 },
+    { key: '4x2', width: 4, depth: 2 },
+    { key: '4x3', width: 4, depth: 3 },
+    { key: '4x4', width: 4, depth: 4 },
+  ];
+  const HOME_GRID_DEFAULT_OPTION = HOME_GRID_OPTIONS.find(o => o.key === HOME_GRID_DEFAULT) || HOME_GRID_OPTIONS[0];
+  let GRID_W = HOME_GRID_DEFAULT_OPTION.width;
+  let GRID_D = HOME_GRID_DEFAULT_OPTION.depth;
+  let GRID = Math.max(GRID_W, GRID_D);
+
+  function boardSizeKey(width = GRID_W, depth = GRID_D) {
+    return width + 'x' + depth;
+  }
+
+  function boardSizeLabel(width = GRID_W, depth = GRID_D) {
+    return width + '×' + depth;
+  }
+
+  function normalizeBoardSize(value) {
+    if (value && typeof value === 'object') {
+      const width = parseInt(value.width, 10);
+      const depth = parseInt(value.depth, 10);
+      const key = boardSizeKey(width, depth);
+      return HOME_GRID_OPTIONS.find(o => o.key === key) || null;
+    }
+    if (typeof value === 'number') {
+      const key = boardSizeKey(value, value);
+      return HOME_GRID_OPTIONS.find(o => o.key === key) || null;
+    }
+    const raw = String(value || '').trim().toLowerCase().replace(/\s+/g, '');
+    const direct = HOME_GRID_OPTIONS.find(o => o.key === raw);
+    if (direct) return direct;
+    const match = raw.match(/^(\d+)[x×](\d+)$/);
+    if (match) {
+      const key = boardSizeKey(parseInt(match[1], 10), parseInt(match[2], 10));
+      return HOME_GRID_OPTIONS.find(o => o.key === key) || null;
+    }
+    const n = parseInt(raw, 10);
+    if (Number.isInteger(n)) return normalizeBoardSize(n);
+    return null;
+  }
+
+  function setHomeGridDimensions(width, depth) {
+    GRID_W = width;
+    GRID_D = depth;
+    GRID = Math.max(GRID_W, GRID_D);
+  }
+
+  function cellWorldX(x) {
+    return x - GRID_W / 2 + 0.5;
+  }
+
+  function cellWorldZ(z) {
+    return z - GRID_D / 2 + 0.5;
+  }
+
+  function worldXToCell(worldX) {
+    return Math.round(worldX + GRID_W / 2 - 0.5);
+  }
+
+  function worldZToCell(worldZ) {
+    return Math.round(worldZ + GRID_D / 2 - 0.5);
+  }
+
+  function globalXForBoardCell(boardX, x) {
+    return boardX * GRID_W + x;
+  }
+
+  function globalZForBoardCell(boardZ, z) {
+    return boardZ * GRID_D + z;
+  }
   // Tooltips render in one fixed body-level element so they are never
   // clipped by scrolling toolbars, minimaps, or flyouts.
   (function wireFixedTooltips() {
@@ -2892,8 +2962,8 @@
     window.addEventListener('resize', () => place(active));
   })();
   try {
-    const stored = parseInt(localStorage.getItem('tinyworld:home-grid') || '', 10);
-    if (HOME_GRID_OPTIONS.includes(stored)) GRID = stored;
+    const stored = normalizeBoardSize(localStorage.getItem('tinyworld:home-grid') || '');
+    if (stored) setHomeGridDimensions(stored.width, stored.depth);
   } catch (_) {}
   const TILE = 1;
   const TOP_H = 0.18;     // grass slab thickness
@@ -3922,6 +3992,15 @@
       return new THREE.Mesh(geo, M.roofBlue);
     },
 
+    // Flat roof slab shared by every house footprint.
+    flatRoof(width, depth, baseWallH = H.WALL_H) {
+      const g = new THREE.Group();
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(width + 0.12, 0.08, depth + 0.12), M.manorRoof);
+      slab.position.y = baseWallH + 0.04;
+      g.add(slab);
+      return g;
+    },
+
     // Door + arches + knob. orientation:
     //   'gable' — door faces +z, outer face at z=0 of the part's local frame.
     //   'side'  — door faces +x, outer face at x=0.
@@ -4029,14 +4108,11 @@
   // floors: 1 (default), 2, 3 — walls stretch upward, per-floor windows added,
   // and at floors === 2 an exterior staircase appears against the +x face
   // leading to an upper door (floors >= 3 implies internal stairs and the
-  // exterior set is removed). opts.{frontOverhang, backOverhang} let composite
-  // wings trim the inside end of the roof so it doesn't poke through the main
-  // wing's roof — pass backOverhang=0 to disable the inside overhang. opts.
-  // suppressBackGable hides the -z gable triangle (used for composite wings,
-  // since their back gable would be coplanar with the main wing's outer wall
-  // and cause z-fighting / redundant geometry).
+  // exterior set is removed). All house variants currently use flat roofs; old
+  // roof-style options may still be passed by callers but are intentionally
+  // ignored so every footprint reads consistently.
   function buildHouse(cells, orientation = 'z', floors = 1, opts = {}) {
-    const { frontOverhang = 0.15, backOverhang = 0.15, suppressBackGable = false, roofStyle = 'pitched' } = opts;
+    void opts;
     const g = new THREE.Group();
     const length = cells.length;
     // Solo cottage keeps its original slimmer depth. Clusters fill the cells.
@@ -4051,25 +4127,7 @@
     const walls = new THREE.Mesh(roundedBox(H.WALL_W, wallHTotal, WALL_D, 0.04), M.wallCream);
     g.add(walls);
 
-    let roof;
-    if (roofStyle === 'hipped') {
-      roof = Parts.hippedRoof(H.WALL_W, WALL_D, 0.45);
-      roof.traverse(c => { if (c.isMesh) c.material = M.manorRoof; });
-    } else {
-      // Gables sit above the top floor's wall top. Composite wings suppress the
-      // back gable since it's coplanar with the main wing's outer wall.
-      const gF = Parts.gable(); gF.position.set(0, roofLift, halfD - 0.04); g.add(gF);
-      if (!suppressBackGable) {
-        const gB = Parts.gable(); gB.position.set(0, roofLift, -halfD); g.add(gB);
-      }
-
-      // Roof — pitched form for the linear cluster house variants.
-      roof = Parts.pitchedRoof(WALL_D, frontOverhang, backOverhang);
-      roof.traverse(c => {
-        if (!c.isMesh) return;
-        c.material = (c.material === M.roofBlueD) ? M.manorRoofD : M.manorRoof;
-      });
-    }
+    const roof = Parts.flatRoof(H.WALL_W, WALL_D);
     roof.position.y = roofLift;
     g.add(roof);
 
@@ -4149,7 +4207,7 @@
   }
 
   function makeHouse(floors = 1) {
-    return buildHouse(linearHousePlan(1), 'z', floors, { roofStyle: 'hipped' });
+    return buildHouse(linearHousePlan(1), 'z', floors);
   }
 
   function isUnderpassTerrain(terrain) {
@@ -4209,11 +4267,11 @@
   }
 
   function makeStretchedHouse(length, orientation, floors = 1) {
-    return buildHouse(linearHousePlan(length), orientation, floors);
+    return buildHouse(linearHousePlan(length), orientation, floors, { roofStyle: 'flat' });
   }
 
-  // Square (2x2) farmhouse — single rectangular footprint with a hipped
-  // (pyramidal) roof. Door + window pair at the +z face, exterior stairs at
+  // Square (2x2) farmhouse — single rectangular footprint with a flat roof.
+  // Door + window pair at the +z face, exterior stairs at
   // floors === 2 on the +x side.
   function buildSquareHouse(floors = 1) {
     const g = new THREE.Group();
@@ -4225,15 +4283,9 @@
     const walls = new THREE.Mesh(roundedBox(SIDE, wallH, SIDE, 0.04), M.wallCream);
     g.add(walls);
 
-    // Hipped roof at the top of the wall stack
-    const roof = Parts.hippedRoof(SIDE, SIDE, 0.65);
-    roof.position.y = wallH;
+    // Flat roof at the top of the wall stack.
+    const roof = Parts.flatRoof(SIDE, SIDE, wallH);
     g.add(roof);
-
-    // Roof eave trim — a thin dark rim around the roof base for visual punch
-    const eaveR = new THREE.Mesh(new THREE.BoxGeometry(SIDE + 0.04, 0.04, SIDE + 0.04), M.roofBlueD);
-    eaveR.position.y = wallH + 0.02;
-    g.add(eaveR);
 
     // Door + window pair on +z face
     const door = Parts.door('gable');
@@ -4374,7 +4426,7 @@
   scene.add(worldGroup);
 
   function tilePos(x, z) {
-    return new THREE.Vector3(x - GRID / 2 + 0.5, 0, z - GRID / 2 + 0.5);
+    return new THREE.Vector3(cellWorldX(x), 0, cellWorldZ(z));
   }
 
   // -------- selection (select-tool) --------
@@ -4585,15 +4637,15 @@
   }
 
   function shouldRenderCellMesh(x, z) {
-    if (x >= 0 && x < GRID && z >= 0 && z < GRID) return true;
+    if (x >= 0 && x < GRID_W && z >= 0 && z < GRID_D) return true;
     if (cellMeshes[x + ',' + z]) return true;
     return !!(world[x] && world[x][z] && world[x][z].userEdited);
   }
 
   // -------- home board border --------
-  // A subtle outline around the editable GRID x GRID home board so the
+  // A subtle outline around the editable home board so the
   // user can tell at a glance where their board ends and the ghost
-  // boards begin. Rebuilt whenever GRID changes.
+  // boards begin. Rebuilt whenever its dimensions change.
   const homeBorderGroup = new THREE.Group();
   homeBorderGroup.name = 'homeBorder';
   scene.add(homeBorderGroup);
@@ -4616,11 +4668,12 @@
       const c = homeBorderGroup.children.pop();
       if (c.geometry) c.geometry.dispose();
     }
-    const half = GRID / 2;
-    addStrip(0, -half, GRID, 'x'); // north
-    addStrip(0,  half, GRID, 'x'); // south
-    addStrip(-half, 0, GRID, 'z'); // west
-    addStrip( half, 0, GRID, 'z'); // east
+    const halfW = GRID_W / 2;
+    const halfD = GRID_D / 2;
+    addStrip(0, -halfD, GRID_W, 'x'); // north
+    addStrip(0,  halfD, GRID_W, 'x'); // south
+    addStrip(-halfW, 0, GRID_D, 'z'); // west
+    addStrip( halfW, 0, GRID_D, 'z'); // east
   }
   buildHomeBorder();
 
@@ -4628,7 +4681,7 @@
   // Non-editable neighbouring boards. They preview the multiplayer shape of
   // the world without changing the central board's world/cellMeshes contract.
   const ghostBoards = new Map(); // 'boardX,boardZ' -> THREE.Group
-  const ghostBoardCells = new Map(); // 'boardX,boardZ' -> 8x8 local board cells
+  const ghostBoardCells = new Map(); // 'boardX,boardZ' -> local rectangular board cells
   let ghostBoardsBlank = false;
   const VIEW_EDGE_FADE_TILES = 2;
   let ghostPreloadRadius = renderVisibleDistance;
@@ -4641,23 +4694,27 @@
 
   function makeBlankBoardWorld() {
     const cells = [];
-    for (let x = 0; x < GRID; x++) {
+    for (let x = 0; x < GRID_W; x++) {
       cells[x] = [];
-      for (let z = 0; z < GRID; z++) {
+      for (let z = 0; z < GRID_D; z++) {
         cells[x][z] = { terrain: 'grass', terrainFloors: 1, kind: null, floors: 1, buildingType: null, fenceSide: null, extras: [] };
       }
     }
     return cells;
   }
 
-  function boardFromTargetCoord(v) {
-    return Math.floor((v + GRID / 2) / GRID);
+  function boardFromTargetCoordX(v) {
+    return Math.floor((v + GRID_W / 2) / GRID_W);
+  }
+
+  function boardFromTargetCoordZ(v) {
+    return Math.floor((v + GRID_D / 2) / GRID_D);
   }
 
   function ghostCellPos(boardX, boardZ, x, z) {
     const p = tilePos(x, z);
-    p.x += boardX * GRID;
-    p.z += boardZ * GRID;
+    p.x += boardX * GRID_W;
+    p.z += boardZ * GRID_D;
     return p;
   }
 
@@ -4676,7 +4733,7 @@
   //   - Where a river meets a horizontal path you get a bridge tile.
   //
   // Per-cell decoration (houses, trees, crops, rocks) uses cellRand on
-  // GLOBAL coords (boardX * GRID + x, boardZ * GRID + z) so a given
+  // GLOBAL coords (boardX * GRID_W + x, boardZ * GRID_D + z) so a given
   // world cell always renders the same content even if it's reached
   // from different boards or after a session restart.
   function ghostHash(a, b, salt) {
@@ -4690,13 +4747,13 @@
   function pathZForRow(boardZ) {
     const h = ghostHash(boardZ, 0, 0xa11ce);
     if ((h % 100) < 30) return -1;          // ~30 % of rows have no road
-    return h % GRID;
+    return h % GRID_D;
   }
   // Col-shared vertical path: returns X within a board, or -1 for none.
   function pathXForCol(boardX) {
     const h = ghostHash(boardX, 0, 0xb0b);
     if ((h % 100) < 35) return -1;
-    return h % GRID;
+    return h % GRID_W;
   }
   // Col-shared river: returns X within a board, or -1 for none. Rivers
   // are rarer than paths and prefer columns that don't already host a
@@ -4704,9 +4761,9 @@
   function riverXForCol(boardX) {
     const h = ghostHash(boardX, 0, 0xfe11a);
     if ((h % 100) < 88) return -1;          // ~12 % of cols have a river
-    let x = h % GRID;
+    let x = h % GRID_W;
     const px = pathXForCol(boardX);
-    if (x === px) x = (x + 1) % GRID;
+    if (x === px) x = (x + 1) % GRID_W;
     return x;
   }
 
@@ -4724,10 +4781,10 @@
     const pathZ = pathZForRow(boardZ);
     const pathX = pathXForCol(boardX);
     if (pathZ >= 0) {
-      for (let x = 0; x < GRID; x++) cells[x][pathZ].terrain = 'path';
+      for (let x = 0; x < GRID_W; x++) cells[x][pathZ].terrain = 'path';
     }
     if (pathX >= 0) {
-      for (let z = 0; z < GRID; z++) cells[pathX][z].terrain = 'path';
+      for (let z = 0; z < GRID_D; z++) cells[pathX][z].terrain = 'path';
     }
 
     // 2) Rivers — column shared so they flow vertically through every
@@ -4735,7 +4792,7 @@
     // drop a bridge so the road still works.
     const riverX = riverXForCol(boardX);
     if (riverX >= 0) {
-      for (let z = 0; z < GRID; z++) {
+      for (let z = 0; z < GRID_D; z++) {
         cells[riverX][z] = { terrain: 'water', kind: null, floors: 1, buildingType: null, fenceSide: null, extras: [] };
       }
       if (pathZ >= 0) {
@@ -4746,12 +4803,13 @@
     // 3) Decoration — keyed off GLOBAL world coords so every cell is
     // stable regardless of how it was reached.
     const boardSeed = ghostHash(boardX, boardZ, 0xdec0);
+    const pathNearZ = pathZ >= 0 ? pathZ : Math.floor(GRID_D / 2);
     const houseSpots = [
-      [1 + (ghostHash(boardX, boardZ, 1) % 6), Math.max(1, (pathZ >= 0 ? pathZ : 3) - 1)],
-      [1 + (ghostHash(boardX, boardZ, 2) % 6), Math.min(GRID - 2, (pathZ >= 0 ? pathZ : 3) + 1)],
+      [ghostHash(boardX, boardZ, 1) % GRID_W, Math.max(0, pathNearZ - 1)],
+      [ghostHash(boardX, boardZ, 2) % GRID_W, Math.min(GRID_D - 1, pathNearZ + 1)],
     ];
     houseSpots.forEach(([x, z], i) => {
-      if (x < 0 || x >= GRID || z < 0 || z >= GRID) return;
+      if (x < 0 || x >= GRID_W || z < 0 || z >= GRID_D) return;
       if (cells[x][z].terrain === 'water') return;
       if (cells[x][z].terrain === 'path') return;
       cells[x][z] = {
@@ -4764,13 +4822,13 @@
       };
     });
 
-    const cropBaseX = ghostHash(boardX, boardZ, 0xc01) % Math.max(1, GRID - 3);
-    const cropBaseZ = ghostHash(boardX, boardZ, 0xc11) % Math.max(1, GRID - 2);
-    for (let x = cropBaseX; x < cropBaseX + 3 && x < GRID; x++) {
-      for (let z = cropBaseZ; z < cropBaseZ + 2 && z < GRID; z++) {
+    const cropBaseX = ghostHash(boardX, boardZ, 0xc01) % Math.max(1, GRID_W - 1);
+    const cropBaseZ = ghostHash(boardX, boardZ, 0xc11) % Math.max(1, GRID_D - 1);
+    for (let x = cropBaseX; x < cropBaseX + 2 && x < GRID_W; x++) {
+      for (let z = cropBaseZ; z < cropBaseZ + 2 && z < GRID_D; z++) {
         if (cells[x][z].kind || cells[x][z].terrain === 'water' || cells[x][z].terrain === 'path') continue;
         const cropKinds = ['crop', 'corn', 'wheat', 'pumpkin'];
-        const gx = boardX * GRID + x, gz = boardZ * GRID + z;
+        const gx = globalXForBoardCell(boardX, x), gz = globalZForBoardCell(boardZ, z);
         cells[x][z] = {
           terrain: 'dirt',
           kind: cropKinds[Math.floor(cellRand(gx, gz, 0xc121) * cropKinds.length)],
@@ -4781,11 +4839,12 @@
 
     // Scatter trees / tufts / rocks using global coords so the same
     // patch of world always renders the same scenery.
-    for (let i = 0; i < 14; i++) {
-      const x = Math.floor(cellRand(boardX * 11 + i, boardZ * 13, 0xa1) * GRID);
-      const z = Math.floor(cellRand(boardX * 17, boardZ * 19 + i, 0xa2) * GRID);
+    const scatterCount = Math.max(2, Math.round(GRID_W * GRID_D * 0.65));
+    for (let i = 0; i < scatterCount; i++) {
+      const x = Math.floor(cellRand(boardX * 11 + i, boardZ * 13, 0xa1) * GRID_W);
+      const z = Math.floor(cellRand(boardX * 17, boardZ * 19 + i, 0xa2) * GRID_D);
       if (cells[x][z].kind || cells[x][z].terrain !== 'grass') continue;
-      const gx = boardX * GRID + x, gz = boardZ * GRID + z;
+      const gx = globalXForBoardCell(boardX, x), gz = globalZForBoardCell(boardZ, z);
       const r = cellRand(gx, gz, 0xa3);
       cells[x][z] = {
         terrain: 'grass',
@@ -4806,16 +4865,16 @@
   }
 
   // Resolve a cell at any (boardX, boardZ, x, z) — wrapping into the
-  // neighbour board when x/z fall outside [0, GRID). Returns null if the
+  // neighbour board when x/z fall outside the rectangular board. Returns null if the
   // board generation is suppressed (e.g. blank ghost mode).
   function ghostCellAt(boardX, boardZ, x, z) {
     let bx = boardX, bz = boardZ;
-    if (x < 0)      { bx -= 1; x += GRID; }
-    else if (x >= GRID) { bx += 1; x -= GRID; }
-    if (z < 0)      { bz -= 1; z += GRID; }
-    else if (z >= GRID) { bz += 1; z -= GRID; }
-    const gx = bx * GRID + x;
-    const gz = bz * GRID + z;
+    if (x < 0)      { bx -= 1; x += GRID_W; }
+    else if (x >= GRID_W) { bx += 1; x -= GRID_W; }
+    if (z < 0)      { bz -= 1; z += GRID_D; }
+    else if (z >= GRID_D) { bz += 1; z -= GRID_D; }
+    const gx = globalXForBoardCell(bx, x);
+    const gz = globalZForBoardCell(bz, z);
     // Home board (0, 0): world[][] is always the truth, edited or not.
     if (bx === 0 && bz === 0) {
       if (x < 0 || z < 0 || x >= HOME_GRID_MAX || z >= HOME_GRID_MAX) return null;
@@ -4860,19 +4919,19 @@
   }
 
   function ghostBridgeOrientation(cells, x, z) {
-    const eastPath = x < GRID - 1 && cells[x + 1][z].terrain === 'path';
+    const eastPath = x < GRID_W - 1 && cells[x + 1][z].terrain === 'path';
     const westPath = x > 0 && cells[x - 1][z].terrain === 'path';
-    const southPath = z < GRID - 1 && cells[x][z + 1].terrain === 'path';
+    const southPath = z < GRID_D - 1 && cells[x][z + 1].terrain === 'path';
     const northPath = z > 0 && cells[x][z - 1].terrain === 'path';
     if ((eastPath || westPath) && !(southPath || northPath)) return 'x';
     if (southPath || northPath) return 'z';
-    return x < GRID - 1 || x > 0 ? 'x' : 'z';
+    return x < GRID_W - 1 || x > 0 ? 'x' : 'z';
   }
 
-  // Cells outside the saved 8x8 home grid are rendered in grayscale so the
+  // Cells outside the saved home grid are rendered in grayscale so the
   // user can tell at a glance that those areas won't be saved.
   function isOutsideHomeGrid(x, z) {
-    return x < 0 || x >= GRID || z < 0 || z >= GRID;
+    return x < 0 || x >= GRID_W || z < 0 || z >= GRID_D;
   }
 
   // Grayscale has been disabled — ghost / out-of-bounds tiles render in
@@ -5082,9 +5141,8 @@
   }
 
   // Visibility model:
-  //  - Small home boards are always fully rendered. Large 32+ boards use
-  //    the render window as a lightweight visibility bubble so 48x48 worlds
-  //    don't keep thousands of far-away roots in the draw list.
+  //  - Home boards are always fully rendered; the render window still gates
+  //    preview boards and sparse edits outside the saved rectangle.
   //  - Outside the home board, cells are revealed once they enter the
   //    visible square around the camera target — and stay revealed
   //    afterwards (the user keeps the breadcrumb trail behind them).
@@ -5092,8 +5150,10 @@
   //    revealOpacityFor() below; this raw function only answers the
   //    "is it currently in the visible window?" question.
   function opacityAtWorldPosition(x, z) {
-    const homeHalf = GRID / 2;
-    if (Math.abs(x) <= homeHalf && Math.abs(z) <= homeHalf) return 1;
+    const homeHalfW = GRID_W / 2;
+    const homeHalfD = GRID_D / 2;
+    if (Math.abs(x) <= homeHalfW && Math.abs(z) <= homeHalfD) return 1;
+    if (!hasUserPanned) return 0;
     const visibleHalf = renderVisibleSize / 2;
     const dist = Math.max(Math.abs(x - target.x), Math.abs(z - target.z));
     return dist <= visibleHalf ? 1 : 0;
@@ -5127,20 +5187,20 @@
     board.userData = { ghostBoard: true, boardX, boardZ };
     board.renderOrder = -5;
 
-    for (let x = 0; x < GRID; x++) {
-      for (let z = 0; z < GRID; z++) {
+    for (let x = 0; x < GRID_W; x++) {
+      for (let z = 0; z < GRID_D; z++) {
         // Only skip cells the user has explicitly edited (userEdited
         // flag). The pre-allocated world[0..HOME_GRID_MAX) rows are full
         // of default grass that must NOT mask the ghost board — they're
         // future home cells, not overrides.
-        const gx = x + boardX * GRID;
-        const gz = z + boardZ * GRID;
+        const gx = globalXForBoardCell(boardX, x);
+        const gz = globalZForBoardCell(boardZ, z);
         if (world[gx] && world[gx][gz] && world[gx][gz].userEdited) continue;
 
         const tile = makeTile(cells[x][z].terrain, {
           path: getGhostNeighbors(cells, x, z, 'terrain', 'path', boardX, boardZ),
           terrain: getGhostTerrainNeighbors(cells, x, z, boardX, boardZ),
-        }, x + boardX * GRID, z + boardZ * GRID, tileLevelForCell(cells[x][z]));
+        }, gx, gz, tileLevelForCell(cells[x][z]));
         tile.position.copy(ghostCellPos(boardX, boardZ, x, z));
         tile.userData.gx = x;
         tile.userData.gz = z;
@@ -5188,8 +5248,8 @@
   }
 
   function updateGhostRenderBubble() {
-    const cx = boardFromTargetCoord(target.x);
-    const cz = boardFromTargetCoord(target.z);
+    const cx = boardFromTargetCoordX(target.x);
+    const cz = boardFromTargetCoordZ(target.z);
     let anyUnsavedVisible = false;
     for (const board of ghostBoards.values()) {
       const boardDist = Math.max(
@@ -5267,8 +5327,8 @@
     pendingGhostBoardSet.add(key);
   }
   function sortPendingByDistance() {
-    const cx = boardFromTargetCoord(target.x);
-    const cz = boardFromTargetCoord(target.z);
+    const cx = boardFromTargetCoordX(target.x);
+    const cz = boardFromTargetCoordZ(target.z);
     pendingGhostBoards.sort((a, b) => {
       const da = Math.max(Math.abs(a[0] - cx), Math.abs(a[1] - cz));
       const db = Math.max(Math.abs(b[0] - cx), Math.abs(b[1] - cz));
@@ -5292,8 +5352,8 @@
     if (built) updateGhostRenderBubble();
   }
   function ensureGhostBoardsAroundTarget() {
-    const cx = boardFromTargetCoord(target.x);
-    const cz = boardFromTargetCoord(target.z);
+    const cx = boardFromTargetCoordX(target.x);
+    const cz = boardFromTargetCoordZ(target.z);
     for (let bx = cx - ghostPreloadRadius; bx <= cx + ghostPreloadRadius; bx++) {
       for (let bz = cz - ghostPreloadRadius; bz <= cz + ghostPreloadRadius; bz++) {
         enqueueGhostBoard(bx, bz);
@@ -5447,8 +5507,8 @@
         const mass = massForMesh(a.obj);
         const gx = a.obj.userData.gx;
         const gz = a.obj.userData.gz;
-        const ox = (typeof gx === 'number') ? gx : Math.round(a.obj.position.x + GRID / 2 - 0.5);
-        const oz = (typeof gz === 'number') ? gz : Math.round(a.obj.position.z + GRID / 2 - 0.5);
+        const ox = (typeof gx === 'number') ? gx : worldXToCell(a.obj.position.x);
+        const oz = (typeof gz === 'number') ? gz : worldZToCell(a.obj.position.z);
         if (mass >= 2) {
           triggerRipple(ox, oz, mass); // also plays 'ripple' SFX
         } else if (typeof playSfx === 'function') {
@@ -5467,8 +5527,8 @@
           const mass = massForMesh(a.obj);
           const gx = a.obj.userData.gx;
           const gz = a.obj.userData.gz;
-          const ox = (typeof gx === 'number') ? gx : Math.round(a.obj.position.x + GRID / 2 - 0.5);
-          const oz = (typeof gz === 'number') ? gz : Math.round(a.obj.position.z + GRID / 2 - 0.5);
+          const ox = (typeof gx === 'number') ? gx : worldXToCell(a.obj.position.x);
+          const oz = (typeof gz === 'number') ? gz : worldZToCell(a.obj.position.z);
           if (mass >= 2) triggerRipple(ox, oz, mass);
           else if (typeof playSfx === 'function') playSfx('land', 0.35);
         }
@@ -5810,14 +5870,14 @@
         mesh = buildCompositeHouse(cluster.topology, floors);
         // Position at cluster bounding-box centre so wings fall in place.
         const t = cluster.topology;
-        posX = (t.bbox.xMin + t.bbox.xMax) / 2 - GRID / 2 + 0.5;
-        posZ = (t.bbox.zMin + t.bbox.zMax) / 2 - GRID / 2 + 0.5;
+        posX = cellWorldX((t.bbox.xMin + t.bbox.xMax) / 2);
+        posZ = cellWorldZ((t.bbox.zMin + t.bbox.zMax) / 2);
         setGridUserData = false;
       } else if (cluster.kind === 'square') {
         mesh = buildSquareHouse(floors);
         // Centre the 2x2 mesh between the four cells.
-        posX = (cluster.anchorX + 0.5) - GRID / 2 + 0.5;
-        posZ = (cluster.anchorZ + 0.5) - GRID / 2 + 0.5;
+        posX = cellWorldX(cluster.anchorX + 0.5);
+        posZ = cellWorldZ(cluster.anchorZ + 0.5);
         setGridUserData = false;
       }
     } else return;
@@ -5979,37 +6039,56 @@
       if (e.extras) for (const m of e.extras) { worldGroup.remove(m); disposeGroup(m); }
     }
     for (const k of Object.keys(cellMeshes)) delete cellMeshes[k];
-    for (let x = 0; x < GRID; x++)
-      for (let z = 0; z < GRID; z++)
+    for (let x = 0; x < GRID_W; x++)
+      for (let z = 0; z < GRID_D; z++)
         world[x][z] = { terrain: null, kind: null, floors: 1, buildingType: null, fenceSide: null };
     dropAnims.length = 0;
 
     // Build the layout in one shot so each cell only animates once.
     const layout = {};
-    for (let x = 0; x < GRID; x++)
-      for (let z = 0; z < GRID; z++)
+    for (let x = 0; x < GRID_W; x++)
+      for (let z = 0; z < GRID_D; z++)
         layout[x + ',' + z] = { terrain: 'grass', kind: null };
 
-    // Build a compact starter scene with water, paths, and cottages.
-    for (let x = 0; x < GRID; x++) layout[x + ',2'] = { terrain: 'water', kind: null };
-    for (let z = 0; z < GRID; z++) {
-      if (z !== 2) layout['3,' + z] = { terrain: 'path', kind: null };
+    // Build a compact starter scene that adapts cleanly to 2x2 through 4x4.
+    const waterRow = GRID_D >= 3 ? 1 : -1;
+    if (waterRow >= 0) {
+      for (let x = 0; x < GRID_W; x++) layout[x + ',' + waterRow] = { terrain: 'water', kind: null };
     }
-    for (let x = 1; x <= 6; x++) layout[x + ',5'] = { terrain: 'path', kind: null };
+    const pathX = Math.floor(GRID_W / 2);
+    for (let z = 0; z < GRID_D; z++) {
+      if (z !== waterRow) layout[pathX + ',' + z] = { terrain: 'path', kind: null };
+    }
+    if (GRID_D >= 4) {
+      const pathZ = GRID_D - 1;
+      for (let x = 0; x < GRID_W; x++) layout[x + ',' + pathZ] = { terrain: 'path', kind: null };
+    }
 
-    layout['1,4'] = { terrain: 'grass', kind: 'house' };
-    layout['2,4'] = { terrain: 'grass', kind: 'house' };
-    layout['5,4'] = { terrain: 'grass', kind: 'house', floors: 2 };
-    layout['6,3'] = { terrain: 'grass', kind: 'house', floors: 3 };
-
-    layout['0,0'] = { terrain: 'grass', kind: 'house', floors: 2 };
+    const houseSpots = [
+      [0, 0, 2],
+      [Math.max(0, GRID_W - 1), 0, 1],
+      [0, Math.max(0, GRID_D - 1), 1],
+      [Math.max(0, GRID_W - 1), Math.max(0, GRID_D - 1), 3],
+      [Math.max(0, pathX - 1), Math.max(0, GRID_D - 1), 1],
+    ];
+    const usedHouseSpots = new Set();
+    for (const [x, z, floors] of houseSpots) {
+      if (x < 0 || x >= GRID_W || z < 0 || z >= GRID_D) continue;
+      const key = x + ',' + z;
+      if (usedHouseSpots.has(key)) continue;
+      const cell = layout[key];
+      if (!cell || cell.terrain === 'water' || cell.terrain === 'path') continue;
+      layout[key] = { terrain: 'grass', kind: 'house', floors };
+      usedHouseSpots.add(key);
+      if (usedHouseSpots.size >= Math.min(3, GRID_W * GRID_D)) break;
+    }
 
     // Board tiles are the stage: render them immediately. Props/buildings
     // still land in a diagonal sweep so initial load has motion without the
     // ground itself popping in cell by cell.
     const OBJECT_STAGGER = 0.035;
-    for (let x = 0; x < GRID; x++) {
-      for (let z = 0; z < GRID; z++) {
+    for (let x = 0; x < GRID_W; x++) {
+      for (let z = 0; z < GRID_D; z++) {
         const cell = layout[x + ',' + z];
         let terrain = cell.terrain || 'grass';
         let kind = cell.kind || null;
@@ -6023,15 +6102,15 @@
       }
     }
 
-    for (let x = 0; x < GRID; x++) {
-      for (let z = 0; z < GRID; z++) {
+    for (let x = 0; x < GRID_W; x++) {
+      for (let z = 0; z < GRID_D; z++) {
         renderCellTile(x, z, {
           animate: false,
         });
       }
     }
-    for (let x = 0; x < GRID; x++) {
-      for (let z = 0; z < GRID; z++) {
+    for (let x = 0; x < GRID_W; x++) {
+      for (let z = 0; z < GRID_D; z++) {
         const baseDelay = (x + z) * OBJECT_STAGGER;
         renderCellObject(x, z, {
           animate: true,
@@ -6533,8 +6612,8 @@
       // cellMesh.
       const ghostCells = makeGhostWorld(cell.boardX, cell.boardZ);
       const ghostCell = ghostCells[cell.x][cell.z];
-      const x = cell.x + (cell.boardX || 0) * GRID;
-      const z = cell.z + (cell.boardZ || 0) * GRID;
+      const x = globalXForBoardCell(cell.boardX || 0, cell.x);
+      const z = globalZForBoardCell(cell.boardZ || 0, cell.z);
       if (!world[x]) world[x] = [];
       world[x][z] = { ...ghostCell, userEdited: true };
       removeGhostCellMesh(cell.boardX, cell.boardZ, cell.x, cell.z);
@@ -6934,9 +7013,9 @@
   // machine and re-rendered through whatever the current rules are.
   document.getElementById('export').addEventListener('click', () => {
     const cells = [];
-    for (let x = 0; x < GRID; x++) {
+    for (let x = 0; x < GRID_W; x++) {
       if (!world[x]) continue;
-      for (let z = 0; z < GRID; z++) {
+      for (let z = 0; z < GRID_D; z++) {
         const c = world[x][z];
         if (c) {
           const entry = serializeCell(x, z, c);
@@ -6944,11 +7023,11 @@
         }
       }
     }
-    // Also export cells outside the 8x8 home board
-    for (let x = -GRID; x < GRID * 2; x++) {
-      if (x >= 0 && x < GRID) continue;
+    // Also export cells outside the home board
+    for (let x = -GRID_W; x < GRID_W * 2; x++) {
+      if (x >= 0 && x < GRID_W) continue;
       if (!world[x]) continue;
-      for (let z = -GRID; z < GRID * 2; z++) {
+      for (let z = -GRID_D; z < GRID_D * 2; z++) {
         const c = world[x][z];
         if (c) {
           const entry = serializeCell(x, z, c);
@@ -6956,7 +7035,7 @@
         }
       }
     }
-    const data = { v: STORAGE_VERSION, gridSize: GRID, cells, cameraMode, toolId: selectedTool && selectedTool.id };
+    const data = { v: STORAGE_VERSION, gridSize: boardSizeKey(), gridWidth: GRID_W, gridDepth: GRID_D, cells, cameraMode, toolId: selectedTool && selectedTool.id };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url  = URL.createObjectURL(blob);
     const ts   = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
@@ -7059,7 +7138,7 @@
   // ---------- first-person walk ----------
   // Ports OWB's src/main.js:194-343 ideas (eye-level camera, pointer-lock
   // mouse-look, WASD + space jump + shift sprint) but simplified for
-  // tinyworld's 8×8 grid:
+  // tinyworld's rectangular home grid:
   //   - ground height is sampled directly from world[x][z].terrainFloors
   //     rather than via raycast (every cell is 1×1 with a known top Y).
   //   - collision is bound-clamping to the home grid; no obstacle box
@@ -7088,8 +7167,8 @@
 
   function fpGroundYAt(worldX, worldZ) {
     // Convert world-space (x, z) back to grid indices.
-    const gx = Math.round(worldX + GRID / 2 - 0.5);
-    const gz = Math.round(worldZ + GRID / 2 - 0.5);
+    const gx = worldXToCell(worldX);
+    const gz = worldZToCell(worldZ);
     const cell = (world[gx] && world[gx][gz]) ? world[gx][gz] : null;
     const tf = cell ? (cell.terrainFloors || 1) : 1;
     // Match the renderer's terrainRiseForLevel: each floor adds ~TOP_H.
@@ -7102,7 +7181,8 @@
     fp.active = true;
     // Spawn at home-board centre at ground height, facing toward the
     // negative Z axis so the user immediately sees the diorama.
-    fp.pos.set(0, fpGroundYAt(0, GRID * 0.4), GRID * 0.4);
+    const spawnZ = Math.max(0, GRID_D / 2 - 0.6);
+    fp.pos.set(0, fpGroundYAt(0, spawnZ), spawnZ);
     fp.yaw = 0;
     fp.pitch = 0;
     fp.vy = 0;
@@ -7174,9 +7254,10 @@
     }
     // Clamp to the home-grid bounds (small margin so eye doesn't peek
     // past the world edge).
-    const bound = GRID / 2 - 0.3;
-    fp.pos.x = Math.max(-bound, Math.min(bound, fp.pos.x));
-    fp.pos.z = Math.max(-bound, Math.min(bound, fp.pos.z));
+    const boundX = Math.max(0.2, GRID_W / 2 - 0.3);
+    const boundZ = Math.max(0.2, GRID_D / 2 - 0.3);
+    fp.pos.x = Math.max(-boundX, Math.min(boundX, fp.pos.x));
+    fp.pos.z = Math.max(-boundZ, Math.min(boundZ, fp.pos.z));
     // Ground-following + gravity.
     const groundY = fpGroundYAt(fp.pos.x, fp.pos.z);
     if (!fp.grounded) {
@@ -7203,23 +7284,26 @@
 
   function resetCameraDefaults() {
     // Scale the default view to the current home board so the whole
-    // grid sits inside the frame regardless of size (8 / 12 / 16 / 20 / 32 / 48).
-    viewSize = DEFAULT_VIEW_SIZE * (GRID / HOME_GRID_DEFAULT);
+    // board sits inside the frame regardless of rectangular size.
+    const defaultSpan = Math.max(HOME_GRID_DEFAULT_OPTION.width, HOME_GRID_DEFAULT_OPTION.depth);
+    viewSize = DEFAULT_VIEW_SIZE * (GRID / defaultSpan);
     azimuth = DEFAULT_AZIMUTH;
     polar = DEFAULT_POLAR;
     target.copy(DEFAULT_TARGET);
     setCameraMode(DEFAULT_CAMERA_MODE);
   }
 
-  // Resize the home board between the allowed presets (8 / 12 / 16 / 20 / 32 / 48).
+  // Resize the home board between the allowed rectangular presets.
   // World data outside the previous board is preserved in world[][] —
-  // growing the grid brings those tiles into the home area (so the
+  // growing the board brings those tiles into the home area (so the
   // existing 'outside home' grayscale is no longer applied to them).
   // Shrinking is supported but the now-outside cells aren't re-rendered
   // in their outside-home form; expansion is the primary path.
-  function setHomeGridSize(n, opts) {
+  function setHomeGridSize(value, opts) {
     const skipRebuild = !!(opts && opts.skipRebuild);
-    if (!HOME_GRID_OPTIONS.includes(n) || n === GRID) return;
+    const next = normalizeBoardSize(value);
+    if (!next || (next.width === GRID_W && next.depth === GRID_D)) return;
+    const fromKey = boardSizeKey();
 
     // Backup the full pre-resize state to localStorage so the user can
     // recover if a resize ever drops something we didn't preserve.
@@ -7239,20 +7323,23 @@
       localStorage.setItem('tinyworld:home-grid:backup', JSON.stringify({
         v: STORAGE_VERSION,
         savedAt: Date.now(),
-        fromGrid: GRID,
-        toGrid: n,
-        gridSize: GRID,
+        fromGrid: fromKey,
+        toGrid: next.key,
+        gridSize: fromKey,
+        gridWidth: GRID_W,
+        gridDepth: GRID_D,
         cells: backupCells,
       }));
     } catch (_) {}
 
-    GRID = n;
+    setHomeGridDimensions(next.width, next.depth);
+    hasUserPanned = false;
     applyAutoPreviewSettingsForGrid({ explored: hasUserPanned, deferEnsure: true });
-    try { localStorage.setItem('tinyworld:home-grid', String(GRID)); } catch (_) {}
+    try { localStorage.setItem('tinyworld:home-grid', boardSizeKey()); } catch (_) {}
     updateUnsavedCopyForGrid();
     if (typeof buildHomeBorder === 'function') buildHomeBorder();
 
-    // Drop every ghost board — their world positions are anchored to GRID.
+    // Drop every ghost board — their world positions are anchored to board dimensions.
     for (const [key, board] of ghostBoards) {
       worldGroup.remove(board);
       disposeGroup(board);
@@ -7260,7 +7347,7 @@
     ghostBoards.clear();
     ghostBoardCells.clear();
 
-    // Dispose every existing cell mesh; cellPos depends on GRID so all
+    // Dispose every existing cell mesh; tilePos depends on board dimensions so all
     // tiles need to be re-positioned. setCell will rebuild from
     // world[x][z] which we never throw away.
     for (const key of Object.keys(cellMeshes)) {
@@ -7271,12 +7358,15 @@
       delete cellMeshes[key];
     }
 
-    if (skipRebuild) return;
+    if (skipRebuild) {
+      notifyHomeGridResized();
+      return;
+    }
 
     suppressSave = true;
     // Rebuild every home cell from the surviving world data.
-    for (let x = 0; x < GRID; x++) {
-      for (let z = 0; z < GRID; z++) {
+    for (let x = 0; x < GRID_W; x++) {
+      for (let z = 0; z < GRID_D; z++) {
         const c = world[x][z];
         setCell(x, z, {
           terrain: c.terrain || 'grass',
@@ -7301,7 +7391,7 @@
     for (let x = 0; x < HOME_GRID_MAX; x++) {
       if (!world[x]) continue;
       for (let z = 0; z < HOME_GRID_MAX; z++) {
-        if (x < GRID && z < GRID) continue;
+        if (x < GRID_W && z < GRID_D) continue;
         const c = world[x][z];
         if (!c) continue;
         // Only re-render cells the user actually placed something on —
@@ -7329,6 +7419,7 @@
     if (typeof ensureGhostBoardsAroundTarget === 'function') ensureGhostBoardsAroundTarget();
     // Re-frame the camera so the new board centres correctly.
     resetCameraDefaults();
+    notifyHomeGridResized();
     saveState();
   }
 
@@ -7336,13 +7427,20 @@
   // the current home grid size. Called on init and after every resize.
   function updateUnsavedCopyForGrid() {
     const bannerText = document.getElementById('unsaved-banner-text');
-    if (bannerText) bannerText.textContent = `Areas outside your ${GRID}×${GRID} grid aren't saved`;
+    if (bannerText) bannerText.textContent = `Areas outside your ${boardSizeLabel()} grid aren't saved`;
     const confirmCopy = document.getElementById('confirm-reset-copy');
-    if (confirmCopy) confirmCopy.textContent = `This replaces your current build with the preset village. You'll lose anything you've placed on the ${GRID}×${GRID} grid.`;
+    if (confirmCopy) confirmCopy.textContent = `This replaces your current build with the preset village. You'll lose anything you've placed on the ${boardSizeLabel()} grid.`;
+  }
+
+  function notifyHomeGridResized() {
+    window.dispatchEvent(new CustomEvent('tinyworld:grid-resized', {
+      detail: { width: GRID_W, depth: GRID_D, key: boardSizeKey() },
+    }));
+    if (typeof requestMinimapRepaint === 'function') requestMinimapRepaint();
   }
   updateUnsavedCopyForGrid();
 
-  // Smoothly tween the camera target/zoom back to the home 8x8 grid
+  // Smoothly tween the camera target/zoom back to the home grid
   // without touching world data — used by the Home button.
   let homeTween = null;
   function flyHomeCamera() {
@@ -7351,7 +7449,7 @@
       az: azimuth, po: polar,
     };
     const end = {
-      tx: DEFAULT_TARGET.x, tz: DEFAULT_TARGET.z, view: DEFAULT_VIEW_SIZE,
+      tx: DEFAULT_TARGET.x, tz: DEFAULT_TARGET.z, view: DEFAULT_VIEW_SIZE * (GRID / Math.max(HOME_GRID_DEFAULT_OPTION.width, HOME_GRID_DEFAULT_OPTION.depth)),
       az: DEFAULT_AZIMUTH, po: DEFAULT_POLAR,
     };
     homeTween = { start, end, t: 0, dur: 0.55 };
@@ -7375,7 +7473,7 @@
   }
 
   // Tear down everything outside the home board. Used by doReset and
-  // on first load so the world genuinely starts as a single GRID x GRID
+  // on first load so the world genuinely starts as a single home board
   // tile and grows outward as the user pans.
   function clearGhostWorld() {
     // Dispose every ghost board mesh + clear pending queue + cache.
@@ -7393,7 +7491,7 @@
     // doesn't skip them next time.
     for (const key of Object.keys(cellMeshes)) {
       const [kx, kz] = key.split(',').map(Number);
-      if (kx >= 0 && kx < GRID && kz >= 0 && kz < GRID) continue;
+      if (kx >= 0 && kx < GRID_W && kz >= 0 && kz < GRID_D) continue;
       const entry = cellMeshes[key];
       if (entry.tile)   { worldGroup.remove(entry.tile);   disposeGroup(entry.tile); }
       if (entry.object) { worldGroup.remove(entry.object); disposeGroup(entry.object); }
@@ -7405,11 +7503,11 @@
       if (!Number.isFinite(x)) continue;
       const row = world[xKey];
       if (!row) continue;
-      const insideX = x >= 0 && x < GRID;
+      const insideX = x >= 0 && x < GRID_W;
       for (const zKey of Object.keys(row)) {
         const z = parseInt(zKey, 10);
         if (!Number.isFinite(z)) continue;
-        const inside = insideX && z >= 0 && z < GRID;
+        const inside = insideX && z >= 0 && z < GRID_D;
         if (inside) continue;
         // Reset pre-allocated buffer cells to default grass; delete any
         // entries that don't belong to the buffer at all.
@@ -7425,11 +7523,11 @@
   function doReset() {
     hasUserPanned = false;
     renderVisibleSize = GRID;
-    // Reset always returns to the original 8x8 grid, regardless of what
-    // the user resized to. setHomeGridSize is a no-op if GRID is already
+    // Reset always returns to the default grid, regardless of what
+    // the user resized to. setHomeGridSize is a no-op if the board is already
     // at the default. skipRebuild because loadInitialScene immediately
     // rebuilds every cell anyway.
-    if (GRID !== HOME_GRID_DEFAULT && typeof setHomeGridSize === 'function') {
+    if (boardSizeKey() !== HOME_GRID_DEFAULT && typeof setHomeGridSize === 'function') {
       setHomeGridSize(HOME_GRID_DEFAULT, { skipRebuild: true });
     }
     clearGhostWorld();
@@ -7471,8 +7569,8 @@
   function doClear() {
     if (typeof playSfx === 'function') playSfx('whoosh');
     const TILE_STAGGER = 0.022;
-    for (let x = 0; x < GRID; x++)
-      for (let z = 0; z < GRID; z++)
+    for (let x = 0; x < GRID_W; x++)
+      for (let z = 0; z < GRID_D; z++)
         setCell(x, z, {
           terrain: 'grass',
           terrainFloors: 1,
@@ -7541,8 +7639,9 @@
       resolutionEl.value = String(Math.round(renderResolutionScale * 100));
       distanceEl.value = String(renderVisibleDistance);
       visibleSizeEl.min = String(GRID);
+      visibleSizeEl.max = String(Math.round(HOME_GRID_MAX * 1.5));
       visibleSizeEl.value = String(renderVisibleSize);
-      if (homeGridEl) homeGridEl.value = String(GRID);
+      if (homeGridEl) homeGridEl.value = boardSizeKey();
       brightnessEl.value = String(Math.round(renderBrightness * 100));
       lightingEl.value = String(Math.round(renderLighting * 100));
       saturationEl.value = String(Math.round(renderSaturation * 100));
@@ -7663,8 +7762,7 @@
     // re-render rather than uniforms/material tweaks.
     if (homeGridEl) {
       homeGridEl.addEventListener('change', () => {
-        const n = parseInt(homeGridEl.value, 10);
-        setHomeGridSize(n);
+        setHomeGridSize(homeGridEl.value);
       });
     }
     resetBtn.addEventListener('click', () => {
@@ -8368,10 +8466,10 @@
   applyWeatherSplashOpacity();
 
   function clampWeatherDecalToCell(x, z, radius) {
-    const gx = Math.floor(x + GRID / 2);
-    const gz = Math.floor(z + GRID / 2);
-    const minX = gx - GRID / 2;
-    const minZ = gz - GRID / 2;
+    const gx = Math.floor(x + GRID_W / 2);
+    const gz = Math.floor(z + GRID_D / 2);
+    const minX = gx - GRID_W / 2;
+    const minZ = gz - GRID_D / 2;
     const margin = Math.max(0.12, Math.min(0.34, radius + 0.035));
     return {
       x: Math.max(minX + margin, Math.min(minX + 1 - margin, x)),
@@ -8456,20 +8554,20 @@
   }
 
   function weatherSurfaceAt(x, z) {
-    const gx = Math.floor(x + GRID / 2);
-    const gz = Math.floor(z + GRID / 2);
+    const gx = Math.floor(x + GRID_W / 2);
+    const gz = Math.floor(z + GRID_D / 2);
     const homeEntry = cellMeshes[gx + ',' + gz];
     if (homeEntry && homeEntry.tile && homeEntry.tile.visible) {
       return homeEntry.tile.position.y + (homeEntry.tile.userData.weatherSurfaceY || (TOP_H + WEATHER_SURFACE_PAD));
     }
-    const bx = Math.floor(gx / GRID);
-    const bz = Math.floor(gz / GRID);
+    const bx = Math.floor(gx / GRID_W);
+    const bz = Math.floor(gz / GRID_D);
     if (bx === 0 && bz === 0) return null;
     const board = ghostBoards.get(ghostBoardKey(bx, bz));
     if (!board || !board.visible || opacityAtWorldPosition(x, z) <= 0.05) return null;
-    const lx = gx - bx * GRID;
-    const lz = gz - bz * GRID;
-    if (lx < 0 || lx >= GRID || lz < 0 || lz >= GRID) return null;
+    const lx = gx - bx * GRID_W;
+    const lz = gz - bz * GRID_D;
+    if (lx < 0 || lx >= GRID_W || lz < 0 || lz >= GRID_D) return null;
     // Preview boards are valid landing surfaces. Use the rendered tile's own
     // weather surface height when available so impacts sit above the bevel.
     for (const child of board.children) {
@@ -8872,8 +8970,8 @@
 
   function cropCellsForDusting() {
     const cells = [];
-    for (let x = 0; x < GRID; x++) {
-      for (let z = 0; z < GRID; z++) {
+    for (let x = 0; x < GRID_W; x++) {
+      for (let z = 0; z < GRID_D; z++) {
         const c = getWorldCell(x, z);
         if (CROP_KINDS.has(c.kind)) cells.push({ x, z });
       }
@@ -9022,8 +9120,8 @@
   }
 
   function isOverCropCell(x, z) {
-    const gx = Math.round(x + GRID / 2 - 0.5);
-    const gz = Math.round(z + GRID / 2 - 0.5);
+    const gx = worldXToCell(x);
+    const gz = worldZToCell(z);
     return CROP_KINDS.has(getWorldCell(gx, gz).kind);
   }
 
@@ -9140,8 +9238,8 @@
       const planeX = cropDusterRoot.position.x;
       const planeZ = cropDusterRoot.position.z;
       const window = 0.6;
-      for (let x = 0; x < GRID; x++) {
-        for (let z = 0; z < GRID; z++) {
+      for (let x = 0; x < GRID_W; x++) {
+        for (let z = 0; z < GRID_D; z++) {
           const c = getWorldCell(x, z);
           if (!CROP_KINDS.has(c.kind)) continue;
           const p = tilePos(x, z);
@@ -9235,7 +9333,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://tinyworld.local/world.schema.json",
     "title": "TinyWorld",
-    "description": "Scene description for the Tiny World Builder. The renderer supports home grids from 8x8 to 48x48, plus sparse user-edited ghost-board cells outside the home grid. Each non-default cell has a terrain, optional object kind, separate object floors and terrainFloors counts, optional house buildingType, optional fenceSide, optional decorative extras, and optional within-tile transform.",
+    "description": "Scene description for the Tiny World Builder. The renderer supports rectangular home boards from 2x2 through 4x4, plus sparse user-edited ghost-board cells outside the home grid. Each non-default cell has a terrain, optional object kind, separate object floors and terrainFloors counts, optional house buildingType, optional fenceSide, optional decorative extras, and optional within-tile transform.",
     "type": "object",
     "additionalProperties": false,
     "required": [
@@ -9251,16 +9349,49 @@
         "description": "Schema version. Must be 4."
       },
       "gridSize": {
+        "oneOf": [
+          {
+            "type": "string",
+            "enum": [
+              "2x2",
+              "2x3",
+              "2x4",
+              "3x2",
+              "3x3",
+              "3x4",
+              "4x2",
+              "4x3",
+              "4x4"
+            ]
+          },
+          {
+            "type": "integer",
+            "enum": [
+              2,
+              3,
+              4
+            ]
+          }
+        ],
+        "description": "Optional home board size. Strings express width x depth; integers are accepted as legacy square sizes."
+      },
+      "gridWidth": {
         "type": "integer",
         "enum": [
-          8,
-          12,
-          16,
-          20,
-          32,
-          48
+          2,
+          3,
+          4
         ],
-        "description": "Optional home board edge length. Defaults to the current app grid when omitted."
+        "description": "Optional home board width. Exports include this alongside gridSize for tools that prefer explicit dimensions."
+      },
+      "gridDepth": {
+        "type": "integer",
+        "enum": [
+          2,
+          3,
+          4
+        ],
+        "description": "Optional home board depth. Exports include this alongside gridSize for tools that prefer explicit dimensions."
       },
       "cells": {
         "type": "array",
@@ -9569,9 +9700,9 @@
   // -------- world validation / procedural generation --------
   function snapshotCells() {
     const cells = [];
-    for (let x = 0; x < GRID; x++) {
+    for (let x = 0; x < GRID_W; x++) {
       if (!world[x]) continue;
-      for (let z = 0; z < GRID; z++) {
+      for (let z = 0; z < GRID_D; z++) {
         const c = world[x][z];
         if (c) {
           const entry = serializeCell(x, z, c);
@@ -9579,11 +9710,11 @@
         }
       }
     }
-    // Also save any cells outside the 8x8 home board
-    for (let x = -GRID; x < GRID * 2; x++) {
-      if (x >= 0 && x < GRID) continue; // already saved above
+    // Also save any cells outside the home board
+    for (let x = -GRID_W; x < GRID_W * 2; x++) {
+      if (x >= 0 && x < GRID_W) continue; // already saved above
       if (!world[x]) continue;
-      for (let z = -GRID; z < GRID * 2; z++) {
+      for (let z = -GRID_D; z < GRID_D * 2; z++) {
         const c = world[x][z];
         if (c) {
           const entry = serializeCell(x, z, c);
@@ -9621,6 +9752,16 @@
   // Lightweight runtime validator. Not a full JSON-schema implementation —
   // checks the parts we care about: shape, enums, ranges. Returns null on
   // success or an error string.
+  function boardSizeFromState(data) {
+    if (!data || typeof data !== 'object') return null;
+    if (data.gridWidth !== undefined || data.gridDepth !== undefined) {
+      const byDims = normalizeBoardSize({ width: data.gridWidth, depth: data.gridDepth });
+      if (byDims) return byDims;
+    }
+    if (data.gridSize !== undefined) return normalizeBoardSize(data.gridSize);
+    return null;
+  }
+
   function validateWorld(data) {
     if (!data || typeof data !== 'object') return 'not an object';
     // Coerce v: accept missing (assume current), strings ('2'), and numbers.
@@ -9631,7 +9772,8 @@
     if (!Array.isArray(data.cells)) return 'cells must be an array';
     const okCameraMode = new Set(['ortho','topdown','soft','perspective','fp']);
     if (data.cameraMode !== undefined && !okCameraMode.has(data.cameraMode)) return 'cameraMode invalid: ' + data.cameraMode;
-    if (data.gridSize !== undefined && !HOME_GRID_OPTIONS.includes(data.gridSize)) return 'gridSize invalid: ' + data.gridSize;
+    const stateBoardSize = boardSizeFromState(data);
+    if ((data.gridSize !== undefined || data.gridWidth !== undefined || data.gridDepth !== undefined) && !stateBoardSize) return 'gridSize invalid: ' + data.gridSize;
     const okTerrain = new Set(['grass','path','dirt','water','stone','lava','sand','snow']);
     const okKind = new Set([null,'house','tree','fence','rock','bridge','crop','corn','wheat','pumpkin','carrot','sunflower','tuft','flower','bush','cow','sheep']);
     const okBT = new Set([null,'cottage','manor','tower','turret','skyscraper']);
@@ -9648,7 +9790,8 @@
       } else {
         return 'cells[' + i + '] not object';
       }
-      const coordLimit = Math.max(HOME_GRID_MAX * 2, (data.gridSize || GRID) * 2, 64);
+      const coordSpan = stateBoardSize ? Math.max(stateBoardSize.width, stateBoardSize.depth) : GRID;
+      const coordLimit = Math.max(HOME_GRID_MAX * 2, coordSpan * 2, 64);
       if (!Number.isInteger(x) || x < -coordLimit || x > coordLimit) return 'cells[' + i + '].x out of range';
       if (!Number.isInteger(z) || z < -coordLimit || z > coordLimit) return 'cells[' + i + '].z out of range';
       const key = x + ',' + z;
@@ -9685,7 +9828,9 @@
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
           v: STORAGE_VERSION,
-          gridSize: GRID,
+          gridSize: boardSizeKey(),
+          gridWidth: GRID_W,
+          gridDepth: GRID_D,
           cells: snapshotCells(),
           cameraMode,
           toolId: selectedTool && selectedTool.id,
@@ -9707,7 +9852,7 @@
     }
     if (data.v !== 1 && data.v !== 2 && data.v !== 3 && data.v !== 4) return false;
 
-    const nextGrid = HOME_GRID_OPTIONS.includes(data.gridSize) ? data.gridSize : GRID;
+    const nextGrid = boardSizeFromState(data) || normalizeBoardSize(boardSizeKey());
     suppressSave = true;
 
     // Drop any currently rendered world before we replay the saved state.
@@ -9725,8 +9870,8 @@
       for (let z = 0; z < HOME_GRID_MAX; z++) world[x][z] = defaultCell();
     }
 
-    if (nextGrid !== GRID && typeof setHomeGridSize === 'function') {
-      setHomeGridSize(nextGrid, { skipRebuild: true });
+    if (nextGrid && (nextGrid.width !== GRID_W || nextGrid.depth !== GRID_D) && typeof setHomeGridSize === 'function') {
+      setHomeGridSize(nextGrid.key, { skipRebuild: true });
     }
 
     const overrides = new Map();
@@ -9789,8 +9934,8 @@
 
     const TILE_STAGGER = 0.018;
     let i = 0;
-    for (const [key, o] of overrides.entries()) {
-      const [x, z] = key.split(',').map(Number);
+    const renderedKeys = new Set();
+    function renderLoadedCell(x, z, o, outsideHome) {
       setCell(x, z, {
         terrain: o.terrain,
         terrainFloors: o.terrainFloors,
@@ -9801,6 +9946,7 @@
         rotationY: o.rotationY,
         offsetX: o.offsetX,
         offsetZ: o.offsetZ,
+        userEdited: !!outsideHome,
         tileDelay: i * TILE_STAGGER,
         objectDelay: i * TILE_STAGGER + 0.04,
         forceTile: true,
@@ -9813,7 +9959,32 @@
         }));
       }
       addRefreshKeys(x, z);
+      renderedKeys.add(x + ',' + z);
       i++;
+    }
+
+    for (let x = 0; x < GRID_W; x++) {
+      for (let z = 0; z < GRID_D; z++) {
+        const key = x + ',' + z;
+        renderLoadedCell(x, z, overrides.get(key) || {
+          terrain: 'grass',
+          terrainFloors: 1,
+          kind: null,
+          floors: 1,
+          buildingType: null,
+          fenceSide: null,
+          extras: null,
+          rotationY: 0,
+          offsetX: 0,
+          offsetZ: 0,
+        }, false);
+      }
+    }
+
+    for (const [key, o] of overrides.entries()) {
+      if (renderedKeys.has(key)) continue;
+      const [x, z] = key.split(',').map(Number);
+      renderLoadedCell(x, z, o, true);
     }
 
     // Re-run the renderer for the changed cells and their direct
@@ -9880,8 +10051,13 @@
 
   //   4. Place settlement cells with cluster-friendly hints so houses
   //      auto-promote when adjacent (handled by setCell's clustering).
-  function generateProceduralWorld({ seed, biomes, elevation, gridSize }) {
-    const size = HOME_GRID_OPTIONS.includes(gridSize) ? gridSize : GRID;
+  function generateProceduralWorld({ seed, biomes, elevation, gridSize, gridWidth, gridDepth }) {
+    const board = normalizeBoardSize({ width: gridWidth, depth: gridDepth })
+      || normalizeBoardSize(gridSize)
+      || normalizeBoardSize(boardSizeKey());
+    const width = board.width;
+    const depth = board.depth;
+    const size = Math.max(width, depth);
     const rng = makeMulberry32(seed || randomSeed());
 
     // ---- fbm value noise (OWB-style coherent terrain) ----------------
@@ -9943,8 +10119,8 @@
     const waterPct = Math.max(0, Math.min(80, Number(biomes.water) || 10));
     const rimStrength = 0.45 + waterPct * 0.012; // ~0.55 at 10% water, up to ~1.4 at 80%
     function islandShape(x, z) {
-      const cx = (size - 1) / 2;
-      const cz = (size - 1) / 2;
+      const cx = Math.max(0.5, (width - 1) / 2);
+      const cz = Math.max(0.5, (depth - 1) / 2);
       const dx = (x - cx) / cx;
       const dz = (z - cz) / cz;
       // Squared distance in [0..2]; raise to a power for a softer plateau.
@@ -9955,13 +10131,13 @@
     const heightField = [];
     const moistField  = [];
     const decoField   = [];
-    for (let x = 0; x < size; x++) {
+    for (let x = 0; x < width; x++) {
       heightField[x] = [];
       moistField[x]  = [];
       decoField[x]   = [];
-      for (let z = 0; z < size; z++) {
-        const u = x / (size - 1);
-        const v = z / (size - 1);
+      for (let z = 0; z < depth; z++) {
+        const u = x / Math.max(1, width - 1);
+        const v = z / Math.max(1, depth - 1);
         const h = heightFn(u, v) * islandShape(x, z);
         heightField[x][z] = h;
         moistField[x][z]  = moistFn(u, v);
@@ -9975,8 +10151,8 @@
 
     // Flatten + sort to bucket cells.
     const cellList = [];
-    for (let x = 0; x < size; x++)
-      for (let z = 0; z < size; z++)
+    for (let x = 0; x < width; x++)
+      for (let z = 0; z < depth; z++)
         cellList.push({ x, z, n: terrainNoise[x][z], e: elevNoise[x][z] });
 
     const total = cellList.length;
@@ -10023,9 +10199,9 @@
     // at most 1.  Result is a continuous heightmap — no sawtooth edges
     // between plains and mountain cells.
     const tfGrid = [];
-    for (let x = 0; x < size; x++) {
+    for (let x = 0; x < width; x++) {
       tfGrid[x] = [];
-      for (let z = 0; z < size; z++) {
+      for (let z = 0; z < depth; z++) {
         const tier = elevTier(x, z);
         tfGrid[x][z] = (tier === 'mountains') ? (4 + Math.floor(rng() * 3))
                      : (tier === 'hills')     ? (2 + Math.floor(rng() * 2))
@@ -10035,13 +10211,13 @@
     // Several smoothing passes — each pass clamps every cell to be within
     // ±1 of its lowest neighbour so terraces appear naturally.
     for (let pass = 0; pass < 4; pass++) {
-      for (let x = 0; x < size; x++) {
-        for (let z = 0; z < size; z++) {
+      for (let x = 0; x < width; x++) {
+        for (let z = 0; z < depth; z++) {
           let minN = Infinity;
           if (x > 0)        minN = Math.min(minN, tfGrid[x-1][z]);
-          if (x < size - 1) minN = Math.min(minN, tfGrid[x+1][z]);
+          if (x < width - 1) minN = Math.min(minN, tfGrid[x+1][z]);
           if (z > 0)        minN = Math.min(minN, tfGrid[x][z-1]);
-          if (z < size - 1) minN = Math.min(minN, tfGrid[x][z+1]);
+          if (z < depth - 1) minN = Math.min(minN, tfGrid[x][z+1]);
           if (minN === Infinity) continue;
           if (tfGrid[x][z] > minN + 1) tfGrid[x][z] = minN + 1;
         }
@@ -10051,7 +10227,7 @@
       return tfGrid[x] && tfGrid[x][z] ? tfGrid[x][z] : 1;
     }
 
-    const out = { v: 4, gridSize: size, cells: [] };
+    const out = { v: 4, gridSize: board.key, gridWidth: width, gridDepth: depth, cells: [] };
 
     function pushCell(x, z, terrain, kind, floors, terrainFloors, buildingType, fenceSide) {
       out.cells.push({
@@ -10082,8 +10258,8 @@
     // First pass — paint terrain by biome. Elevation is expressed through
     // terrainFloors, not by blanketing the board with rock props. Water cells
     // suppress hosted kinds (no kinds float, per the schema).
-    for (let x = 0; x < size; x++) {
-      for (let z = 0; z < size; z++) {
+    for (let x = 0; x < width; x++) {
+      for (let z = 0; z < depth; z++) {
         const biome = fastBiome(x, z);
         const tier = elevTier(x, z);
         const tf = elevFloors(x, z);
@@ -10197,7 +10373,7 @@
   // -------- minimap (ported from OWB hud.js redrawMinimap) --------
   // Repaints a 2D top-down map window from world + generated preview-board
   // state. The map follows the current camera target, so panning away from
-  // the home board keeps a useful 2D overview instead of a stale 8x8 tile.
+  // the home board keeps a useful 2D overview instead of a stale home-board tile.
   // Tile colour comes from the terrain palette (matches the 3D scene);
   // a per-kind silhouette is overlaid for any populated cell so trees,
   // houses, animals etc. read as the same shape they do in 3D.
@@ -10278,20 +10454,28 @@
   function minimapViewCellCount() {
     return Math.max(GRID, Math.min(HOME_GRID_MAX, Math.ceil(renderVisibleSize || GRID)));
   }
+  function minimapSizeLabel() {
+    return boardSizeLabel() + ' home';
+  }
   function minimapGlobalCell(gx, gz) {
-    const bx = Math.floor(gx / GRID);
-    const bz = Math.floor(gz / GRID);
-    const lx = gx - bx * GRID;
-    const lz = gz - bz * GRID;
-    if (lx < 0 || lx >= GRID || lz < 0 || lz >= GRID) return null;
+    const bx = Math.floor(gx / GRID_W);
+    const bz = Math.floor(gz / GRID_D);
+    const lx = gx - bx * GRID_W;
+    const lz = gz - bz * GRID_D;
+    if (lx < 0 || lx >= GRID_W || lz < 0 || lz >= GRID_D) return null;
     return ghostCellAt(bx, bz, lx, lz);
+  }
+  function minimapShouldDrawCell(gx, gz) {
+    if (gx >= 0 && gx < GRID_W && gz >= 0 && gz < GRID_D) return true;
+    if (world[gx] && world[gx][gz] && world[gx][gz].userEdited) return true;
+    return hasUserPanned;
   }
   function minimapWorldFromCanvasPoint(px, py) {
     if (!minimapState) return null;
     const { startGx, startGz, cells, width, height } = minimapState;
     const gx = startGx + (px / Math.max(1, width)) * cells;
     const gz = startGz + (py / Math.max(1, height)) * cells;
-    return { x: gx - GRID / 2, z: gz - GRID / 2 };
+    return { x: gx - GRID_W / 2, z: gz - GRID_D / 2 };
   }
   function redrawMinimap() {
     const canvas = document.getElementById('minimap-canvas');
@@ -10300,19 +10484,20 @@
     const N = minimapViewCellCount();
     const W = canvas.width, H = canvas.height;
     const cw = W / N, ch = H / N;
-    const centerGx = Math.floor(target.x + GRID / 2);
-    const centerGz = Math.floor(target.z + GRID / 2);
+    const centerGx = Math.floor(target.x + GRID_W / 2);
+    const centerGz = Math.floor(target.z + GRID_D / 2);
     const startGx = centerGx - Math.floor(N / 2);
     const startGz = centerGz - Math.floor(N / 2);
     minimapState = { startGx, startGz, cells: N, width: W, height: H };
     const sizeEl = document.getElementById('minimap-size');
-    if (sizeEl) sizeEl.textContent = N + '×' + N + ' map';
+    if (sizeEl) sizeEl.textContent = minimapSizeLabel();
     ctx.clearRect(0, 0, W, H);
     // Terrain pass.
     for (let x = 0; x < N; x++) {
       for (let z = 0; z < N; z++) {
         const gx = startGx + x;
         const gz = startGz + z;
+        if (!minimapShouldDrawCell(gx, gz)) continue;
         const cell = minimapGlobalCell(gx, gz);
         const terrain = (cell && cell.terrain) || 'grass';
         let colorHex = minimapTerrainHex(terrain);
@@ -10331,6 +10516,7 @@
       for (let z = 0; z < N; z++) {
         const gx = startGx + x;
         const gz = startGz + z;
+        if (!minimapShouldDrawCell(gx, gz)) continue;
         const cell = minimapGlobalCell(gx, gz);
         if (!cell || !cell.kind) continue;
         drawMinimapProp(ctx, cell.kind, x * cw + cw / 2, z * ch + ch / 2, Math.min(cw, ch));
@@ -10342,9 +10528,9 @@
     ctx.save();
     ctx.strokeStyle = 'rgba(255,255,255,0.70)';
     ctx.lineWidth = Math.max(1, W * 0.006);
-    ctx.strokeRect((0 - startGx) * cw, (0 - startGz) * ch, GRID * cw, GRID * ch);
-    const tx = (target.x + GRID / 2 - startGx) * cw;
-    const tz = (target.z + GRID / 2 - startGz) * ch;
+    ctx.strokeRect((0 - startGx) * cw, (0 - startGz) * ch, GRID_W * cw, GRID_D * ch);
+    const tx = (target.x + GRID_W / 2 - startGx) * cw;
+    const tz = (target.z + GRID_D / 2 - startGz) * ch;
     ctx.strokeStyle = 'rgba(42,39,34,0.60)';
     ctx.lineWidth = Math.max(1, W * 0.004);
     ctx.beginPath();
@@ -10383,8 +10569,7 @@
     if (!wrap) return;
     function paintSize() {
       if (!sizeEl) return;
-      const n = (typeof minimapViewCellCount === 'function') ? minimapViewCellCount() : GRID;
-      sizeEl.textContent = n + '×' + n + ' map';
+      sizeEl.textContent = minimapSizeLabel();
     }
     paintSize();
     // Restore collapsed state.
@@ -11248,10 +11433,9 @@
       items.push({ group: 'World', label: 'Generate procedurally (offline)', hint: 'seed + biomes, offline', run: () => {
         try {
           const seed = randomSeed();
-          const gridSize = GRID;
           const biomes = { grass: 55, forest: 20, water: 10, dirt: 10, settlement: 5 };
           const elevation = { plains: 55, hills: 30, mountains: 15 };
-          const data = generateProceduralWorld({ seed, biomes, elevation, gridSize });
+          const data = generateProceduralWorld({ seed, biomes, elevation, gridSize: boardSizeKey(), gridWidth: GRID_W, gridDepth: GRID_D });
           applyState(data);
         } catch (err) { console.warn('[palette] procedural failed:', err); }
       } });

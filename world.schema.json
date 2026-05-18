@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tinyworld.local/world.schema.json",
   "title": "TinyWorld",
-  "description": "Scene description for the Tiny World Builder. The renderer supports home grids from 8x8 to 48x48, plus sparse user-edited ghost-board cells outside the home grid. Each non-default cell has a terrain, optional object kind, separate object floors and terrainFloors counts, optional house buildingType, optional fenceSide, optional decorative extras, and optional within-tile transform.",
+  "description": "Scene description for the Tiny World Builder. The renderer supports rectangular home boards from 2x2 through 4x4, plus sparse user-edited ghost-board cells outside the home grid. Each non-default cell has a terrain, optional object kind, separate object floors and terrainFloors counts, optional house buildingType, optional fenceSide, optional decorative extras, and optional within-tile transform.",
   "type": "object",
   "additionalProperties": false,
   "required": ["v", "cells"],
@@ -13,9 +13,27 @@
       "description": "Schema version. Must be 4."
     },
     "gridSize": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": ["2x2", "2x3", "2x4", "3x2", "3x3", "3x4", "4x2", "4x3", "4x4"]
+        },
+        {
+          "type": "integer",
+          "enum": [2, 3, 4]
+        }
+      ],
+      "description": "Optional home board size. Strings express width x depth; integers are accepted as legacy square sizes."
+    },
+    "gridWidth": {
       "type": "integer",
-      "enum": [8, 12, 16, 20, 32, 48],
-      "description": "Optional home board edge length. Defaults to the current app grid when omitted."
+      "enum": [2, 3, 4],
+      "description": "Optional home board width. Exports include this alongside gridSize for tools that prefer explicit dimensions."
+    },
+    "gridDepth": {
+      "type": "integer",
+      "enum": [2, 3, 4],
+      "description": "Optional home board depth. Exports include this alongside gridSize for tools that prefer explicit dimensions."
     },
     "cells": {
       "type": "array",

@@ -14,7 +14,7 @@ Prompt principles:
   user explicitly asks for images again.
 - Honour the selected generation board size. The Generate dialog can request
   any `HOME_GRID_OPTIONS` size, so prompts must include the requested
-  `gridSize` and coordinate bounds instead of assuming 8x8.
+  `gridSize` / `gridWidth` / `gridDepth` and coordinate bounds instead of assuming a square board.
 - Floating chat prompts are additive patches by default. Unless the prompt
   explicitly asks to replace/reset/rebuild or starts with `/clear`, preserve the
   existing board and return only complete final-state cells that should be

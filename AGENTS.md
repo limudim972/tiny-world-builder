@@ -99,9 +99,10 @@ or you will desync intent from rendering.
 
 ## Performance budget
 
-- Home grid starts at `8x8` but settings can expose up to `48x48`. Per-frame
-  allocation is fine at small sizes; at larger grids, preserve progressive
-  rendering and avoid broad synchronous rebuilds.
+- Home grid is rectangular and limited to `2x2` through `4x4` combinations
+  from the settings menu. Preview/ghost boards still use the same per-cell
+  renderer, so preserve progressive rendering and avoid broad synchronous
+  rebuilds when touching surrounding-board generation.
 
 ## Things to avoid
 
