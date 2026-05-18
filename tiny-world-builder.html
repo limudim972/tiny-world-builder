@@ -3995,7 +3995,7 @@
     // Flat roof slab shared by every house footprint.
     flatRoof(width, depth, baseWallH = H.WALL_H) {
       const g = new THREE.Group();
-      const slab = new THREE.Mesh(new THREE.BoxGeometry(width + 0.12, 0.08, depth + 0.12), M.manorRoof);
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(width, 0.08, depth), M.manorRoof);
       slab.position.y = baseWallH + 0.04;
       g.add(slab);
       return g;
@@ -5616,6 +5616,7 @@
     const sideCells = cluster.filter(c =>
       mainOrientation === 'z' ? c.x !== mainAxisCoord : c.z !== mainAxisCoord
     );
+    if (!sideCells.length) return null;
     const branches = [];
     for (const sc of sideCells) {
       const adjacentMain = mainCells.find(mc =>
@@ -5649,62 +5650,10 @@
     };
   }
 
-  // Walk ± along x and z from (x,z) over contiguous houses. Tries linear first,
-  // then composite (L/T-shapes), then falls back to solo. Returns:
-  // Returns a {stone, stoneD, roof, roofD} palette derived from a neighbour
-  //   { kind: 'linear',    isAnchor, length, orientation, anchorX, anchorZ }
-  //   { kind: 'composite', isAnchor, topology }
-  //   { kind: 'solo',      isAnchor: true,   anchorX, anchorZ }
+  // House clustering is disabled: every house cell renders as its own cottage
+  // even when adjacent to other houses. The older cluster helpers stay nearby
+  // for reference, but this function is the renderer's single decision point.
   function findHouseCluster(x, z) {
-    let xMin = x, xMax = x;
-    while (getWorldCell(xMin - 1, z).kind === 'house') xMin--;
-    while (getWorldCell(xMax + 1, z).kind === 'house') xMax++;
-    let zMin = z, zMax = z;
-    while (getWorldCell(x, zMin - 1).kind === 'house') zMin--;
-    while (getWorldCell(x, zMax + 1).kind === 'house') zMax++;
-    const xLen = xMax - xMin + 1, zLen = zMax - zMin + 1;
-
-    if (xLen > 1 && zLen === 1) {
-      let pure = true;
-      for (let i = xMin; i <= xMax && pure; i++) {
-        if (getWorldCell(i, z - 1).kind === 'house' ||
-            getWorldCell(i, z + 1).kind === 'house') pure = false;
-      }
-      if (pure) return { kind: 'linear', isAnchor: x === xMin, length: xLen, orientation: 'x', anchorX: xMin, anchorZ: z };
-    }
-    if (zLen > 1 && xLen === 1) {
-      let pure = true;
-      for (let j = zMin; j <= zMax && pure; j++) {
-        if (getWorldCell(x - 1, j).kind === 'house' ||
-            getWorldCell(x + 1, j).kind === 'house') pure = false;
-      }
-      if (pure) return { kind: 'linear', isAnchor: z === zMin, length: zLen, orientation: 'z', anchorX: x, anchorZ: zMin };
-    }
-
-    // Linear failed → try square (2x2) first, then L/T composite.
-    const cluster = bfsHouseCluster(x, z);
-
-    const square = trySquare(cluster);
-    if (square) {
-      return {
-        kind: 'square',
-        isAnchor: x === square.anchorX && z === square.anchorZ,
-        anchorX: square.anchorX,
-        anchorZ: square.anchorZ,
-      };
-    }
-
-    const composite = tryComposite(cluster);
-    if (composite) {
-      return {
-        kind: 'composite',
-        isAnchor: x === composite.anchorX && z === composite.anchorZ,
-        anchorX: composite.anchorX,
-        anchorZ: composite.anchorZ,
-        topology: composite,
-      };
-    }
-
     return { kind: 'solo', isAnchor: true, anchorX: x, anchorZ: z };
   }
 
@@ -5950,12 +5899,7 @@
       if (!suppressSave && typeof fireWebhook === 'function') fireWebhook('cell.set', { x, z, cell: world[x][z] });
     };
 
-    // For house clusters, every cell shares the floors count. Propagate to all.
-    if (nextKind === 'house' && floorsChanged) {
-      for (const c of bfsHouseCluster(x, z)) {
-        if (c.x !== x || c.z !== z) world[c.x][c.z].floors = newFloors;
-      }
-    }
+    // House clustering is disabled, so each cottage keeps its own floor count.
 
     if (terrainChanged || tileHeightChanged || forceTile) {
       renderCellTile(x, z, { animate, delay: tileDelay });
@@ -5992,20 +5936,11 @@
       primaryX = c.anchorX; primaryZ = c.anchorZ;
     }
 
-    // Collect every cell whose rendered mesh might need to change: this cell,
-    // its 4 neighbours, AND every house connected to those (so a cluster split
-    // across multiple cells refreshes correctly).
+    // Collect every cell whose rendered mesh might need to change. With house
+    // clustering disabled the edited cell is enough for houses; terrain still
+    // handles its own neighbour refresh above.
     const toRefresh = new Map();
     toRefresh.set(x + ',' + z, { x, z });
-    if (getWorldCell(x, z).kind === 'house') {
-      for (const c of bfsHouseCluster(x, z)) toRefresh.set(c.x + ',' + c.z, c);
-    }
-    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const nx = x + dx, nz = z + dz;
-      if (getWorldCell(nx, nz).kind === 'house') {
-        for (const c of bfsHouseCluster(nx, nz)) toRefresh.set(c.x + ',' + c.z, c);
-      }
-    }
 
     for (const c of toRefresh.values()) {
       const isPrimary = c.x === primaryX && c.z === primaryZ;
