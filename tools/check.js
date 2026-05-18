@@ -30,7 +30,8 @@ try {
 }
 
 const schemaStart = html.indexOf('  const WORLD_SCHEMA = ');
-const schemaEnd = html.indexOf('\n\n  // -------- AI generation --------', schemaStart);
+let schemaEnd = html.indexOf('\n\n  // -------- AI generation --------', schemaStart);
+if (schemaEnd < 0) schemaEnd = html.indexOf('\r\n\r\n  // -------- AI generation --------', schemaStart);
 if (schemaStart < 0 || schemaEnd < 0) fail('embedded WORLD_SCHEMA block missing');
 let embeddedSource = html.slice(schemaStart + '  const WORLD_SCHEMA = '.length, schemaEnd).trim();
 if (embeddedSource.endsWith(';')) embeddedSource = embeddedSource.slice(0, -1);
