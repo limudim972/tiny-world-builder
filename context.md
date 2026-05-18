@@ -18,10 +18,10 @@
 15. `tiny-world-builder.html` (lines 8046-8510) - renderers, extras, `setCell`, adjacency refresh, disposal.
 16. `tiny-world-builder.html` (lines 8510-8804) - initial scene, hover, ghost placement preview, raycaster start.
 17. `tiny-world-builder.html` (lines 8804-9340) - tool registry/groups and toolbar thumbnail rendering.
-18. `tiny-world-builder.html` (lines 9340-9568) - click/place/erase flow, `applyTool`, auto tool entry.
+18. `tiny-world-builder.html` (lines 9340-9568) - click/place/erase flow and `applyTool`.
 19. `tiny-world-builder.html` (lines 9568-10431) - pointer/orbit controls, export/import, camera modes, first-person, reset/clear.
 20. `tiny-world-builder.html` (lines 10431-11937) - render settings, audio, smoke/dust/clouds/weather/crop-duster/banner systems, animation loop.
-21. `tiny-world-builder.html` (lines 11937-12884) - embedded `WORLD_SCHEMA`, AI provider defaults, prompts, validation, procedural generation.
+21. `tiny-world-builder.html` (lines 11937-12884) - embedded `WORLD_SCHEMA`, validation, procedural generation.
 22. `tiny-world-builder.html` (lines 13882-14478) - localStorage persistence, migration, `applyState`, webhooks/SSE bridge, `loadState`.
 23. `tiny-world-builder.html` (lines 14478-15035) - welcome dialog, profile/build saves, optional auth handling.
 24. `tiny-world-builder.html` (lines 15035-16095) - boot, minimap, view/time/dev popups, world-name slots, command palette.
@@ -75,7 +75,7 @@ function applyState(data, opts = {}) { ... validates, accepts tuple/object cells
 - **Rendering:** tile terrain comes from `makeTile`; props/buildings come from object factories and house assemblers. Adjacency helpers feed path joins, shorelines, bridge orientation, rock outcrops, fence/castle walls, and house cluster shapes.
 - **Input flow:** pointer/raycaster selects a cell; `applyToolToCell()` handles home vs ghost-board clicks; `applyTool()` maps selected tool/variant/repeat-click behavior to `setCell()` or extras.
 - **Persistence/import/export:** local autosave uses `tinyworld:v1` with schema version 4, sparse serialized cells, `gridSize`, `cameraMode`, and `toolId`. `applyState()` accepts both compact tuple export and object-form schema cells.
-- **Generation/automation:** AI generation sends embedded `WORLD_SCHEMA` plus prompts to OpenAI/Anthropic/xAI endpoints from browser-local API keys, validates with a lightweight validator, then loads via `applyState()`.
+- **Generation/automation:** the offline procedural generator builds worlds from seed + biome sliders, validates them, then loads via `applyState()`.
 - **Deploy:** `npm run build` runs `publish.sh`; Vercel serves `dist/` per `vercel.json`. Assets under `sounds/` and `models/` are copied; screenshots go to `dist/assets/`.
 
 ## Start Here

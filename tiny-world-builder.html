@@ -897,343 +897,6 @@
     color: var(--ink);
   }
 
-  /* -------- floating agent -------- */
-  .agent-input {
-    position: fixed;
-    left: 50%;
-    bottom: 138px;
-    transform: translateX(-50%);
-    z-index: 12;
-    width: min(380px, calc(100vw - 48px));
-    background: rgba(255, 255, 255, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    border-radius: 20px;
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.85) inset,
-      0 -1px 0 rgba(120, 130, 150, 0.10) inset,
-      0 1px 2px rgba(20, 30, 50, 0.05),
-      0 12px 36px -12px rgba(40, 50, 80, 0.22);
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
-    display: grid;
-    grid-template-columns: 34px 1fr 40px;
-    align-items: center;
-    gap: 8px;
-    padding: 8px;
-  }
-  .agent-input.dragging { opacity: 0.92; }
-  body.tool-flyout-open .agent-input {
-    transform: translate(-50%, -92px);
-    transition: transform 0.24s cubic-bezier(0.34, 1.36, 0.64, 1);
-  }
-
-  /* Suggestion chips — float under the input bar and follow it when
-     dragged (positioned absolute against .agent-input). Wrap onto
-     multiple rows so longer suggestions don't clip. */
-  .agent-suggestions {
-    position: absolute;
-    left: -40px;
-    right: -40px;
-    top: calc(100% + 8px);
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    justify-content: center;
-    padding: 2px;
-    grid-column: 1 / -1;
-  }
-  .agent-suggestions[hidden] { display: none; }
-  .agent-suggestion-chip {
-    flex-shrink: 0;
-    padding: 4px 10px;
-    font: inherit;
-    font-size: 11.5px;
-    font-weight: 500;
-    color: var(--ink);
-    background: rgba(255, 255, 255, 0.65);
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    border-radius: 999px;
-    cursor: pointer;
-    white-space: nowrap;
-    backdrop-filter: blur(10px) saturate(180%);
-    -webkit-backdrop-filter: blur(10px) saturate(180%);
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.85) inset,
-      0 1px 2px rgba(20, 30, 50, 0.05);
-    transition: background 0.12s, transform 0.08s;
-  }
-  .agent-suggestion-chip:hover { background: rgba(255, 255, 255, 0.85); }
-  .agent-suggestion-chip:active { transform: translateY(1px); }
-  .agent-send,
-  .agent-panel-toggle {
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    background: rgba(255, 255, 255, 0.45);
-    color: var(--ink);
-    border-radius: 10px;
-    cursor: pointer;
-    font: inherit;
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.85) inset,
-      0 1px 2px rgba(20, 30, 50, 0.04);
-    backdrop-filter: blur(10px) saturate(180%);
-    -webkit-backdrop-filter: blur(10px) saturate(180%);
-    transition: background 0.12s, border-color 0.12s;
-  }
-  .agent-send:hover,
-  .agent-panel-toggle:hover {
-    background: rgba(255, 255, 255, 0.68);
-    border-color: rgba(255, 255, 255, 0.75);
-  }
-  /* Drag grip — icon only, no border, no fill. */
-  .agent-grip {
-    border: none;
-    background: transparent;
-    color: var(--muted);
-    cursor: grab;
-    font: inherit;
-    padding: 0;
-    box-shadow: none;
-    transition: color 0.12s;
-  }
-  .agent-grip:hover { color: var(--ink); }
-  .agent-grip,
-  .agent-send {
-    width: 34px;
-    height: 34px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .agent-grip { cursor: grab; color: #8a7a58; }
-  .agent-input.dragging .agent-grip { cursor: grabbing; }
-  .agent-input input {
-    border: none;
-    background: transparent;
-    outline: none;
-    font: inherit;
-    color: var(--ink);
-    min-width: 0;
-  }
-  .agent-input input::placeholder { color: #a39a8c; }
-  .agent-send { font-weight: 800; }
-  .agent-send:disabled { opacity: 0.45; cursor: wait; }
-  .agent-panel {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 12;
-    width: min(360px, calc(100vw - 40px));
-    /* Expanded height grows upward from the bottom anchor. Stops below
-       the minimap (top-right, ~240px reserved) so they never overlap. */
-    max-height: min(60vh, calc(100vh - 260px));
-    background: rgba(255, 255, 255, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    border-radius: 20px;
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.85) inset,
-      0 -1px 0 rgba(120, 130, 150, 0.10) inset,
-      0 1px 2px rgba(20, 30, 50, 0.05),
-      0 12px 36px -12px rgba(40, 50, 80, 0.22);
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    transform-origin: bottom right;
-    transition:
-      width 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-      max-height 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-      border-radius 0.32s cubic-bezier(0.22, 1, 0.36, 1),
-      transform 0.36s cubic-bezier(0.22, 1, 0.36, 1),
-      opacity 0.28s ease;
-  }
-  /* Toast / collapsed state: same bottom-right anchor, shrinks to a
-     low-rounded rectangle. */
-  .agent-panel.collapsed {
-    width: min(320px, calc(100vw - 40px));
-    max-height: 38px;
-    border-radius: 10px;
-    cursor: pointer;
-  }
-  /* Hidden state — slides off-screen to the right. Used as the "no
-     activity" resting state so the panel only shows up when there's
-     something to say (toast behavior). */
-  .agent-panel.hidden {
-    transform: translateX(calc(100% + 40px));
-    opacity: 0;
-    pointer-events: none;
-  }
-  .agent-panel-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 10px 12px;
-    border-bottom: 1px solid rgba(120, 130, 150, 0.12);
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--ink);
-  }
-  .agent-panel.collapsed .agent-panel-head { display: none; }
-  /* Selection preview — replaces the messages stream when something on
-     the canvas is selected. */
-  .agent-selection-preview {
-    padding: 12px 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    border-bottom: 1px solid rgba(120, 130, 150, 0.12);
-  }
-  .agent-selection-preview[hidden] { display: none; }
-  .agent-panel.collapsed .agent-selection-preview { display: none; }
-  .agent-selection-count {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--ink);
-  }
-  .agent-selection-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    font-size: 12px;
-    color: var(--ink);
-    max-height: 180px;
-    overflow-y: auto;
-  }
-  .agent-selection-list li {
-    display: flex;
-    justify-content: space-between;
-    padding: 4px 8px;
-    background: rgba(255, 255, 255, 0.45);
-    border-radius: 8px;
-  }
-  .agent-selection-list li .count {
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
-  }
-  .agent-selection-hint {
-    font-size: 11px;
-    color: var(--muted);
-    font-style: italic;
-  }
-  .agent-panel.has-selection .agent-messages { display: none; }
-  .agent-panel-toggle {
-    width: 26px;
-    height: 26px;
-    padding: 0;
-    font-size: 18px;
-    line-height: 1;
-    font-weight: 500;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--muted);
-  }
-  .agent-panel-toggle:hover { color: var(--ink); }
-  .agent-messages {
-    padding: 10px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-  /* In collapsed mode, the messages container becomes a single horizontal
-     line and only the most recent message renders (as an inline ticker). */
-  .agent-panel.collapsed .agent-messages {
-    flex-direction: row;
-    align-items: center;
-    padding: 0 16px;
-    gap: 0;
-    overflow: hidden;
-    height: 38px;
-  }
-  .agent-panel.collapsed .agent-msg {
-    display: none;
-    background: transparent;
-    border: none;
-    margin: 0;
-    padding: 0;
-    font-size: 12.5px;
-    color: var(--ink);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-    width: 100%;
-    text-align: center;
-  }
-  .agent-panel.collapsed .agent-msg:last-child {
-    display: block;
-  }
-  .agent-panel.collapsed:empty::before,
-  .agent-panel.collapsed .agent-messages:empty::before {
-    content: 'Ask the agent…';
-    font-size: 12px;
-    color: var(--muted);
-    width: 100%;
-    text-align: center;
-  }
-  .agent-msg {
-    padding: 8px 10px;
-    border-radius: 11px;
-    font-size: 12.5px;
-    line-height: 1.35;
-    color: var(--ink);
-    background: #f7f1e4;
-    border: 1px solid #eadfc8;
-  }
-  .agent-msg.user {
-    margin-left: 28px;
-    background: #eaf3d1;
-    border-color: #d6e7a8;
-  }
-  .agent-msg.assistant { margin-right: 28px; }
-  .agent-msg.error {
-    background: #f7e4df;
-    border-color: #e2b8ac;
-    color: #8a2f20;
-  }
-  @media (max-width: 700px) {
-    .agent-input { bottom: 114px; width: min(360px, calc(100vw - 28px)); }
-    .agent-panel { width: min(360px, calc(100vw - 28px)); }
-  }
-
-  .generation-plan-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 6;
-    pointer-events: none;
-    display: block;
-    opacity: 0;
-    transition: opacity 0.22s ease;
-  }
-  .generation-plan-overlay.visible {
-    opacity: 1;
-  }
-  .generation-plan-overlay[hidden] {
-    display: none;
-  }
-  .generation-plan-overlay img {
-    position: absolute;
-    width: min(68vmin, 720px);
-    height: min(68vmin, 720px);
-    aspect-ratio: 1;
-    object-fit: cover;
-    border-radius: 4px;
-    opacity: 0.48;
-    mix-blend-mode: multiply;
-    filter: saturate(1.12) contrast(1.08);
-    box-shadow: none;
-    transform-origin: 50% 50%;
-  }
-  body.generation-locked canvas {
-    cursor: wait;
-  }
-
   /* -------- generate modal -------- */
   .modal {
     position: fixed; inset: 0;
@@ -1297,8 +960,7 @@
   .modal-card input[type="range"],
   .settings-panel input[type="range"],
   .range-row input[type="range"],
-  .time-row input[type="range"],
-  .gen-slider-row input[type="range"] {
+  .time-row input[type="range"] {
     -webkit-appearance: none;
     appearance: none;
     width: 100%;
@@ -1316,8 +978,7 @@
   .modal-card input[type="range"]::-webkit-slider-runnable-track,
   .settings-panel input[type="range"]::-webkit-slider-runnable-track,
   .range-row input[type="range"]::-webkit-slider-runnable-track,
-  .time-row input[type="range"]::-webkit-slider-runnable-track,
-  .gen-slider-row input[type="range"]::-webkit-slider-runnable-track {
+  .time-row input[type="range"]::-webkit-slider-runnable-track {
     height: 4px;
     border-radius: 999px;
     background: rgba(120, 130, 150, 0.18);
@@ -1326,8 +987,7 @@
   .modal-card input[type="range"]::-moz-range-track,
   .settings-panel input[type="range"]::-moz-range-track,
   .range-row input[type="range"]::-moz-range-track,
-  .time-row input[type="range"]::-moz-range-track,
-  .gen-slider-row input[type="range"]::-moz-range-track {
+  .time-row input[type="range"]::-moz-range-track {
     height: 4px;
     border-radius: 999px;
     background: rgba(120, 130, 150, 0.18);
@@ -1336,8 +996,7 @@
   .modal-card input[type="range"]::-webkit-slider-thumb,
   .settings-panel input[type="range"]::-webkit-slider-thumb,
   .range-row input[type="range"]::-webkit-slider-thumb,
-  .time-row input[type="range"]::-webkit-slider-thumb,
-  .gen-slider-row input[type="range"]::-webkit-slider-thumb {
+  .time-row input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 18px;
@@ -1356,8 +1015,7 @@
   .modal-card input[type="range"]::-moz-range-thumb,
   .settings-panel input[type="range"]::-moz-range-thumb,
   .range-row input[type="range"]::-moz-range-thumb,
-  .time-row input[type="range"]::-moz-range-thumb,
-  .gen-slider-row input[type="range"]::-moz-range-thumb {
+  .time-row input[type="range"]::-moz-range-thumb {
     width: 18px;
     height: 14px;
     border-radius: 5px;
@@ -1393,7 +1051,6 @@
     gap: 10px;
     margin-top: 4px;
   }
-  .modal-foot #gen-status,
   .modal-foot #render-status {
     font-size: 12px;
     color: var(--muted);
@@ -1401,11 +1058,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-  .modal-foot #gen-status.error { color: #b84838; }
-  .modal-foot #gen-status.busy::after {
-    content: '…';
-    animation: dots 1s steps(4, end) infinite;
   }
   @keyframes dots {
     0%, 20% { content: ''; }
@@ -1421,187 +1073,6 @@
     color: var(--muted);
     line-height: 1.4;
   }
-  /* --- Enhanced Generate panel (seed / biomes / elevation / plan) --- */
-  .modal-card.gen-card {
-    width: min(620px, calc(100vw - 32px));
-    max-height: calc(100vh - 72px);
-    overflow-y: auto;
-    gap: 16px;
-    padding: 24px 28px 20px;
-    background: rgba(244, 245, 239, 0.82);
-    border-color: rgba(255, 255, 255, 0.68);
-    border-radius: 24px;
-  }
-  .gen-card .modal-head { margin-bottom: 4px; }
-  .gen-card .modal-head strong { font-size: 18px; letter-spacing: -0.02em; }
-  .gen-card > label {
-    gap: 8px;
-    color: rgba(42, 39, 34, 0.58);
-    font-size: 13px;
-  }
-  .gen-card textarea {
-    min-height: 78px;
-    border-radius: 16px;
-    background: rgba(255,255,255,0.78);
-    border-color: rgba(120,130,150,0.18);
-  }
-  .gen-section {
-    background: rgba(255,255,255,0.20);
-    border: 0;
-    border-top: 1px solid rgba(255,255,255,0.54);
-    border-radius: 0;
-    padding: 16px 0 0;
-  }
-  .gen-section-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-  }
-  .gen-section-title {
-    font-size: 12px;
-    font-weight: 800;
-    color: var(--ink);
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-  }
-  .gen-section-sum {
-    font-size: 12px;
-    color: rgba(42,39,34,0.70);
-    font-variant-numeric: tabular-nums;
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.48);
-    border: 1px solid rgba(120,130,150,0.14);
-    transition: background 0.12s, color 0.12s, border-color 0.12s;
-  }
-  .gen-section-sum.bad {
-    background: #f8e2d9;
-    border-color: #dfaa98;
-    color: #8c3c25;
-  }
-  .gen-section-sum.good {
-    background: #edf6df;
-    border-color: #b6cf90;
-    color: #4a6a2a;
-  }
-  .gen-row-seed {
-    display: grid;
-    grid-template-columns: 1fr repeat(3, 38px);
-    align-items: center;
-    gap: 10px;
-  }
-  .gen-row-seed input {
-    min-width: 0;
-    font: inherit;
-    font-size: 13px;
-    background: rgba(255,255,255,0.78);
-    border: 1px solid rgba(120,130,150,0.18);
-    border-radius: 14px;
-    padding: 10px 12px;
-    color: var(--ink);
-    font-variant-numeric: tabular-nums;
-  }
-  .gen-mini {
-    background: rgba(255,255,255,0.52);
-    border: 1px solid rgba(120,130,150,0.16);
-    border-radius: 13px;
-    cursor: pointer;
-    width: 38px;
-    height: 38px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(42,39,34,0.62);
-    transition: background 0.12s, color 0.12s, transform 0.12s;
-  }
-  .gen-mini:hover { background: rgba(255, 255, 255, 0.78); color: var(--ink); }
-  .gen-mini:active { transform: translateY(1px); }
-  .gen-sliders {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .modal-card .gen-slider-row {
-    display: grid;
-    grid-template-columns: 136px minmax(130px, 1fr) 46px;
-    align-items: center;
-    gap: 14px;
-    font-weight: 500;
-    color: rgba(42,39,34,0.76);
-    font-size: 13px;
-  }
-  .gen-slider-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    white-space: nowrap;
-  }
-  .gen-swatch {
-    width: 11px;
-    height: 11px;
-    border-radius: 4px;
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.10);
-    display: inline-block;
-  }
-  .modal-card .gen-slider-row input[type=range] {
-    width: 100%;
-    height: 18px;
-    margin: 0;
-  }
-  .modal-card .gen-slider-row input[type=range]::-webkit-slider-runnable-track {
-    height: 3px;
-    background: rgba(42,39,34,0.20);
-    box-shadow: 0 1px 0 rgba(255,255,255,0.70);
-  }
-  .modal-card .gen-slider-row input[type=range]::-moz-range-track {
-    height: 3px;
-    background: rgba(42,39,34,0.20);
-    box-shadow: 0 1px 0 rgba(255,255,255,0.70);
-  }
-  .modal-card .gen-slider-row input[type=range]::-webkit-slider-thumb {
-    width: 18px;
-    height: 18px;
-    margin-top: -7px;
-    border-radius: 999px;
-    background: #fff;
-    border: 1px solid rgba(120,130,150,0.20);
-    box-shadow: 0 2px 5px rgba(20,30,50,0.18);
-  }
-  .modal-card .gen-slider-row input[type=range]::-moz-range-thumb {
-    width: 18px;
-    height: 18px;
-    border-radius: 999px;
-    background: #fff;
-    border: 1px solid rgba(120,130,150,0.20);
-    box-shadow: 0 2px 5px rgba(20,30,50,0.18);
-  }
-  .gen-slider-val {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-    color: rgba(42,39,34,0.58);
-    font-size: 12.5px;
-  }
-  .modal-card .gen-check {
-    display: grid;
-    grid-template-columns: 42px 1fr;
-    align-items: center;
-    gap: 12px;
-    font-weight: 500;
-    color: rgba(42,39,34,0.74);
-    font-size: 13px;
-    line-height: 1.35;
-  }
-  .modal-card .gen-check + .gen-check { margin-top: 10px; }
-  .gen-check input[type=checkbox] { margin: 0; }
-  .gen-check .gen-hint {
-    display: block;
-    font-style: normal;
-    color: rgba(42,39,34,0.50);
-    font-size: 12px;
-    margin: 2px 0 0;
-  }
-
   /* --- Showcase mode (hide chrome, let the scene speak) --- */
   body.showcase .brand,
   body.showcase .controls,
@@ -1609,9 +1080,7 @@
   body.showcase .audio-panel,
   body.showcase .help,
   body.showcase .unsaved-banner,
-  body.showcase .minimap-wrap,
-  body.showcase #agent-input,
-  body.showcase #agent-panel {
+  body.showcase .minimap-wrap {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.5s ease;
@@ -1817,10 +1286,6 @@
   body.tod-dusk  .controls,
   body.tod-night .appbar,
   body.tod-dusk  .appbar,
-  body.tod-night .agent-input,
-  body.tod-dusk  .agent-input,
-  body.tod-night .agent-panel,
-  body.tod-dusk  .agent-panel,
   body.tod-night .minimap-card,
   body.tod-dusk  .minimap-card,
   body.tod-night .flyout,
@@ -1860,10 +1325,6 @@
   body.tod-dusk  .btn.icon,
   body.tod-night .toolbar .tool,
   body.tod-dusk  .toolbar .tool,
-  body.tod-night .agent-grip,
-  body.tod-dusk  .agent-grip,
-  body.tod-night .agent-input input,
-  body.tod-dusk  .agent-input input,
   body.tod-night .modal-card,
   body.tod-dusk  .modal-card {
     color: var(--ink) !important;
@@ -1888,11 +1349,6 @@
   body.tod-night .topbar-popup .pill,
   body.tod-dusk  .topbar-popup .pill {
     color: var(--ink) !important;
-  }
-  /* Agent input placeholder readable on the bright night chrome. */
-  body.tod-night .agent-input input::placeholder,
-  body.tod-dusk  .agent-input input::placeholder {
-    color: rgba(60, 60, 70, 0.55) !important;
   }
   body.weather-cloudy #tod-tint { background: linear-gradient(180deg, rgba(180,180,180,0.18), transparent 70%); opacity: 1; }
 
@@ -2719,35 +2175,8 @@
     .flyout-item { min-height: 40px; padding: 10px 14px; }
     .tool kbd { display: none; }
   }
-  html.ai-disabled [data-ai-interface] { display: none !important; }
 </style>
 <script type="text/javascript">
-  // AI interfaces are a dev/flagged feature. Production hosts default to no
-  // prompt boxes, Generate buttons, Auto/AI settings, or floating agent UI.
-  // Enable explicitly with window.__TWB_ENABLE_AI_INTERFACES__ = true before
-  // this script, or via ?ai=1 / localStorage tinyworld:features:ai=1.
-  (function () {
-    const host = window.location.hostname;
-    const isLocal = window.location.protocol === 'file:'
-      || host === 'localhost'
-      || host === '127.0.0.1'
-      || host === '[::1]'
-      || host.endsWith('.local');
-    let enabled = isLocal;
-    try {
-      const flag = window.__TWB_ENABLE_AI_INTERFACES__;
-      if (typeof flag === 'boolean') enabled = flag;
-      const qs = new URLSearchParams(window.location.search);
-      if (qs.get('ai') === '1') enabled = true;
-      if (qs.get('ai') === '0') enabled = false;
-      const stored = window.localStorage && window.localStorage.getItem('tinyworld:features:ai');
-      if (stored === '1') enabled = true;
-      if (stored === '0') enabled = false;
-    } catch (_) {}
-    window.__TWB_AI_INTERFACES_ENABLED__ = !!enabled;
-    document.documentElement.classList.toggle('ai-disabled', !enabled);
-  }());
-
   // Cluso is a local feedback tool only. Production hosts must not load or
   // display it, even when the optional cluso/ files exist in a dev checkout.
   (function () {
@@ -2901,11 +2330,6 @@
         <span class="world-menu-label">Duplicate</span>
         <span class="world-menu-hint">copy of this world</span>
       </button>
-      <button class="world-menu-item" data-action="generate" role="menuitem" data-ai-interface>
-        <span class="world-menu-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></span>
-        <span class="world-menu-label">Generate from prompt…</span>
-        <span class="world-menu-hint">⌘G</span>
-      </button>
     </div>
     <div class="world-menu-section" id="world-menu-slots">
       <div class="world-menu-section-title">My worlds</div>
@@ -2984,9 +2408,6 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>
     </button>
     <input type="file" id="import-file" accept=".json,application/json" hidden />
-    <button class="btn icon" id="generate" data-tooltip="Generate from prompt" aria-label="Generate world from prompt" data-ai-interface hidden>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
-    </button>
     <button class="btn icon" id="clear" data-tooltip="Clear to grass" aria-label="Clear world to grass">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
     </button>
@@ -3203,128 +2624,6 @@
     </form>
   </div>
 
-  <div id="gen-modal" class="modal" data-ai-interface hidden>
-    <form class="modal-card gen-card" role="dialog" aria-modal="true" aria-labelledby="gen-title" onsubmit="return false">
-      <div class="modal-head">
-        <strong id="gen-title">Generate Tiny World</strong>
-        <button class="modal-close" id="gen-close" title="Close">×</button>
-      </div>
-
-      <label>Prompt
-        <textarea id="gen-prompt" rows="3" placeholder="a small fishing village by a river, a crop field next to two cottages, rocky outcrops on edges"></textarea>
-      </label>
-
-      <div class="gen-section" data-section="size">
-        <div class="gen-section-head">
-          <span class="gen-section-title">Board size</span>
-        </div>
-        <label>Home board
-          <select id="gen-grid-size">
-            <option value="8">8 × 8</option>
-            <option value="12">12 × 12</option>
-            <option value="16">16 × 16</option>
-            <option value="20">20 × 20</option>
-            <option value="32">32 × 32</option>
-            <option value="48">48 × 48</option>
-          </select>
-        </label>
-      </div>
-
-      <div class="gen-section" data-section="seed">
-        <div class="gen-section-head">
-          <span class="gen-section-title">Seed</span>
-        </div>
-        <div class="gen-row gen-row-seed">
-          <input id="gen-seed" type="text" placeholder="leave blank for random" autocomplete="off" />
-          <button class="gen-mini" id="gen-seed-random" type="button" data-tooltip="New random seed" aria-label="Random seed">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>
-          </button>
-          <button class="gen-mini" id="gen-seed-copy" type="button" data-tooltip="Copy seed" aria-label="Copy seed">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          </button>
-          <button class="gen-mini" id="gen-seed-paste" type="button" data-tooltip="Paste seed" aria-label="Paste seed">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
-          </button>
-        </div>
-      </div>
-
-      <div class="gen-section" data-section="biomes">
-        <div class="gen-section-head">
-          <span class="gen-section-title">Composition</span>
-          <span class="gen-section-sum" id="gen-biome-sum">100%</span>
-        </div>
-        <div class="gen-sliders" id="gen-biome-sliders">
-          <label class="gen-slider-row" data-biome="grass">
-            <span class="gen-slider-label"><span class="gen-swatch" style="background:#9bc16a"></span>Grass</span>
-            <input type="range" min="0" max="100" step="1" value="55" data-biome="grass" />
-            <span class="gen-slider-val">55%</span>
-          </label>
-          <label class="gen-slider-row" data-biome="forest">
-            <span class="gen-slider-label"><span class="gen-swatch" style="background:#4f8a3a"></span>Forest</span>
-            <input type="range" min="0" max="100" step="1" value="20" data-biome="forest" />
-            <span class="gen-slider-val">20%</span>
-          </label>
-          <label class="gen-slider-row" data-biome="water">
-            <span class="gen-slider-label"><span class="gen-swatch" style="background:#5da3c8"></span>Water</span>
-            <input type="range" min="0" max="100" step="1" value="10" data-biome="water" />
-            <span class="gen-slider-val">10%</span>
-          </label>
-          <label class="gen-slider-row" data-biome="dirt">
-            <span class="gen-slider-label"><span class="gen-swatch" style="background:#b8945a"></span>Farmland</span>
-            <input type="range" min="0" max="100" step="1" value="10" data-biome="dirt" />
-            <span class="gen-slider-val">10%</span>
-          </label>
-          <label class="gen-slider-row" data-biome="settlement">
-            <span class="gen-slider-label"><span class="gen-swatch" style="background:#c98a5b"></span>Settlement</span>
-            <input type="range" min="0" max="100" step="1" value="5" data-biome="settlement" />
-            <span class="gen-slider-val">5%</span>
-          </label>
-        </div>
-      </div>
-
-      <div class="gen-section" data-section="elevation">
-        <div class="gen-section-head">
-          <span class="gen-section-title">Elevation</span>
-          <span class="gen-section-sum" id="gen-elev-sum">100%</span>
-        </div>
-        <div class="gen-sliders" id="gen-elev-sliders">
-          <label class="gen-slider-row" data-elev="plains">
-            <span class="gen-slider-label">Plains</span>
-            <input type="range" min="0" max="100" step="1" value="55" data-elev="plains" />
-            <span class="gen-slider-val">55%</span>
-          </label>
-          <label class="gen-slider-row" data-elev="hills">
-            <span class="gen-slider-label">Hills</span>
-            <input type="range" min="0" max="100" step="1" value="30" data-elev="hills" />
-            <span class="gen-slider-val">30%</span>
-          </label>
-          <label class="gen-slider-row" data-elev="mountains">
-            <span class="gen-slider-label">Mountains</span>
-            <input type="range" min="0" max="100" step="1" value="15" data-elev="mountains" />
-            <span class="gen-slider-val">15%</span>
-          </label>
-        </div>
-      </div>
-
-      <div class="gen-section" data-section="advanced">
-        <label class="gen-check">
-          <input type="checkbox" id="gen-procedural" />
-          <span>Procedural (offline) <em class="gen-hint">— skip the LLM, generate directly from seed</em></span>
-        </label>
-        <label class="gen-check">
-          <input type="checkbox" id="gen-disable-autofill" />
-          <span>Disable outside auto-fill <em class="gen-hint">blank grass beyond the generated board</em></span>
-        </label>
-      </div>
-
-      <div class="help-line">Replaces the current world. Model and API key live in Settings → AI.</div>
-      <div class="modal-foot">
-        <span id="gen-status"></span>
-        <button class="btn" id="gen-go" type="button">Generate</button>
-      </div>
-    </form>
-  </div>
-
   <div id="render-modal" class="modal" hidden>
     <form class="modal-card settings-card" role="dialog" aria-modal="true" aria-labelledby="render-title" onsubmit="return false">
       <div class="modal-head">
@@ -3336,7 +2635,6 @@
           <button type="button" class="settings-tab active" data-settings-tab="screen">Screen</button>
           <button type="button" class="settings-tab" data-settings-tab="world">World</button>
           <button type="button" class="settings-tab" data-settings-tab="sky">Sky</button>
-          <button type="button" class="settings-tab" data-settings-tab="ai" data-ai-interface>AI</button>
         </nav>
         <div class="settings-panels">
           <section class="settings-panel active" data-settings-panel="screen">
@@ -3448,25 +2746,6 @@
             </div>
           </section>
 
-          <section class="settings-panel" data-settings-panel="ai" data-ai-interface>
-            <div class="settings-section-title">AI generation</div>
-            <label>Provider
-              <select id="gen-provider">
-                <option value="openai">OpenAI</option>
-                <option value="anthropic">Anthropic</option>
-                <option value="xai">xAI / Grok</option>
-              </select>
-            </label>
-            <label>Model
-              <input id="gen-model" list="gen-model-list" autocomplete="off" spellcheck="false" placeholder="gpt-5.5" />
-              <datalist id="gen-model-list"></datalist>
-              <div class="profile-hint" style="margin-top:4px;">Type any model name your key has access to. Suggestions are just shortcuts.</div>
-            </label>
-            <label>API key <span style="font-weight:400;font-size:11px;">(stored in this browser only)</span>
-              <input id="gen-key" type="password" autocomplete="off" placeholder="sk-... / xai-... / etc" />
-            </label>
-            <div class="help-line">Used by Generate, Auto, and the floating agent. The prompt tells models to assemble requests from Tiny World primitives: terrain, paths, fences, rocks, crops, bridges, trees, tufts, and building clusters.</div>
-          </section>
         </div>
       </div>
       <div class="modal-foot">
@@ -3475,30 +2754,6 @@
       </div>
     </form>
   </div>
-
-  <div id="agent-panel" class="agent-panel collapsed" data-ai-interface aria-live="polite">
-    <div class="agent-panel-head">
-      <span id="agent-panel-title">Agent conversation</span>
-      <button type="button" class="agent-panel-toggle" id="agent-panel-toggle" aria-label="Close conversation">×</button>
-    </div>
-    <div class="agent-selection-preview" id="agent-selection-preview" hidden>
-      <div class="agent-selection-count" id="agent-selection-count">0 tiles selected</div>
-      <ul class="agent-selection-list" id="agent-selection-list"></ul>
-      <div class="agent-selection-hint">Type above and the prompt will target this selection.</div>
-    </div>
-    <div class="agent-messages" id="agent-messages"></div>
-  </div>
-
-  <div id="generation-plan-overlay" class="generation-plan-overlay" hidden aria-hidden="true">
-    <img id="generation-plan-image" alt="" />
-  </div>
-
-  <form id="agent-input" class="agent-input" data-ai-interface autocomplete="off">
-    <button type="button" class="agent-grip" id="agent-grip" title="Drag agent input" aria-label="Drag agent input">⋮⋮</button>
-    <input id="agent-prompt" type="text" placeholder="Ask the agent to change this world…" aria-label="Ask the agent" />
-    <button type="submit" class="agent-send" id="agent-send" aria-label="Send to agent">↑</button>
-    <div id="agent-suggestions" class="agent-suggestions" role="listbox" aria-label="Suggested prompts" hidden></div>
-  </form>
 
   <div class="toolbar" id="toolbar"></div>
   <div class="flyout" id="flyout" hidden></div>
@@ -5111,7 +4366,7 @@
   // -------- selection (select-tool) --------
   // Track a Set of "x,z" string keys for selected cells. A semi-transparent
   // overlay quad is rendered on top of each selected tile. Listeners are
-  // notified via a CustomEvent so UI (the agent panel) can refresh.
+  // notified via a CustomEvent so UI can refresh.
   const selectedCells = new Set();
   const selectionGroup = new THREE.Group();
   selectionGroup.name = 'selection-highlights';
@@ -6940,7 +6195,6 @@
 
   // -------- tools --------
   const TOOLS = [
-    { id: 'auto',   label: 'Auto',   auto: true, color: '#3a72c8', shortcut: '0', hidden: true },
     { id: 'select', label: 'Select', select: true, color: '#c8b06f', shortcut: 'v' },
     { id: 'grass',  label: 'Grass',  terrain: 'grass', color: '#9ec74b', shortcut: '1' },
     { id: 'path',   label: 'Path',   terrain: 'path',  color: '#e8d5a8', shortcut: '2' },
@@ -6956,12 +6210,6 @@
 
   const DEFAULT_TOOL = TOOLS.find(t => t.id === 'house');
   let selectedTool = DEFAULT_TOOL;
-  let autoBusy = false;
-  const AUTO_BATCH_SIZE = 8;
-  const AUTO_REFRESH_EVERY = 6;
-  let autoSuggestionQueue = [];
-  let autoPlacementsSinceRefresh = AUTO_REFRESH_EVERY;
-  let autoSuggestionSnapshot = '';
 
   // -------- toolbar 3D thumbnails --------
   // Each tool button gets a mini 3D render of its object/terrain via a
@@ -7158,10 +6406,6 @@
       icon.className = 'tool-icon';
       icon.innerHTML = toolbarIconSvg(t.eraser ? 'erase' : 'select');
       btn.appendChild(icon);
-    } else if (t.auto) {
-      const swatch = document.createElement('div');
-      swatch.className = 'swatch auto';
-      btn.appendChild(swatch);
     } else if (t.kind === 'house') {
       const icon = document.createElement('span');
       icon.className = 'tool-icon';
@@ -7192,7 +6436,7 @@
         selectTool(t);
       });
     }
-    if (!t.eraser && !t.auto) {
+    if (!t.eraser) {
       btn.addEventListener('pointerenter', e => {
         if (e.pointerType === 'mouse') startThumbHover(t.id);
       });
@@ -7249,14 +6493,6 @@
     resetGhostTransform();
   }
 
-  function setAutoBusy(isBusy) {
-    autoBusy = isBusy;
-    const btn = document.querySelector('.tool[data-id="auto"]');
-    if (!btn) return;
-    btn.classList.toggle('busy', isBusy);
-    btn.title = isBusy ? 'Auto is choosing' : 'Auto (0)';
-  }
-
   // -------- click → place / erase --------
   // Remove the ghost board's mesh for a given local cell so a freshly
   // materialised home cellMesh doesn't render on top of the original
@@ -7277,13 +6513,6 @@
 
   function applyToolToCell(cell) {
     if (cell.boardX || cell.boardZ) {
-      // Skip if the currently selected tool would no-op (e.g. auto mode
-      // without an API key) — otherwise we'd materialise + remove the
-      // ghost mesh for a click that produced no replacement, leaving a
-      // hole. Same for any other tool that ends up doing nothing.
-      if (selectedTool.auto) {
-        if (!getAIProviderState().key) return;
-      }
       // Ghost-board click — copy the generated cell into the user-edit
       // store, mark it as edited, strip the ghost mesh so we don't
       // double-render, then let applyTool / setCell render the home
@@ -7332,11 +6561,6 @@
   }
 
   function applyTool(x, z) {
-    if (selectedTool.auto) {
-      if (!getAIProviderState().key) return; // Can't auto-place without API key
-      applyAutoTool(x, z);
-      return;
-    }
     if (selectedTool.select) {
       return;
     }
@@ -7378,32 +6602,6 @@
     }
   }
 
-  async function applyAutoTool(x, z) {
-    if (autoBusy) return;
-    setAutoBusy(true);
-    try {
-      const action = await getNextAutoSuggestion();
-      const normalized = adaptAutoSuggestionToCell(action, x, z);
-      setCell(x, z, {
-        terrain: normalized.terrain,
-        kind: normalized.kind,
-        floors: normalized.floors,
-        buildingType: normalized.buildingType,
-      });
-      autoPlacementsSinceRefresh++;
-    } catch (err) {
-      console.error('auto failed:', err);
-      const msg = String(err.message || err);
-      if (msg.indexOf('API key') !== -1 && openGenerateModal) {
-        openGenerateModal('enter an API key for Auto');
-      } else {
-        alert('Auto could not choose a cell: ' + msg.slice(0, 120));
-      }
-    } finally {
-      setAutoBusy(false);
-    }
-  }
-
   // -------- input: drag-to-orbit + click-to-place + multi-touch --------
   let pointerDown = null;     // {x, y}
   let lastPointer = null;
@@ -7415,26 +6613,6 @@
   const activePointers = new Map(); // pointerId -> {x, y, type}
   let pinchPrevDist = 0;
   let pinchPrevMid = null;
-  let generationViewLocked = false;
-
-  function setGenerationViewLocked(locked) {
-    generationViewLocked = !!locked;
-    document.body.classList.toggle('generation-locked', generationViewLocked);
-    if (!generationViewLocked) return;
-    activePointers.clear();
-    pointerDown = null;
-    lastPointer = null;
-    didDrag = false;
-    dragMode = null;
-    spaceDown = false;
-    pinchPrevDist = 0;
-    pinchPrevMid = null;
-    hoverMesh.visible = false;
-    currentHover = null;
-    renderer.domElement.classList.remove('dragging');
-    updateGhostPlacement();
-  }
-
   function updateHoverAt(x, y) {
     const cell = pickTile(x, y);
     if (cell) {
@@ -7451,10 +6629,6 @@
   renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
 
   renderer.domElement.addEventListener('pointerdown', e => {
-    if (generationViewLocked) {
-      e.preventDefault();
-      return;
-    }
     if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 2) return;
     activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, type: e.pointerType });
     try { renderer.domElement.setPointerCapture(e.pointerId); } catch (_) {}
@@ -7495,10 +6669,6 @@
   });
 
   renderer.domElement.addEventListener('pointermove', e => {
-    if (generationViewLocked) {
-      e.preventDefault();
-      return;
-    }
     if (activePointers.has(e.pointerId)) {
       const p = activePointers.get(e.pointerId);
       p.x = e.clientX; p.y = e.clientY;
@@ -7560,12 +6730,6 @@
   });
 
   renderer.domElement.addEventListener('pointerup', e => {
-    if (generationViewLocked) {
-      e.preventDefault();
-      activePointers.delete(e.pointerId);
-      renderer.domElement.classList.remove('dragging');
-      return;
-    }
     activePointers.delete(e.pointerId);
     renderer.domElement.classList.remove('dragging');
 
@@ -7612,12 +6776,6 @@
   });
 
   renderer.domElement.addEventListener('pointercancel', e => {
-    if (generationViewLocked) {
-      e.preventDefault();
-      activePointers.delete(e.pointerId);
-      renderer.domElement.classList.remove('dragging');
-      return;
-    }
     activePointers.delete(e.pointerId);
     renderer.domElement.classList.remove('dragging');
     if (activePointers.size === 0) {
@@ -7631,7 +6789,6 @@
 
   renderer.domElement.addEventListener('wheel', e => {
     e.preventDefault();
-    if (generationViewLocked) return;
     markCameraMoving();
     viewSize = Math.max(4, Math.min(22, viewSize + e.deltaY * 0.005));
     onResize();
@@ -7711,12 +6868,6 @@
     // Never swallow OS-level keystrokes like Cmd+R (reload), Ctrl+R, Cmd+F, etc.
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const k = e.key.toLowerCase();
-    if (generationViewLocked) {
-      if (e.code === 'Space' || k === 'c' || k === 'p' || k === 'i' || k === 'r' || k === 'f' || e.key.indexOf('Arrow') === 0) {
-        e.preventDefault();
-      }
-      return;
-    }
     if (e.code === 'Space') {
       spaceDown = true;
       e.preventDefault();
@@ -10062,10 +9213,10 @@
   window.addEventListener('resize', onResize);
 
   // -------- world schema (canonical) --------
-  // Embedded copy of world.schema.json. Sent to AI providers as the contract
+  // Embedded copy of world.schema.json. Used as the validation contract
   // for generated worlds. The schema also defines the import format accepted
   // by applyState — exporting writes tuples for compactness, but applyState
-  // accepts the object form too (so AI output drops in unchanged).
+  // accepts the object form too (so procedural input drops in unchanged).
   const WORLD_SCHEMA = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://tinyworld.local/world.schema.json",
@@ -10401,96 +9552,7 @@
     }
   };
 
-  // -------- AI generation --------
-  // Prompts an LLM for a world description matching WORLD_SCHEMA, validates
-  // the response, and feeds it through applyState. API keys live in
-  // localStorage under tinyworld:ai:* — never sent anywhere except the chosen
-  // provider. Three providers supported out of the box.
-  const AI_DEFAULTS = {
-    // Suggestions only. The input remains free text so users can type any
-    // provider-side model that their key has access to.
-    openai: {
-      model: 'gpt-5.5',
-      endpoint: 'https://api.openai.com/v1/chat/completions',
-      models: [
-        'gpt-5.5', 'chat-latest',
-        'gpt-5.2', 'gpt-5.2-chat-latest',
-      ],
-    },
-    anthropic: {
-      model: 'claude-opus-4-7',
-      endpoint: 'https://api.anthropic.com/v1/messages',
-      models: [
-        'claude-opus-4-7',
-        'claude-sonnet-4-6',
-        'claude-opus-4-1-20250805',
-        'claude-sonnet-4-20250514',
-      ],
-    },
-    xai: {
-      model: 'grok-4.3-latest',
-      endpoint: 'https://api.x.ai/v1/chat/completions',
-      models: [
-        'grok-4.3-latest', 'grok-4.3',
-        'grok-4.20-reasoning', 'grok-4.20',
-      ],
-    },
-  };
-  const AI_LS = {
-    provider: 'tinyworld:ai:provider',
-    model:    p => 'tinyworld:ai:model:' + p,
-    key:      p => 'tinyworld:ai:key:' + p,
-    prompt:   'tinyworld:ai:prompt',
-  };
-  let openGenerateModal = null;
-
-  function isImageOnlyModel(model) {
-    return /^gpt-image(?:-|$)/i.test(String(model || '').trim());
-  }
-
-  function textModelForGeneration(provider, model) {
-    const def = AI_DEFAULTS[provider] || AI_DEFAULTS.openai;
-    return isImageOnlyModel(model) ? def.model : (model || def.model);
-  }
-
-  const AUTO_ACTION_SCHEMA = {
-    type: 'object',
-    additionalProperties: false,
-    required: ['terrain', 'kind', 'floors', 'buildingType'],
-    properties: {
-      terrain: {
-        type: 'string',
-        enum: ['grass', 'path', 'dirt', 'water', 'stone', 'lava', 'sand', 'snow'],
-      },
-      kind: {
-        type: ['string', 'null'],
-        enum: [null, 'house', 'tree', 'fence', 'rock', 'bridge', 'crop', 'corn', 'wheat', 'pumpkin', 'carrot', 'sunflower', 'tuft', 'flower', 'bush', 'cow', 'sheep'],
-      },
-      floors: {
-        type: 'integer',
-        minimum: 1,
-        maximum: 8,
-      },
-      buildingType: {
-        type: ['string', 'null'],
-        enum: [null, 'cottage'],
-      },
-    },
-  };
-  const AUTO_SUGGESTIONS_SCHEMA = {
-    type: 'object',
-    additionalProperties: false,
-    required: ['suggestions'],
-    properties: {
-      suggestions: {
-        type: 'array',
-        minItems: 1,
-        maxItems: AUTO_BATCH_SIZE,
-        items: AUTO_ACTION_SCHEMA,
-      },
-    },
-  };
-
+  // -------- world validation / procedural generation --------
   function snapshotCells() {
     const cells = [];
     for (let x = 0; x < GRID; x++) {
@@ -10516,149 +9578,6 @@
       }
     }
     return cells;
-  }
-
-  const PRIMITIVE_ASSEMBLY_PROMPT = [
-    'Primitive assembly rules:',
-    '- You cannot invent new object kinds, meshes, labels, or custom geometry in JSON. Build every requested thing by arranging the available Tiny World primitives: terrain cells, raised terrainFloors, houses/buildingType variants, trees, fences/fenceSide, rocks, bridges, crop kinds, and tufts.',
-    '- Translate real-world objects into readable low-poly tile assemblies. Example: skate park = path/dirt plaza + raised terrain ramps + rocks as boulders/ramps + fences as rails/edges + tufts/trees as landscaping.',
-    '- Use terrain as the base primitive: grass=open space, path=paved/concrete, dirt=earth/fields, water=canals/ponds. Use terrainFloors for platforms, terraces, steps, banks, ramps, plinths, hills, mountains, and cliffs.',
-    '- Use fences as line primitives: rails, walls, borders, pens, queue barriers, garden edging, pier rails, road gates, and castle-wall components. Set fenceSide deliberately.',
-    '- Use rocks as sparse sculptural props only: boulders, monuments, rubble, stepping stones, and focal landmarks. Do not use rock props to represent broad hills or mountains.',
-    '- Use houses and variants as massing primitives: cottages for small buildings, manors for civic buildings, towers/turrets for vertical landmarks, high-rise for modern tall structures. Adjacent null-buildingType houses assemble into larger footprints.',
-    '- Buildings must sit directly on flat grass or dirt. Do not put houses on path, water, lava, raised terrain, decks, bridges, platforms, posts, or stilts.',
-    '- Use crops/tufts/trees as texture primitives: fields, hedges, gardens, park planting, wild edges, orchards, and scale cues.',
-    '- Prefer 3–5 clear assembled features over scattering many single unrelated cells. Make the construction legible from the default isometric camera.',
-  ].join('\n');
-
-  function buildSystemPrompt(gridSize) {
-    const size = HOME_GRID_OPTIONS.includes(gridSize) ? gridSize : GRID;
-    const maxCoord = size - 1;
-    return [
-      'You are a level designer and low-poly primitive assembler for the Tiny World Builder, a ' + size + 'x' + size + ' isometric voxel scene.',
-      'Output a JSON object that strictly matches the provided JSON Schema. Do not include prose, markdown fences, or explanations — only the JSON object.',
-      'Required home board edge length: include "gridSize": ' + size + ' in the JSON object.',
-      'Grid coordinates: x in 0..' + maxCoord + ' (left-right), z in 0..' + maxCoord + ' (front-back). Default cell is grass with no object.',
-      'Only emit cells that differ from defaults — the renderer fills the rest.',
-      'Houses cluster automatically when buildingType is null: adjacent houses merge into linear, L/T/+, or 2x2 forms. To force a single-cell variant set buildingType to cottage|manor|tower|skyscraper.',
-      'Buildings must sit directly on flat grass or dirt. Do not put houses on path, water, lava, raised terrain, decks, bridges, platforms, posts, or stilts.',
-      'Repeat-tapping the same object increases floors/intensity: houses grow upward; trees, rocks, bridges, fences, tufts, and crops become larger, denser, or more detailed.',
-      'A fence is a single side/leaf, not a full square. Set fenceSide to n|s|e|w for tile edges or center-x|center-z for centre-line walls.',
-      'Fences placed on two perpendicular sides of a house can promote it to a castle turret and turn connected fence cells into stone wall — use this for castles.',
-      'Think like a low-poly diorama designer, not a random tile filler: start from a readable scene concept, use strong silhouettes, and leave negative space.',
-      'Use low-poly worldbuilding cues: readable silhouettes, a few landmark cells, modular clusters, paths that lead the eye, and color-blocked terrain.',
-      'Terrain should compose the scene: paths lead the eye, water creates crossings, dirt groups crops, grass creates breathing room, and raised terrain can imply mesas or Monument Valley-style landforms.',
-      'Hills and mountains are raised terrain: use terrainFloors on mostly bare terrain cells. Do not cover mountain or hill regions with rock objects.',
-      'Rock is a scenic landmark prop. Bridge may sit on water and auto-orients toward nearby path or land; other water cells should not host any kind.',
-      'Crops (crop, corn, wheat, pumpkin, carrot, sunflower) imply terrain=dirt; the renderer enforces that, but you may set terrain explicitly.',
-      'Trees and tufts read best on grass. Rocks work as edges, overlooks, or focal points.',
-      'Use floors/intensity deliberately: terrain stacks into height, repeated objects gain size/detail, and fences vary from wood to wire/stone/steel wall styles.',
-      'Avoid noise and full-grid filling. Aim for a coherent, readable scene — vary heights, leave breathing room, group related elements.',
-      PRIMITIVE_ASSEMBLY_PROMPT,
-      '',
-      'JSON Schema:',
-      JSON.stringify(WORLD_SCHEMA, null, 2),
-    ].join('\n');
-  }
-
-  function buildAutoSystemPrompt() {
-    return [
-      'You are the Auto palette tool for Tiny World Builder, an 8x8 isometric voxel scene.',
-      'Read the current home-board JSON and produce a ranked batch of candidate tile actions the player may place next.',
-      'Do not choose coordinates and do not replace the whole world. The player will still choose the clicked tile locally.',
-      'Base the suggestions on the current sparse world state, nearby patterns, and what would be coherent next manual placements.',
-      'Act as a low-poly primitive assembler: suggest reusable primitive actions that help the player build larger requested forms from terrain, height, fences, rocks, buildings, crops, tufts, trees, and bridges.',
-      'Prefer extending visible structures: paths continue, fences align as side/leaf wall runs, crops form fields, houses cluster, trees/rocks frame empty edges, bridges belong on water crossings.',
-      'Use floors/intensity as variation: repeated fences can become taller wood, wire, stone wall, or steel wall; repeated rocks, trees, bridges, crops, and tufts gain size/detail.',
-      'Return varied suggestions, ordered best first: include structural options, terrain/path options, nature/detail options, and intensify/repeat options when useful.',
-      'Suggestions must be reusable across several placements, so avoid relying on a single exact coordinate.',
-      'If the player asks for a thing with no native kind (skate park, playground, market, airport, quarry, garden, plaza), decompose it into the closest existing primitive action rather than inventing a new kind.',
-      'Return a JSON object that strictly matches the schema. Do not include prose, markdown fences, or explanations.',
-      '',
-      'JSON Schema:',
-      JSON.stringify(AUTO_SUGGESTIONS_SCHEMA, null, 2),
-    ].join('\n');
-  }
-
-  function getAIProviderState() {
-    const storedProvider = localStorage.getItem(AI_LS.provider) || 'openai';
-    const provider = AI_DEFAULTS[storedProvider] ? storedProvider : 'openai';
-    const def = AI_DEFAULTS[provider];
-    const models = def.models || [def.model];
-    const storedModel = localStorage.getItem(AI_LS.model(provider));
-    const model = isImageOnlyModel(storedModel)
-      ? def.model
-      : (models.includes(storedModel) ? storedModel : def.model);
-    return {
-      provider,
-      model,
-      key: localStorage.getItem(AI_LS.key(provider)) || '',
-    };
-  }
-
-  function buildAutoUserPrompt() {
-    return JSON.stringify({
-      world: {
-        v: STORAGE_VERSION,
-        cells: snapshotCells(),
-      },
-      batchSize: AUTO_BATCH_SIZE,
-      refreshPolicy: 'The browser will reuse these suggestions locally for several Auto placements before asking again.',
-      availableTools: TOOLS.filter(t => !t.auto).map(t => ({
-        id: t.id,
-        terrain: t.terrain || null,
-        kind: t.kind || null,
-        erase: !!t.erase,
-        terrainOverride: t.terrainOverride || null,
-        variants: t.variants ? t.variants.map(v => ({
-          id: v.id,
-          buildingType: v.buildingType || null,
-          fenceSide: v.fenceSide || null,
-        })) : null,
-      })),
-    }, null, 2);
-  }
-
-  function floatingAgentIntent(text) {
-    const raw = String(text || '').trim();
-    if (/^\/clear\b/i.test(raw)) {
-      return {
-        mode: 'replace',
-        clearFirst: true,
-        prompt: raw.replace(/^\/clear\b\s*/i, '').trim(),
-      };
-    }
-    const replaceRequested =
-      /\b(replace|rebuild|redesign|reset|wipe)\b/i.test(raw) ||
-      /\b(start over|from scratch|new world|new map|new board|full world|entire board)\b/i.test(raw) ||
-      /\bclear (?:the )?(world|board|map)\b/i.test(raw);
-    return {
-      mode: replaceRequested ? 'replace' : 'add',
-      clearFirst: false,
-      prompt: raw,
-    };
-  }
-
-  function buildFloatingAdditionPrompt(userPrompt) {
-    const maxCoord = GRID - 1;
-    return [
-      'Mode: ADDITION PATCH.',
-      'Treat the user request as an addition to the existing Tiny World. Do not replace, reset, clear, or redesign the world.',
-      'Return a JSON object matching the schema with "gridSize": ' + GRID + ' and only the cells that should be added or changed.',
-      'Do not emit unchanged existing cells. The app will merge your emitted cells into the current board and preserve every cell not mentioned.',
-      'Every emitted cell must be the complete final state for that coordinate: x, z, terrain, kind, floors, terrainFloors, buildingType, fenceSide, and extras if needed.',
-      'Choose empty or compatible nearby cells unless selected-cell context is provided, in which case only change cells needed for that selected scope.',
-      'Coordinate bounds for emitted cells: x in 0..' + maxCoord + ', z in 0..' + maxCoord + '.',
-      'Current world JSON:',
-      JSON.stringify({
-        v: STORAGE_VERSION,
-        gridSize: GRID,
-        cells: snapshotCells(),
-      }, null, 2),
-      '',
-      'User request:',
-      userPrompt,
-    ].join('\n');
   }
 
   function normalizeWorldCells(data) {
@@ -10700,8 +9619,8 @@
     if (data.cameraMode !== undefined && !okCameraMode.has(data.cameraMode)) return 'cameraMode invalid: ' + data.cameraMode;
     if (data.gridSize !== undefined && !HOME_GRID_OPTIONS.includes(data.gridSize)) return 'gridSize invalid: ' + data.gridSize;
     const okTerrain = new Set(['grass','path','dirt','water','stone','lava','sand','snow']);
-    const okKind = new Set([null,'house']);
-    const okBT = new Set([null,'cottage']);
+    const okKind = new Set([null,'house','tree','fence','rock','bridge','crop','corn','wheat','pumpkin','carrot','sunflower','tuft','flower','bush','cow','sheep']);
+    const okBT = new Set([null,'cottage','manor','tower','turret','skyscraper']);
     const okFenceSide = new Set([null,'n','s','e','w','center-x','center-z']);
     const seen = new Set();
     for (let i = 0; i < data.cells.length; i++) {
@@ -10737,96 +9656,214 @@
     return null;
   }
 
-  // Strip markdown fences, leading prose, etc. before JSON.parse.
-  function extractJSON(text) {
-    if (typeof text !== 'string') return null;
-    let s = text.trim();
-    // Strip ```json ... ``` fences if present
-    const fence = s.match(/^```(?:json)?\s*([\s\S]*?)\s*```\s*$/);
-    if (fence) s = fence[1].trim();
-    // Find the first { and last } (the response should be a JSON object)
-    const first = s.indexOf('{');
-    const last  = s.lastIndexOf('}');
-    if (first === -1 || last === -1 || last <= first) return null;
-    try { return JSON.parse(s.slice(first, last + 1)); } catch (_) { return null; }
+  // -------- local persistence --------
+  // Autosave keeps the live world in localStorage so reloads and slot saves
+  // can restore the current build without needing a server round-trip.
+  const STORAGE_KEY = 'tinyworld:v1';
+  const STORAGE_VERSION = 4;
+  let saveTimer = null;
+  let suppressSave = false;
+
+  function saveState() {
+    if (suppressSave) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          v: STORAGE_VERSION,
+          gridSize: GRID,
+          cells: snapshotCells(),
+          cameraMode,
+          toolId: selectedTool && selectedTool.id,
+        }));
+      } catch (_) {}
+    }, 200);
   }
 
-  async function callOpenAI(endpoint, key, model, system, user) {
-    const isOpenAI = /api\.openai\.com/.test(endpoint);
-    const body = {
-      model,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user',   content: user },
-      ],
-      response_format: { type: 'json_object' },
-    };
-    // OpenAI's newer GPT models can reject legacy/non-default generation
-    // controls. Keep the OpenAI payload minimal and use the newer completion
-    // cap; xAI keeps the older chat-completions controls.
-    if (isOpenAI) {
-      body.max_completion_tokens = 8000;
-    } else {
-      body.temperature = 0.6;
-      body.max_tokens = 8000;
+  // Apply a parsed state object to the world. Used by both localStorage
+  // restore and JSON file import. Accepts schema v1/v2 cells where `floors`
+  // was overloaded, v3 cells with separate terrainFloors, and v4 fence sides.
+  function applyState(data) {
+    if (!data || !Array.isArray(data.cells)) return false;
+    data = normalizeWorldCells(data);
+    const err = validateWorld(data);
+    if (err) {
+      console.warn('[applyState] rejected world:', err, data);
+      return false;
     }
-    const r = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'authorization': 'Bearer ' + key,
-      },
-      body: JSON.stringify(body),
-    });
-    if (!r.ok) throw new Error('HTTP ' + r.status + ': ' + (await r.text()).slice(0, 200));
-    const j = await r.json();
-    const text = j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content;
-    return text;
+    if (data.v !== 1 && data.v !== 2 && data.v !== 3 && data.v !== 4) return false;
+
+    const nextGrid = HOME_GRID_OPTIONS.includes(data.gridSize) ? data.gridSize : GRID;
+    suppressSave = true;
+
+    // Drop any currently rendered world before we replay the saved state.
+    if (typeof clearGhostWorld === 'function') clearGhostWorld();
+    for (const key of Object.keys(cellMeshes)) {
+      const entry = cellMeshes[key];
+      if (entry.tile) { worldGroup.remove(entry.tile); disposeGroup(entry.tile); }
+      if (entry.object) { worldGroup.remove(entry.object); disposeGroup(entry.object); }
+      if (entry.extras) for (const m of entry.extras) { worldGroup.remove(m); disposeGroup(m); }
+      delete cellMeshes[key];
+    }
+    for (const key of Object.keys(world)) delete world[key];
+    for (let x = 0; x < HOME_GRID_MAX; x++) {
+      world[x] = [];
+      for (let z = 0; z < HOME_GRID_MAX; z++) world[x][z] = defaultCell();
+    }
+
+    if (nextGrid !== GRID && typeof setHomeGridSize === 'function') {
+      setHomeGridSize(nextGrid, { skipRebuild: true });
+    }
+
+    const overrides = new Map();
+    for (const entry of data.cells) {
+      // Accept either tuple form [x,z,terrain,kind,floors,buildingType,terrainFloors,fenceSide,extras,transform]
+      // or object form {x,z,terrain,kind,floors,buildingType,terrainFloors,fenceSide,extras,transform}.
+      let x, z, terrain, kind, floors, buildingType, terrainFloors, fenceSide, extras, transform;
+      if (Array.isArray(entry)) {
+        if (entry.length < 4) continue;
+        [x, z, terrain, kind, floors, buildingType, terrainFloors, fenceSide, extras, transform] = entry;
+      } else if (entry && typeof entry === 'object') {
+        ({ x, z, terrain, kind, floors, buildingType, terrainFloors, fenceSide, extras, transform } = entry);
+      } else {
+        continue;
+      }
+      if (!Number.isInteger(x) || !Number.isInteger(z)) continue;
+      const normalizedKind = kind || null;
+      const normalizedFloors = Number.isInteger(floors) ? floors : 1;
+      const normalizedTerrainFloors = Number.isInteger(terrainFloors)
+        ? terrainFloors
+        : (data.v === 3 ? 1 : (normalizedKind ? 1 : normalizedFloors));
+      let rotationY = 0;
+      let offsetX = 0;
+      let offsetZ = 0;
+      if (Array.isArray(transform)) {
+        rotationY = Number(transform[0]) || 0;
+        offsetX = Number(transform[1]) || 0;
+        offsetZ = Number(transform[2]) || 0;
+      } else if (transform && typeof transform === 'object') {
+        rotationY = Number(transform.rotationY) || 0;
+        offsetX = Number(transform.offsetX) || 0;
+        offsetZ = Number(transform.offsetZ) || 0;
+      } else {
+        rotationY = Number(entry.rotationY) || 0;
+        offsetX = Number(entry.offsetX) || 0;
+        offsetZ = Number(entry.offsetZ) || 0;
+      }
+      overrides.set(x + ',' + z, {
+        terrain: terrain || 'grass',
+        terrainFloors: normalizedTerrainFloors,
+        kind: normalizedKind,
+        floors: normalizedFloors,
+        buildingType: buildingType || null,
+        fenceSide: normalizedKind === 'fence' ? normalizeFenceSide(fenceSide) : null,
+        extras: Array.isArray(extras) ? extras : null,
+        rotationY,
+        offsetX,
+        offsetZ,
+      });
+    }
+
+    const keysToRefresh = new Set();
+    const addRefreshKeys = (x, z) => {
+      keysToRefresh.add(x + ',' + z);
+      keysToRefresh.add((x + 1) + ',' + z);
+      keysToRefresh.add((x - 1) + ',' + z);
+      keysToRefresh.add(x + ',' + (z + 1));
+      keysToRefresh.add(x + ',' + (z - 1));
+    };
+
+    const TILE_STAGGER = 0.018;
+    let i = 0;
+    for (const [key, o] of overrides.entries()) {
+      const [x, z] = key.split(',').map(Number);
+      setCell(x, z, {
+        terrain: o.terrain,
+        terrainFloors: o.terrainFloors,
+        kind: o.kind,
+        floors: o.floors,
+        buildingType: o.buildingType,
+        fenceSide: o.fenceSide,
+        rotationY: o.rotationY,
+        offsetX: o.offsetX,
+        offsetZ: o.offsetZ,
+        tileDelay: i * TILE_STAGGER,
+        objectDelay: i * TILE_STAGGER + 0.04,
+        forceTile: true,
+      });
+      if (o.extras && world[x] && world[x][z]) {
+        world[x][z].extras = o.extras.map(e => ({
+          kind: e && (e.kind || e.k) ? (e.kind || e.k) : 'fence',
+          fenceSide: normalizeFenceSide(e && (e.fenceSide || e.s)),
+          floors: Number.isInteger(e && (e.floors || e.f)) ? (e.floors || e.f) : 1,
+        }));
+      }
+      addRefreshKeys(x, z);
+      i++;
+    }
+
+    // Re-run the renderer for the changed cells and their direct
+    // neighbours so shoreline/path edges settle on their final shape.
+    for (const key of keysToRefresh) {
+      const [x, z] = key.split(',').map(Number);
+      if (!Number.isInteger(x) || !Number.isInteger(z)) continue;
+      if (!world[x] || !world[x][z]) continue;
+      renderCellTile(x, z, { animate: false });
+      if (world[x][z].kind) renderCellObject(x, z, { animate: false });
+    }
+
+    suppressSave = false;
+
+    if (data.cameraMode && typeof setCameraMode === 'function') {
+      try { setCameraMode(data.cameraMode); } catch (_) {}
+    }
+    if (data.toolId) {
+      const tool = TOOLS.find(t => t.id === data.toolId);
+      if (tool) selectTool(tool);
+    }
+    saveState();
+    return true;
   }
 
-  async function callAnthropic(endpoint, key, model, system, user, toolSpec) {
-    // Tool-use forces the model to emit JSON matching our schema.
-    const toolName = (toolSpec && toolSpec.name) || 'emit_world';
-    const r = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 4096,
-        system,
-        tools: [{
-          name: toolName,
-          description: (toolSpec && toolSpec.description) || 'Emit a Tiny World scene as JSON.',
-          input_schema: (toolSpec && toolSpec.schema) || WORLD_SCHEMA,
-        }],
-        tool_choice: { type: 'tool', name: toolName },
-        messages: [{ role: 'user', content: user }],
-      }),
-    });
-    if (!r.ok) throw new Error('HTTP ' + r.status + ': ' + (await r.text()).slice(0, 200));
-    const j = await r.json();
-    const block = (j.content || []).find(b => b.type === 'tool_use');
-    if (!block) throw new Error('no tool_use block in response');
-    return JSON.stringify(block.input);
+  function loadState() {
+    let data;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return false;
+      data = JSON.parse(raw);
+    } catch (_) { return false; }
+    return applyState(data);
   }
 
-  // Item 4 — procedural map generator (offline, deterministic). Emits a
-  // v=4 world directly from seed + biome composition + elevation profile.
-  // Ports the *concept* of OWB's biome / elevation / scatter pipeline
-  // into tinyworld's selected grid schema without touching the render pipeline.
-  // Algorithm:
-  //   1. Two Mulberry32-derived noise fields (terrain & elevation) sampled
-  //      per (x,z) on the home grid plus a small smoothing pass for
-  //      coherence (4-neighbour average).
-  //   2. Rank cells by terrain noise, slice by cumulative biome %, then
-  //      paint terrain + kind per biome bucket.
-  //   3. Rank cells by elevation noise, slice by cumulative elevation %,
-  //      then assign terrainFloors (plains=1, hills=2..3, mountains=4..7).
+  function randomSeed() {
+    const a = ['amber','clover','coral','dune','fern','glow','hazel','iris','juno','kestrel','larch','moss','nova','onyx','poppy','quartz','rust','sage','tide','umbra','vale','willow','yarrow','zephyr'];
+    const b = ['barrow','bay','brook','cliff','copse','crag','dale','fen','fjord','glen','grove','heath','holt','isle','lea','mire','peak','reef','ridge','vale','wood'];
+    const i = Math.floor(Math.random() * a.length);
+    const j = Math.floor(Math.random() * b.length);
+    const n = Math.floor(Math.random() * 900) + 100;
+    return a[i] + '-' + b[j] + '-' + n;
+  }
+
+  function seedHash(str) {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    return h >>> 0;
+  }
+
+  function makeMulberry32(seedStr) {
+    let a = seedHash(String(seedStr || ''));
+    return function() {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
   //   4. Place settlement cells with cluster-friendly hints so houses
   //      auto-promote when adjacent (handled by setCell's clustering).
   function generateProceduralWorld({ seed, biomes, elevation, gridSize }) {
@@ -11094,2420 +10131,36 @@
   // Expose for tests / command palette.
   window.__generateProceduralWorld = generateProceduralWorld;
 
-  async function generateWorld(provider, model, key, userPrompt, gridSize) {
-    const requestedGridSize = HOME_GRID_OPTIONS.includes(gridSize) ? gridSize : GRID;
-    const system = buildSystemPrompt(requestedGridSize);
-    const def = AI_DEFAULTS[provider];
-    if (!def) throw new Error('unknown provider: ' + provider);
-    let raw;
-    if (provider === 'anthropic') {
-      raw = await callAnthropic(def.endpoint, key, model || def.model, system, userPrompt);
-    } else {
-      // OpenAI + xAI share the chat-completions shape.
-      raw = await callOpenAI(def.endpoint, key, model || def.model, system, userPrompt);
-    }
-    const parsed = extractJSON(raw);
-    if (!parsed) {
-      console.warn('[generate] raw model output:', raw);
-      throw new Error('response was not parseable JSON');
-    }
-    normalizeWorldCells(parsed);
-    if (HOME_GRID_OPTIONS.includes(requestedGridSize)) parsed.gridSize = requestedGridSize;
-    const err = validateWorld(parsed);
-    if (err) {
-      console.warn('[generate] failed schema check:', err, parsed);
-      throw new Error('schema check: ' + err);
-    }
-    return parsed;
-  }
-
-  function normalizeAutoAction(data) {
-    if (!data || typeof data !== 'object' || Array.isArray(data)) {
-      throw new Error('schema check: response was not an object');
-    }
-    const okTerrain = new Set(['grass','path','dirt','water','stone','lava','sand','snow']);
-    const okKind = new Set([null,'house']);
-    const okBT = new Set([null,'cottage']);
-    let kind = data.kind === undefined ? null : data.kind;
-    let terrain = data.terrain;
-    let floors = data.floors === undefined ? 1 : data.floors;
-    let buildingType = data.buildingType === undefined ? null : data.buildingType;
-
-    if (!okKind.has(kind)) throw new Error('schema check: invalid kind ' + kind);
-    if (terrain === undefined || terrain === null) {
-      terrain = CROP_KINDS.has(kind) ? 'dirt' : 'grass';
-    }
-    if (!okTerrain.has(terrain)) throw new Error('schema check: invalid terrain ' + terrain);
-    if (!Number.isInteger(floors) || floors < 1 || floors > 8) {
-      throw new Error('schema check: invalid floors ' + floors);
-    }
-    if (buildingType === undefined) buildingType = null;
-    if (buildingType !== null && buildingType !== 'cottage') buildingType = null;
-    if (!okBT.has(buildingType)) throw new Error('schema check: invalid buildingType ' + buildingType);
-    if (kind !== 'house') buildingType = null;
-    if (CROP_KINDS.has(kind)) terrain = 'dirt';
-    else if (terrain === 'water') kind = null;
-
-    return { terrain, kind, floors, buildingType };
-  }
-
-  function autoSnapshotSignature() {
-    return JSON.stringify({ v: STORAGE_VERSION, cells: snapshotCells() });
-  }
-
-  function adaptAutoSuggestionToCell(action, x, z) {
-    const normalized = normalizeAutoAction(action);
-    const cell = world[x][z];
-    if (normalized.kind && cell.kind === normalized.kind) {
-      normalized.floors = Math.min((cell.floors || 1) + 1, MAX_FLOORS);
-      if (normalized.kind === 'house') normalized.buildingType = null;
-    }
-      if (normalized.kind === 'house' && (cell.terrain === 'water' || cell.terrain === 'path' || cell.terrain === 'lava')) normalized.terrain = 'grass';
-    return normalized;
-  }
-
-  async function getNextAutoSuggestion() {
-    const snapshot = autoSnapshotSignature();
-    if (!autoSuggestionQueue.length ||
-        autoPlacementsSinceRefresh >= AUTO_REFRESH_EVERY ||
-        !autoSuggestionSnapshot) {
-      autoSuggestionQueue = await generateAutoSuggestions(snapshot);
-      autoSuggestionSnapshot = snapshot;
-      autoPlacementsSinceRefresh = 0;
-    }
-    const next = autoSuggestionQueue.shift();
-    if (!next) throw new Error('model returned no Auto suggestions');
-    return next;
-  }
-
-  async function generateAutoSuggestions(snapshot) {
-    const cfg = getAIProviderState();
-    if (!cfg.key) throw new Error('API key required');
-    const def = AI_DEFAULTS[cfg.provider];
-    const system = buildAutoSystemPrompt();
-    const user = buildAutoUserPrompt();
-    let raw;
-    if (cfg.provider === 'anthropic') {
-      raw = await callAnthropic(def.endpoint, cfg.key, cfg.model, system, user, {
-        name: 'choose_auto_suggestions',
-        description: 'Choose a ranked batch of Tiny World tile actions for the Auto palette tool.',
-        schema: AUTO_SUGGESTIONS_SCHEMA,
-      });
-    } else {
-      raw = await callOpenAI(def.endpoint, cfg.key, cfg.model, system, user);
-    }
-    const parsed = extractJSON(raw);
-    if (!parsed) {
-      console.warn('[auto] raw model output:', raw);
-      throw new Error('response was not parseable JSON');
-    }
-    if (!Array.isArray(parsed.suggestions)) throw new Error('schema check: suggestions must be an array');
-    const suggestions = parsed.suggestions.slice(0, AUTO_BATCH_SIZE).map(normalizeAutoAction);
-    if (!suggestions.length) throw new Error('schema check: suggestions empty');
-    return suggestions;
-  }
-
-  // -------- generate modal wiring --------
-  // -------- generate panel state --------
-  // Persisted under tinyworld:gen:* — seed + composition + elevation +
-  // "plan first" toggle.  Sums on biomes/elevation sliders are enforced
-  // by proportionally rebalancing the other rows when one row moves.
-  const GEN_LS = {
-    seed: 'tinyworld:gen:seed',
-    gridSize: 'tinyworld:gen:gridSize',
-    biomes: 'tinyworld:gen:biomes.v1',
-    elevation: 'tinyworld:gen:elevation.v1',
-    disableAutofill: 'tinyworld:gen:disableAutofill',
-  };
-  const GEN_BIOME_DEFAULTS = { grass: 55, forest: 20, water: 10, dirt: 10, settlement: 5 };
-  const GEN_ELEV_DEFAULTS  = { plains: 55, hills: 30, mountains: 15 };
-
-  function genReadBiomes() {
-    try {
-      const raw = localStorage.getItem(GEN_LS.biomes);
-      if (!raw) return { ...GEN_BIOME_DEFAULTS };
-      const v = JSON.parse(raw);
-      const out = { ...GEN_BIOME_DEFAULTS };
-      for (const k of Object.keys(out)) if (Number.isFinite(v[k])) out[k] = clampInt(v[k], 0, 100);
-      return out;
-    } catch (_) { return { ...GEN_BIOME_DEFAULTS }; }
-  }
-  function genReadElevation() {
-    try {
-      const raw = localStorage.getItem(GEN_LS.elevation);
-      if (!raw) return { ...GEN_ELEV_DEFAULTS };
-      const v = JSON.parse(raw);
-      const out = { ...GEN_ELEV_DEFAULTS };
-      for (const k of Object.keys(out)) if (Number.isFinite(v[k])) out[k] = clampInt(v[k], 0, 100);
-      return out;
-    } catch (_) { return { ...GEN_ELEV_DEFAULTS }; }
-  }
-  function clampInt(n, lo, hi) { return Math.max(lo, Math.min(hi, Math.round(Number(n) || 0))); }
-  function randomSeed() {
-    // Readable seeds: two short words + 3 digits.
-    const a = ['amber','clover','coral','dune','fern','glow','hazel','iris','juno','kestrel','larch','moss','nova','onyx','poppy','quartz','rust','sage','tide','umbra','vale','willow','yarrow','zephyr'];
-    const b = ['barrow','bay','brook','cliff','copse','crag','dale','fen','fjord','glen','grove','heath','holt','isle','lea','mire','peak','reef','ridge','vale','wood'];
-    const i = Math.floor(Math.random() * a.length);
-    const j = Math.floor(Math.random() * b.length);
-    const n = Math.floor(Math.random() * 900) + 100;
-    return a[i] + '-' + b[j] + '-' + n;
-  }
-  // Mulberry32 — deterministic PRNG seeded from a string.
-  function seedHash(str) {
-    let h = 2166136261 >>> 0;
-    for (let i = 0; i < str.length; i++) {
-      h ^= str.charCodeAt(i);
-      h = Math.imul(h, 16777619) >>> 0;
-    }
-    return h >>> 0;
-  }
-  function makeMulberry32(seedStr) {
-    let a = seedHash(String(seedStr || ''));
-    return function() {
-      a = (a + 0x6D2B79F5) >>> 0;
-      let t = a;
-      t = Math.imul(t ^ (t >>> 15), t | 1);
-      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-  }
-  // Re-normalise a percent dict so it sums to 100, with the just-moved key
-  // pinned. Empty rows stay empty when possible.
-  function rebalanceSliderDict(dict, movedKey) {
-    const keys = Object.keys(dict);
-    const moved = clampInt(dict[movedKey], 0, 100);
-    let rest = 0;
-    for (const k of keys) if (k !== movedKey) rest += clampInt(dict[k], 0, 100);
-    const target = 100 - moved;
-    if (rest === 0) {
-      // Spread evenly across the other rows.
-      const others = keys.filter(k => k !== movedKey);
-      if (others.length === 0) return { ...dict, [movedKey]: 100 };
-      const each = Math.floor(target / others.length);
-      const out = { ...dict, [movedKey]: moved };
-      let used = 0;
-      others.forEach((k, i) => {
-        const v = (i === others.length - 1) ? (target - used) : each;
-        out[k] = clampInt(v, 0, 100);
-        used += v;
-      });
-      return out;
-    }
-    const out = { [movedKey]: moved };
-    let used = 0;
-    const others = keys.filter(k => k !== movedKey);
-    others.forEach((k, i) => {
-      let v;
-      if (i === others.length - 1) {
-        v = clampInt(target - used, 0, 100);
-      } else {
-        v = clampInt(dict[k] / rest * target, 0, 100);
-        used += v;
-      }
-      out[k] = v;
-    });
-    // Tiny rounding fix — make sure total == 100.
-    let total = 0;
-    for (const k of keys) total += out[k];
-    if (total !== 100 && others.length) {
-      const last = others[others.length - 1];
-      out[last] = clampInt(out[last] + (100 - total), 0, 100);
-    }
-    return out;
-  }
-
-  (function wireGenerateModal() {
-    const modal = document.getElementById('gen-modal');
-    const openBtn = document.getElementById('generate');
-    const closeBtn = document.getElementById('gen-close');
-    const goBtn = document.getElementById('gen-go');
-    const promptEl = document.getElementById('gen-prompt');
-    const providerEl = document.getElementById('gen-provider');
-    const modelEl = document.getElementById('gen-model');
-    const keyEl = document.getElementById('gen-key');
-    const statusEl = document.getElementById('gen-status');
-    const seedEl = document.getElementById('gen-seed');
-    const seedRandomBtn = document.getElementById('gen-seed-random');
-    const seedCopyBtn = document.getElementById('gen-seed-copy');
-    const seedPasteBtn = document.getElementById('gen-seed-paste');
-    const gridSizeEl = document.getElementById('gen-grid-size');
-    const disableAutofillEl = document.getElementById('gen-disable-autofill');
-    const proceduralEl = document.getElementById('gen-procedural');
-    if (proceduralEl) proceduralEl.checked = localStorage.getItem('tinyworld:gen:procedural') === '1';
-    if (proceduralEl) proceduralEl.addEventListener('change', () => {
-      try { localStorage.setItem('tinyworld:gen:procedural', proceduralEl.checked ? '1' : '0'); } catch (_) {}
-    });
-    const biomeSlidersEl = document.getElementById('gen-biome-sliders');
-    const biomeSumEl = document.getElementById('gen-biome-sum');
-    const elevSlidersEl = document.getElementById('gen-elev-sliders');
-    const elevSumEl = document.getElementById('gen-elev-sum');
-
-    let biomeState = genReadBiomes();
-    let elevState = genReadElevation();
-    if (disableAutofillEl) disableAutofillEl.checked = localStorage.getItem(GEN_LS.disableAutofill) === '1';
-    if (seedEl) seedEl.value = localStorage.getItem(GEN_LS.seed) || '';
-    if (gridSizeEl) {
-      const storedGridSize = parseInt(localStorage.getItem(GEN_LS.gridSize) || '', 10);
-      gridSizeEl.value = String(HOME_GRID_OPTIONS.includes(storedGridSize) ? storedGridSize : GRID);
-    }
-
-    function selectedGenGridSize() {
-      const value = gridSizeEl ? parseInt(gridSizeEl.value, 10) : GRID;
-      return HOME_GRID_OPTIONS.includes(value) ? value : GRID;
-    }
-
-    function paintSliders(group, state, slidersEl, sumEl) {
-      let total = 0;
-      const rows = slidersEl ? slidersEl.querySelectorAll('.gen-slider-row') : [];
-      rows.forEach(row => {
-        const key = row.getAttribute('data-' + group);
-        if (!(key in state)) return;
-        const v = clampInt(state[key], 0, 100);
-        const range = row.querySelector('input[type=range]');
-        const val = row.querySelector('.gen-slider-val');
-        if (range && Number(range.value) !== v) range.value = String(v);
-        if (val) val.textContent = v + '%';
-        total += v;
-      });
-      if (sumEl) {
-        sumEl.textContent = total + '%';
-        sumEl.classList.remove('bad', 'good');
-        if (total === 100) sumEl.classList.add('good');
-        else sumEl.classList.add('bad');
-      }
-    }
-    function refreshSliders() {
-      paintSliders('biome', biomeState, biomeSlidersEl, biomeSumEl);
-      paintSliders('elev', elevState, elevSlidersEl, elevSumEl);
-    }
-    function bindGroup(group, state, slidersEl, storageKey, sumEl) {
-      if (!slidersEl) return;
-      slidersEl.addEventListener('input', e => {
-        const t = e.target;
-        if (!t || t.tagName !== 'INPUT' || t.type !== 'range') return;
-        const key = t.getAttribute('data-' + group);
-        if (!key || !(key in state)) return;
-        state[key] = clampInt(t.value, 0, 100);
-        const next = rebalanceSliderDict(state, key);
-        for (const k of Object.keys(state)) state[k] = next[k];
-        try { localStorage.setItem(storageKey, JSON.stringify(state)); } catch (_) {}
-        paintSliders(group, state, slidersEl, sumEl);
-      });
-    }
-    bindGroup('biome', biomeState, biomeSlidersEl, GEN_LS.biomes, biomeSumEl);
-    bindGroup('elev', elevState, elevSlidersEl, GEN_LS.elevation, elevSumEl);
-    refreshSliders();
-
-    if (seedEl) {
-      seedEl.addEventListener('input', () => {
-        try { localStorage.setItem(GEN_LS.seed, seedEl.value); } catch (_) {}
-      });
-    }
-    if (seedRandomBtn && seedEl) {
-      seedRandomBtn.addEventListener('click', () => {
-        seedEl.value = randomSeed();
-        try { localStorage.setItem(GEN_LS.seed, seedEl.value); } catch (_) {}
-      });
-    }
-    if (seedCopyBtn && seedEl) {
-      seedCopyBtn.addEventListener('click', async () => {
-        if (!seedEl.value) return;
-        try {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(seedEl.value);
-          } else {
-            seedEl.select(); document.execCommand && document.execCommand('copy');
-          }
-        } catch (_) { /* clipboard blocked */ }
-      });
-    }
-    if (seedPasteBtn && seedEl) {
-      seedPasteBtn.addEventListener('click', async () => {
-        try {
-          if (navigator.clipboard && navigator.clipboard.readText) {
-            const v = await navigator.clipboard.readText();
-            if (v) { seedEl.value = v.trim(); try { localStorage.setItem(GEN_LS.seed, seedEl.value); } catch (_) {} }
-          }
-        } catch (_) {}
-      });
-    }
-    if (disableAutofillEl) {
-      disableAutofillEl.addEventListener('change', () => {
-        try { localStorage.setItem(GEN_LS.disableAutofill, disableAutofillEl.checked ? '1' : '0'); } catch (_) {}
-      });
-    }
-    if (gridSizeEl) {
-      gridSizeEl.addEventListener('change', () => {
-        try { localStorage.setItem(GEN_LS.gridSize, String(selectedGenGridSize())); } catch (_) {}
-      });
-    }
-
-    window.__genState = () => ({
-      seed: seedEl ? seedEl.value : '',
-      gridSize: selectedGenGridSize(),
-      biomes: { ...biomeState },
-      elevation: { ...elevState },
-      planFirst: false,
-      fastLayout: false,
-      disableAutofill: !!(disableAutofillEl && disableAutofillEl.checked),
-    });
-
-    function setStatus(msg, kind) {
-      statusEl.textContent = msg || '';
-      statusEl.className = kind || '';
-    }
-
-    function applyGenerationAutofillSetting(disabled) {
-      ghostBoardsBlank = !!disabled;
-      if (typeof clearGhostWorld === 'function') clearGhostWorld();
-      if (!ghostBoardsBlank && typeof ensureGhostBoardsAroundTarget === 'function') {
-        ensureGhostBoardsAroundTarget();
-      }
-    }
-
-    function positionPlanOverlayToGrid() {
-      const overlay = document.getElementById('generation-plan-overlay');
-      const img = document.getElementById('generation-plan-image');
-      if (!overlay || overlay.hidden || !img || !camera) return;
-      camera.updateMatrixWorld();
-      camera.updateProjectionMatrix();
-      const half = GRID / 2;
-      const y = TOP_H + 0.06;
-      const corners = [
-        new THREE.Vector3(-half, y, -half),
-        new THREE.Vector3( half, y, -half),
-        new THREE.Vector3(-half, y,  half),
-        new THREE.Vector3( half, y,  half),
-      ].map(corner => {
-        const p = corner.project(camera);
-        return {
-          x: (p.x * 0.5 + 0.5) * window.innerWidth,
-          y: (-p.y * 0.5 + 0.5) * window.innerHeight,
-        };
-      });
-      if (!corners.every(p => Number.isFinite(p.x + p.y))) return;
-      const topW = Math.hypot(corners[1].x - corners[0].x, corners[1].y - corners[0].y);
-      const bottomW = Math.hypot(corners[3].x - corners[2].x, corners[3].y - corners[2].y);
-      const leftH = Math.hypot(corners[2].x - corners[0].x, corners[2].y - corners[0].y);
-      const rightH = Math.hypot(corners[3].x - corners[1].x, corners[3].y - corners[1].y);
-      const centerX = (corners[0].x + corners[1].x + corners[2].x + corners[3].x) / 4;
-      const centerY = (corners[0].y + corners[1].y + corners[2].y + corners[3].y) / 4;
-      const angle = Math.atan2(corners[1].y - corners[0].y, corners[1].x - corners[0].x);
-      img.style.left = Math.round(centerX) + 'px';
-      img.style.top = Math.round(centerY) + 'px';
-      img.style.width = Math.round((topW + bottomW) / 2) + 'px';
-      img.style.height = Math.round((leftH + rightH) / 2) + 'px';
-      img.style.transform = 'translate(-50%, -50%) rotate(' + angle + 'rad)';
-    }
-
-    function showPlanOverlay(url) {
-      const overlay = document.getElementById('generation-plan-overlay');
-      const img = document.getElementById('generation-plan-image');
-      if (!overlay || !img || !url) return;
-      img.src = url;
-      img.onload = positionPlanOverlayToGrid;
-      overlay.hidden = false;
-      requestAnimationFrame(() => {
-        if (typeof updateCamera === 'function') updateCamera();
-        positionPlanOverlayToGrid();
-        overlay.classList.add('visible');
-      });
-    }
-
-    function hidePlanOverlay() {
-      const overlay = document.getElementById('generation-plan-overlay');
-      const img = document.getElementById('generation-plan-image');
-      if (!overlay || !img) return;
-      overlay.classList.remove('visible');
-      setTimeout(() => {
-        overlay.hidden = true;
-        img.onload = null;
-        img.removeAttribute('src');
-        img.removeAttribute('style');
-      }, 220);
-    }
-    window.addEventListener('resize', positionPlanOverlayToGrid);
-
-    function generationProgress(prompt) {
-      const agent = window.__tinyworldAgent;
-      if (!agent) {
-        return {
-          say() {},
-          update() {},
-          error() {},
-          done() {},
-        };
-      }
-      agent.add('user', 'Generate: ' + prompt);
-      let current = agent.add('assistant', 'Starting generation…');
-      return {
-        say(text) {
-          current = agent.add('assistant', text);
-          return current;
-        },
-        update(text) {
-          agent.update(current, text);
-        },
-        error(text) {
-          // Final / failure — record + toast.
-          if (agent.done) agent.done(text, 'error');
-        },
-        done(text) {
-          if (agent.done) agent.done(text);
-        },
-      };
-    }
-
-    function populateModelOptions(provider, selectedModel) {
-      const def = AI_DEFAULTS[provider] || AI_DEFAULTS.openai;
-      const models = def.models || [def.model];
-      const requested = selectedModel || localStorage.getItem(AI_LS.model(provider)) || def.model;
-      const stored = isImageOnlyModel(requested) ? def.model : requested;
-      // Suggestions go into the datalist; the input itself stays a free
-      // text field so the user can type any model their key has access
-      // to (newer than our suggestion list included).
-      const datalist = document.getElementById('gen-model-list');
-      if (datalist) {
-        datalist.innerHTML = '';
-        models.forEach(model => {
-          const opt = document.createElement('option');
-          opt.value = model;
-          datalist.appendChild(opt);
-        });
-      }
-      modelEl.value = stored;
-      localStorage.setItem(AI_LS.model(provider), stored);
-    }
-
-    function loadProviderState() {
-      const provider = AI_DEFAULTS[providerEl.value] ? providerEl.value : 'openai';
-      providerEl.value = provider;
-      const def = AI_DEFAULTS[provider];
-      populateModelOptions(provider, localStorage.getItem(AI_LS.model(provider)) || def.model);
-      keyEl.value = localStorage.getItem(AI_LS.key(provider)) || '';
-    }
-
-    // Track whether the user has just typed in the key field — only an
-    // explicit user input should be allowed to *remove* a stored key.
-    // Auto-saves triggered by provider / model switches must never wipe
-    // a key that's still in localStorage (was: a transient empty keyEl
-    // would delete the saved value).
-    let keyEditedByUser = false;
-    keyEl.addEventListener('input', () => { keyEditedByUser = true; });
-    function saveProviderState() {
-      const provider = providerEl.value;
-      localStorage.setItem(AI_LS.provider, provider);
-      if (modelEl.value) localStorage.setItem(AI_LS.model(provider), modelEl.value);
-      if (keyEl.value) {
-        localStorage.setItem(AI_LS.key(provider), keyEl.value);
-      } else if (keyEditedByUser) {
-        // Only remove the stored key if the user actually cleared the
-        // field themselves; never wipe on auto-save.
-        localStorage.removeItem(AI_LS.key(provider));
-      }
-      if (promptEl.value) localStorage.setItem(AI_LS.prompt, promptEl.value);
-      const autoBtn = document.querySelector('.tool[data-id="auto"]');
-      if (autoBtn) autoBtn.disabled = !(keyEl.value || localStorage.getItem(AI_LS.key(provider)));
-    }
-
-    function open() {
-      const lastProvider = localStorage.getItem(AI_LS.provider) || 'openai';
-      providerEl.value = lastProvider;
-      loadProviderState();
-      promptEl.value = localStorage.getItem(AI_LS.prompt) || promptEl.value;
-      if (gridSizeEl) {
-        const storedGridSize = parseInt(localStorage.getItem(GEN_LS.gridSize) || '', 10);
-        gridSizeEl.value = String(HOME_GRID_OPTIONS.includes(storedGridSize) ? storedGridSize : GRID);
-      }
-      setStatus('');
-      openTinyModal(modal, promptEl);
-    }
-
-    function close() { closeTinyModal(modal); }
-    openGenerateModal = msg => {
-      open();
-      if (msg) setStatus(msg, 'error');
-    };
-    window.__syncAiSettings = loadProviderState;
-
-    openBtn.addEventListener('click', () => {
-      // AI generation is gated for anonymous users.
-      if (!window.__loggedIn && typeof window.__openLoginModal === 'function') {
-        window.__openLoginModal('Sign in to use AI generation');
-        return;
-      }
-      open();
-    });
-    closeBtn.addEventListener('click', close);
-    modal.addEventListener('click', e => { if (e.target === modal) close(); });
-    providerEl.addEventListener('change', () => {
-      // Switching provider is not an explicit key edit — reset the
-      // "edited" flag so the auto-save can't accidentally wipe the new
-      // provider's stored key.
-      keyEditedByUser = false;
-      loadProviderState();
-      saveProviderState();
-    });
-    modelEl.addEventListener('change', saveProviderState);
-    keyEl.addEventListener('input', saveProviderState);
-
-    goBtn.addEventListener('click', async () => {
-      const promptRaw = promptEl.value.trim();
-      const provider = 'openai';
-      const model = 'gpt-5.5';
-      if (providerEl.value !== provider) {
-        providerEl.value = provider;
-        loadProviderState();
-      }
-      modelEl.value = model;
-      const key = keyEl.value.trim() || localStorage.getItem(AI_LS.key(provider)) || '';
-      const seed = (seedEl && seedEl.value.trim()) || '';
-      const gridSize = selectedGenGridSize();
-      const biomes = { ...biomeState };
-      const elevation = { ...elevState };
-      const procedural = !!(proceduralEl && proceduralEl.checked);
-      const disableAutofill = !!(disableAutofillEl && disableAutofillEl.checked);
-      try { localStorage.setItem(GEN_LS.gridSize, String(gridSize)); } catch (_) {}
-
-      // Procedural path — bypass the LLM entirely.
-      if (procedural) {
-        const effectiveSeed = seed || randomSeed();
-        if (!seed && seedEl) seedEl.value = effectiveSeed;
-        goBtn.disabled = true;
-        setStatus('generating offline…', 'busy');
-        try {
-          applyGenerationAutofillSetting(disableAutofill);
-          const data = generateProceduralWorld({ seed: effectiveSeed, biomes, elevation, gridSize });
-          const err = (typeof validateWorld === 'function') ? validateWorld(data) : null;
-          if (err) throw new Error('procedural schema: ' + err);
-          if (typeof applyState === 'function' && !applyState(data, { sliced: true })) {
-            throw new Error('renderer rejected the procedural scene');
-          }
-          setStatus('done · seed: ' + effectiveSeed, '');
-        } catch (err) {
-          console.error('procedural generate failed:', err);
-          setStatus(String(err.message || err).slice(0, 140), 'error');
-        } finally {
-          goBtn.disabled = false;
-        }
-        return;
-      }
-
-      if (!promptRaw) { setStatus('enter a prompt', 'error'); return; }
-      if (!key)       { setStatus('enter an API key', 'error'); return; }
-      applyGenerationAutofillSetting(disableAutofill);
-      const progress = generationProgress(promptRaw);
-      close();
-      progress.update('Preparing generation settings…');
-      progress.say(
-        'Settings: ' + gridSize + 'x' + gridSize + ' grid, seed ' + (seed || 'random') +
-        ', JSON layout model ' + model +
-        ', image generation off' +
-        ', outside auto-fill ' + (disableAutofill ? 'off' : 'on') + '.'
-      );
-      // Auto-sum guard: re-normalise on the fly if a row is off (defensive).
-      const bSum = Object.values(biomes).reduce((s,n)=>s+n,0);
-      if (bSum !== 100)      { setStatus('composition must sum to 100% — adjusted automatically', 'error'); }
-      const eSum = Object.values(elevation).reduce((s,n)=>s+n,0);
-      if (eSum !== 100)      { setStatus('elevation must sum to 100% — adjusted automatically', 'error'); }
-
-      // Effective seed: user-supplied or freshly generated. Stamped on the
-      // status line so the user can copy it after generation.
-      const effectiveSeed = seed || randomSeed();
-      if (!seed && seedEl) seedEl.value = effectiveSeed;
-
-      // Decorate the user prompt with composition + topology constraints
-      // and seed. Model is asked to honour those proportions when picking
-      // terrain / kinds, and to use the seed to disambiguate aesthetic
-      // choices so re-runs of the same seed produce consistent worlds.
-      const decoratedPrompt = (
-        'User intent: ' + promptRaw + '\n\n' +
-        'Board size: ' + gridSize + 'x' + gridSize + '. The JSON must include "gridSize": ' + gridSize + ' and all home-board cells must use x/z coordinates from 0 to ' + (gridSize - 1) + '.\n\n' +
-        'Composition (target percentages across the ' + gridSize + 'x' + gridSize + ' grid, sum=100):\n' +
-        Object.entries(biomes).map(([k,v]) => '  ' + k + ': ' + v + '%').join('\n') + '\n\n' +
-        'Elevation profile (terrainFloors stack distribution, sum=100):\n' +
-        '  plains (terrainFloors=1): ' + elevation.plains + '%\n' +
-        '  hills (terrainFloors=2-3): ' + elevation.hills + '%\n' +
-        '  mountains (terrainFloors=4-8): ' + elevation.mountains + '%\n\n' +
-        'Seed: "' + effectiveSeed + '" — interpret as an aesthetic anchor; use it ' +
-        'to break ties consistently so the same seed + prompt yields a similar layout.\n\n' +
-        'Notes:\n' +
-        '- "forest" composition share should be expressed via tree placements on grass.\n' +
-        '- "settlement" share should be expressed via house clusters connected by path.\n' +
-        '- Use water cells for water share, dirt cells for farmland, grass for the rest.\n' +
-        '- Raise hills/mountains using terrainFloors (1=plains, 2-3=hills, 4-8=mountains).\n' +
-        '- Do not express hills or mountains by filling the map with rock objects. Use rock only as occasional landmark/boulder cells.'
-      );
-
-      if (modelEl.value.trim() !== model) {
-        modelEl.value = model;
-        setStatus('using ' + model + ' for JSON generation', 'busy');
-      }
-      saveProviderState();
-      goBtn.disabled = true;
-      if (statusEl.textContent.indexOf('using ') !== 0) {
-        setStatus('generating', 'busy');
-      }
-      try {
-        hidePlanOverlay();
-        progress.say('Generating validated world JSON with ' + model + '…');
-        const data = await generateWorld(provider, model, key, decoratedPrompt, gridSize);
-        const receivedCells = data && Array.isArray(data.cells) ? data.cells.length : 0;
-        progress.say('Received JSON with ' + receivedCells + ' cells. Switching back to perspective and slicing the build into terrain, then objects.');
-        hidePlanOverlay();
-        if (typeof setCameraMode === 'function') setCameraMode('soft');
-        const buildMsg = progress.say('Rendering terrain base layer… 0%');
-        const ok = applyState(data, {
-          sliced: true,
-          keepCamera: true,
-          renderOrigin: { x: target.x, z: target.z },
-          onProgress(info) {
-            const pct = Math.round((info.done / Math.max(1, info.total)) * 100);
-            const phase = info.phase === 'detail' ? 'objects and details' : (info.phase === 'base' ? 'terrain base layer' : 'board');
-            if (window.__tinyworldAgent) {
-              window.__tinyworldAgent.update(buildMsg, 'Rendering ' + phase + '… ' + pct + '%');
-            }
-          },
-          onDone() {
-            if (window.__tinyworldAgent) {
-              window.__tinyworldAgent.update(buildMsg, 'Done — generated world built from validated JSON.');
-            }
-          },
-        });
-        if (!ok) throw new Error('renderer rejected the scene');
-        setStatus('done · seed: ' + effectiveSeed, '');
-        progress.done('Building completed.');
-      } catch (err) {
-        console.error('generate failed:', err);
-        hidePlanOverlay();
-        progress.error(String(err.message || err).slice(0, 180));
-        setStatus(String(err.message || err).slice(0, 140), 'error');
-      } finally {
-        if (typeof setGenerationViewLocked === 'function') setGenerationViewLocked(false);
-        goBtn.disabled = false;
-      }
-    });
-
-    // Cmd/Ctrl+Enter inside the prompt to fire generation.
-    promptEl.addEventListener('keydown', e => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') goBtn.click();
-    });
-    window.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && !modal.hidden) close();
-    });
-    loadProviderState();
-  })();
-
-  // -------- floating agent wiring --------
-  (function wireFloatingAgent() {
-    const form = document.getElementById('agent-input');
-    const grip = document.getElementById('agent-grip');
-    const input = document.getElementById('agent-prompt');
-    const send = document.getElementById('agent-send');
-    const panel = document.getElementById('agent-panel');
-    const toggle = document.getElementById('agent-panel-toggle');
-    const messages = document.getElementById('agent-messages');
-    if (!form || !grip || !input || !send || !panel || !toggle || !messages) return;
-
-    const POS_KEY = 'tinyworld:agent:input-pos';
-    const AUTO_COLLAPSE_MS = 4500;   // expanded → toast
-    const AUTO_HIDE_MS    = 3500;    // toast → hidden after idle (no activity)
-    let collapseTimer = null;
-    let hideTimer = null;
-    let pinnedOpen = false;
-
-    function clearTimers() {
-      if (collapseTimer) { clearTimeout(collapseTimer); collapseTimer = null; }
-      if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
-    }
-
-    function scheduleAutoFlow() {
-      // Ratchet: after activity, expand → toast → hide.
-      clearTimers();
-      if (pinnedOpen) return;
-      collapseTimer = setTimeout(() => {
-        panel.classList.add('collapsed');
-        
-        hideTimer = setTimeout(() => {
-          panel.classList.add('hidden');
-        }, AUTO_HIDE_MS);
-      }, AUTO_COLLAPSE_MS);
-    }
-
-    function showPanel() {
-      // Bring the panel in from off-screen if it's hidden.
-      panel.classList.remove('hidden');
-    }
-
-    function setPanelCollapsed(collapsed, opts) {
-      showPanel();
-      panel.classList.toggle('collapsed', collapsed);
-      if (!collapsed) {
-        messages.scrollTop = messages.scrollHeight;
-        if (opts && opts.pin) {
-          pinnedOpen = true;
-          clearTimers();
-        }
-        if (opts && opts.auto) {
-          pinnedOpen = false;
-          scheduleAutoFlow();
-        }
-      } else {
-        if (opts && opts.auto) {
-          pinnedOpen = false;
-          clearTimers();
-          hideTimer = setTimeout(() => {
-            panel.classList.add('hidden');
-          }, AUTO_HIDE_MS);
-        } else {
-          pinnedOpen = false;
-          clearTimers();
-        }
-      }
-    }
-
-    // Progress placeholder helpers — during work, the chat input's
-    // placeholder mirrors the latest assistant status. The toast pill
-    // is reserved for the final result.
-    const DEFAULT_PLACEHOLDER = input.placeholder || 'Ask the agent to change this world…';
-    function setInputProgress(text) {
-      input.placeholder = text || DEFAULT_PLACEHOLDER;
-    }
-    function clearInputProgress() {
-      input.placeholder = DEFAULT_PLACEHOLDER;
-    }
-
-    function addAgentMessage(role, text) {
-      const div = document.createElement('div');
-      div.className = 'agent-msg ' + role;
-      div.textContent = text;
-      messages.appendChild(div);
-      messages.scrollTop = messages.scrollHeight;
-      return div;
-    }
-
-    function fireToast() {
-      // Slide in the collapsed pill and start the auto-hide countdown.
-      showPanel();
-      panel.classList.add('collapsed');
-      pinnedOpen = false;
-      clearTimers();
-      hideTimer = setTimeout(() => {
-        panel.classList.add('hidden');
-      }, AUTO_HIDE_MS);
-    }
-
-    window.__tinyworldAgent = {
-      open() { setPanelCollapsed(false, { pin: true }); },
-      // Adds a message to the conversation history. Assistant text is
-      // mirrored in the input placeholder as a live progress hint. No
-      // toast is fired — that's reserved for `done()`.
-      add(role, text) {
-        if (role === 'assistant') setInputProgress(text);
-        return addAgentMessage(role, text);
-      },
-      // Updates an existing message + the placeholder. No toast.
-      update(node, text, role) {
-        if (!node) return;
-        if (role) node.className = 'agent-msg ' + role;
-        node.textContent = text;
-        messages.scrollTop = messages.scrollHeight;
-        setInputProgress(text);
-      },
-      // Final / result. Records to history, slides the toast in, and
-      // restores the default placeholder once the toast has decayed.
-      done(text, role) {
-        role = role || 'assistant';
-        const node = addAgentMessage(role, text);
-        setInputProgress(text);
-        const keepOpen = pinnedOpen && !panel.classList.contains('collapsed');
-        if (keepOpen) {
-          showPanel();
-          messages.scrollTop = messages.scrollHeight;
-        } else {
-          fireToast();
-        }
-        setTimeout(() => {
-          if (input.placeholder === text) clearInputProgress();
-        }, AUTO_HIDE_MS + 600);
-        return node;
-      },
-    };
-
-    function applyStoredPosition() {
-      try {
-        const raw = localStorage.getItem(POS_KEY);
-        if (!raw) return;
-        const p = JSON.parse(raw);
-        if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) return;
-        form.style.left = Math.max(14, Math.min(window.innerWidth - 80, p.x)) + 'px';
-        form.style.top = Math.max(14, Math.min(window.innerHeight - 54, p.y)) + 'px';
-        form.style.bottom = 'auto';
-        form.style.transform = 'none';
-      } catch (_) {}
-    }
-
-    // Toggle button: manual collapse/expand. Expanding manually pins it open
-    // until the user collapses it again.
-    toggle.addEventListener('click', e => {
-      e.stopPropagation();
-      const willCollapse = !panel.classList.contains('collapsed');
-      if (willCollapse) setPanelCollapsed(true);
-      else setPanelCollapsed(false, { pin: true });
-    });
-
-    // Clicking the collapsed ticker expands the panel (and pins it),
-    // but not if that "click" was the tail of a drag gesture.
-    let suppressNextClick = false;
-    panel.addEventListener('click', e => {
-      if (suppressNextClick) { suppressNextClick = false; e.stopPropagation(); return; }
-      if (!panel.classList.contains('collapsed')) return;
-      if (e.target.closest('.agent-panel-toggle')) return;
-      setPanelCollapsed(false, { pin: true });
-    });
-
-    // -- drag-to-position the whole panel --
-    // Bottom-right anchored, so we store offsets from those edges. That
-    // keeps the "expand grows upward" behavior intact wherever the user
-    // parks it.
-    const PANEL_POS_KEY = 'tinyworld:agent:panel-pos';
-    let panelDrag = null;
-
-    function applyStoredPanelPosition() {
-      try {
-        const raw = localStorage.getItem(PANEL_POS_KEY);
-        if (!raw) return;
-        const p = JSON.parse(raw);
-        if (!Number.isFinite(p.right) || !Number.isFinite(p.bottom)) return;
-        panel.style.right = p.right + 'px';
-        panel.style.bottom = p.bottom + 'px';
-      } catch (_) {}
-    }
-
-    panel.addEventListener('pointerdown', e => {
-      // Don't steal pointer events from interactive children.
-      if (e.target.closest('button, input, textarea, a, .agent-messages')) {
-        // Header text + outer pill area: allow drag.
-        if (!e.target.closest('.agent-panel-head, .agent-panel.collapsed')) return;
-      }
-      const r = panel.getBoundingClientRect();
-      panelDrag = {
-        startX: e.clientX,
-        startY: e.clientY,
-        rightAtStart: window.innerWidth - r.right,
-        bottomAtStart: window.innerHeight - r.bottom,
-        moved: false,
-      };
-      try { panel.setPointerCapture(e.pointerId); } catch (_) {}
-    });
-
-    panel.addEventListener('pointermove', e => {
-      if (!panelDrag) return;
-      const dx = e.clientX - panelDrag.startX;
-      const dy = e.clientY - panelDrag.startY;
-      if (!panelDrag.moved && Math.hypot(dx, dy) < 4) return;
-      panelDrag.moved = true;
-      panel.classList.add('dragging');
-      const w = panel.offsetWidth;
-      const h = panel.offsetHeight;
-      const right = Math.max(8, Math.min(window.innerWidth - w - 8, panelDrag.rightAtStart - dx));
-      const bottom = Math.max(8, Math.min(window.innerHeight - h - 8, panelDrag.bottomAtStart - dy));
-      panel.style.right = right + 'px';
-      panel.style.bottom = bottom + 'px';
-    });
-
-    function endPanelDrag(e) {
-      if (!panelDrag) return;
-      const moved = panelDrag.moved;
-      panelDrag = null;
-      panel.classList.remove('dragging');
-      if (moved) {
-        suppressNextClick = true;
-        const r = panel.getBoundingClientRect();
-        try {
-          localStorage.setItem(PANEL_POS_KEY, JSON.stringify({
-            right: Math.round(window.innerWidth - r.right),
-            bottom: Math.round(window.innerHeight - r.bottom),
-          }));
-        } catch (_) {}
-      }
-    }
-    panel.addEventListener('pointerup', endPanelDrag);
-    panel.addEventListener('pointercancel', endPanelDrag);
-
-    // Start hidden (off-screen). The panel slides in as a toast only when
-    // the agent has something to say.
-    panel.classList.add('collapsed');
-    panel.classList.add('hidden');
-    
-    applyStoredPosition();
-    applyStoredPanelPosition();
-
-    // Up arrow in the chat input slides the panel in and expands it to
-    // show the full conversation (pinned open).
-    input.addEventListener('keydown', e => {
-      if (e.key === 'ArrowUp' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
-        e.preventDefault();
-        setPanelCollapsed(false, { pin: true });
-      }
-    });
-
-    // -- selection preview wiring --
-    // When the canvas tells us the selection changed, refresh the preview
-    // block inside the panel and slide the panel in if there's anything
-    // selected. Clearing selection collapses the preview back.
-    const previewBox = document.getElementById('agent-selection-preview');
-    const previewCount = document.getElementById('agent-selection-count');
-    const previewList = document.getElementById('agent-selection-list');
-    const panelTitle = document.getElementById('agent-panel-title');
-    function renderSelection() {
-      const sel = window.__tinyworldSelection;
-      const summary = sel && sel.summary();
-      if (!summary) {
-        panel.classList.remove('has-selection');
-        previewBox.hidden = true;
-        if (panelTitle) panelTitle.textContent = 'Agent conversation';
-        return;
-      }
-      panel.classList.add('has-selection');
-      previewBox.hidden = false;
-      previewCount.textContent = summary.cellCount + (summary.cellCount === 1 ? ' tile selected' : ' tiles selected');
-      previewList.innerHTML = '';
-      const entries = Object.entries(summary.kinds).sort((a, b) => b[1] - a[1]);
-      for (const [k, n] of entries) {
-        const li = document.createElement('li');
-        const name = document.createElement('span');
-        name.textContent = k;
-        const count = document.createElement('span');
-        count.className = 'count';
-        count.textContent = '×' + n;
-        li.appendChild(name);
-        li.appendChild(count);
-        previewList.appendChild(li);
-      }
-      if (panelTitle) panelTitle.textContent = 'Selection';
-      // Slide the panel in (expanded) and pin so the user can chat about it.
-      setPanelCollapsed(false, { pin: true });
-    }
-    window.addEventListener('tinyworld:selection-changed', renderSelection);
-
-    // -- suggestion chips below the input --
-    const SUGGESTIONS = [
-      'make it snowy',
-      'add a river running across',
-      'build a small village',
-      'add a forest of trees',
-      'make it nighttime',
-      'place a castle in the middle',
-      'add a path through it',
-      'make it a desert',
-      'add some sheep and cows',
-      'build a farm with crops',
-      'add a mountain in the corner',
-      'create a town square with houses',
-      'add a bridge over the water',
-      'clear everything to grass',
-      'add a lava lake',
-      'make a snowy mountain village',
-    ];
-    const sugBox = document.getElementById('agent-suggestions');
-    const MAX_CHIPS = 4;
-
-    function renderSuggestions() {
-      const q = input.value.trim().toLowerCase();
-      if (!q) {
-        sugBox.hidden = true;
-        sugBox.innerHTML = '';
-        return;
-      }
-      const matches = SUGGESTIONS
-        .filter(s => s.toLowerCase().includes(q))
-        .slice(0, MAX_CHIPS);
-      if (!matches.length) {
-        sugBox.hidden = true;
-        sugBox.innerHTML = '';
-        return;
-      }
-      sugBox.innerHTML = '';
-      matches.forEach(s => {
-        const chip = document.createElement('button');
-        chip.type = 'button';
-        chip.className = 'agent-suggestion-chip';
-        chip.textContent = s;
-        chip.addEventListener('click', e => {
-          e.preventDefault();
-          e.stopPropagation();
-          input.value = s;
-          input.focus();
-          renderSuggestions();
-        });
-        sugBox.appendChild(chip);
-      });
-      sugBox.hidden = false;
-    }
-    input.addEventListener('input', renderSuggestions);
-    input.addEventListener('focus', renderSuggestions);
-    input.addEventListener('blur', () => {
-      // Defer so a chip click still registers before we hide the list.
-      setTimeout(() => { sugBox.hidden = true; }, 150);
-    });
-
-    let drag = null;
-    grip.addEventListener('pointerdown', e => {
-      e.preventDefault();
-      const r = form.getBoundingClientRect();
-      drag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
-      form.classList.add('dragging');
-      try { grip.setPointerCapture(e.pointerId); } catch (_) {}
-    });
-    grip.addEventListener('pointermove', e => {
-      if (!drag) return;
-      const x = Math.max(14, Math.min(window.innerWidth - form.offsetWidth - 14, e.clientX - drag.dx));
-      const y = Math.max(14, Math.min(window.innerHeight - form.offsetHeight - 14, e.clientY - drag.dy));
-      form.style.left = x + 'px';
-      form.style.top = y + 'px';
-      form.style.bottom = 'auto';
-      form.style.transform = 'none';
-    });
-    function endDrag() {
-      if (!drag) return;
-      drag = null;
-      form.classList.remove('dragging');
-      const r = form.getBoundingClientRect();
-      try { localStorage.setItem(POS_KEY, JSON.stringify({ x: r.left, y: r.top })); } catch (_) {}
-    }
-    grip.addEventListener('pointerup', endDrag);
-    grip.addEventListener('pointercancel', endDrag);
-
-    form.addEventListener('submit', async e => {
-      e.preventDefault();
-      const userText = input.value.trim();
-      if (!userText || send.disabled) return;
-      const intent = floatingAgentIntent(userText);
-      // If there's an active selection, prepend its context so the agent
-      // scopes its work to those cells.
-      const sel = window.__tinyworldSelection;
-      const summary = sel && sel.summary();
-      let prompt = intent.prompt || userText;
-      if (summary) {
-        const cellList = Array.from(sel.cells).slice(0, 64).join(', ');
-        const kindParts = Object.entries(summary.kinds)
-          .map(([k, n]) => n + ' ' + k + (n > 1 ? 's' : ''))
-          .join(', ');
-        prompt =
-          '[Selected ' + summary.cellCount + ' tile(s): ' + kindParts +
-          ' at cells (x,z) ' + cellList + ']\n' + userText;
-      }
-      setPanelCollapsed(false, { pin: true });
-      sugBox.hidden = true;
-      // User message lives only in the conversation history; no toast.
-      addAgentMessage('user', userText);
-      input.value = '';
-      // Progress flows through the placeholder while work runs.
-      const thinking = addAgentMessage('assistant', 'Working on it…');
-      setInputProgress('Working on it…');
-      send.disabled = true;
-      try {
-        if (intent.clearFirst && !intent.prompt) {
-          doClear();
-          thinking.textContent = 'World cleared.';
-          window.__tinyworldAgent && window.__tinyworldAgent.done && window.__tinyworldAgent.done('World cleared.');
-          return;
-        }
-        const cfg = getAIProviderState();
-        if (!cfg.key) throw new Error('Add an API key in Settings → AI first.');
-        if (intent.clearFirst) doClear();
-        const requestPrompt = intent.mode === 'add' ? buildFloatingAdditionPrompt(prompt) : prompt;
-        const data = await generateWorld(cfg.provider, cfg.model, cfg.key, requestPrompt, GRID);
-        const ok = intent.mode === 'add' ? applyStatePatch(data) : applyState(data);
-        if (!ok) {
-          throw new Error(intent.mode === 'add'
-            ? 'The generated additions were rejected by the renderer.'
-            : 'The generated world was rejected by the renderer.');
-        }
-        // Record final state in history + fire the toast.
-        const doneText = intent.mode === 'add' ? 'Added to world.' : 'Building completed.';
-        thinking.textContent = doneText;
-        window.__tinyworldAgent && window.__tinyworldAgent.done && window.__tinyworldAgent.done(doneText);
-      } catch (err) {
-        const msg = String(err.message || err).slice(0, 180);
-        thinking.className = 'agent-msg error';
-        thinking.textContent = msg;
-        window.__tinyworldAgent && window.__tinyworldAgent.done && window.__tinyworldAgent.done(msg, 'error');
-      } finally {
-        send.disabled = false;
-        // Once the prompt has been consumed (whether success or error)
-        // drop the active selection — its scope was a one-shot for this
-        // submission, not a persistent filter.
-        if (window.__tinyworldSelection) window.__tinyworldSelection.clear();
-      }
-    });
-
-    // Escape clears any active selection (mirrors deselect behaviour from
-    // other tools).
-    window.addEventListener('keydown', e => {
-      if (e.key !== 'Escape') return;
-      if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable)) return;
-      if (window.__tinyworldSelection) window.__tinyworldSelection.clear();
-    });
-  })();
-
-  // -------- persistence --------
-  // Saves world intent (cells with non-default state), camera mode, and active
-  // tool to localStorage. Debounced so bursts of setCell calls (load / clear /
-  // reset) only write once. Versioned key — bump VERSION when the cell schema
-  // changes so old saves don't blow up.
-  const STORAGE_KEY = 'tinyworld:v1';
-  const STORAGE_VERSION = 4;
-  let saveTimer = null;
-  let suppressSave = false;
-
-  // One-shot migration — strips terrainFloors > 1 from any cell whose
-  // kind requires flat ground (everything except rock). Touches the live
-  // autosave and every named slot in tinyworld:worlds.v1.  Gated on a
-  // single flag so we never run it twice.  Idempotent if you do.
-  (function migrateStiltedHouses() {
-    const FLAG = 'tinyworld:migration:stilts.v1';
-    try {
-      if (localStorage.getItem(FLAG) === '1') return;
-    } catch (_) { return; }
-    const FLAT_REQUIRED = new Set([
-      'house','fence','bridge','tree','tuft','flower','bush','cow','sheep',
-      'crop','corn','wheat','pumpkin','carrot','sunflower',
-    ]);
-    function fixCells(cells) {
-      if (!Array.isArray(cells)) return 0;
-      let touched = 0;
-      for (let i = 0; i < cells.length; i++) {
-        const c = cells[i];
-        if (Array.isArray(c)) {
-          // tuple form: [x,z,terrain,kind,floors,buildingType,terrainFloors,fenceSide]
-          const kind = c[3], terrain = c[2];
-          const tf = c[6];
-          if (tf && tf > 1 && ((kind && FLAT_REQUIRED.has(kind)) || terrain === 'path' || terrain === 'dirt')) {
-            c[6] = 1; touched++;
-          }
-        } else if (c && typeof c === 'object') {
-          const kind = c.kind;
-          const terrain = c.terrain;
-          if (c.terrainFloors && c.terrainFloors > 1 &&
-              ((kind && FLAT_REQUIRED.has(kind)) || terrain === 'path' || terrain === 'dirt')) {
-            c.terrainFloors = 1; touched++;
-          }
-        }
-      }
-      return touched;
-    }
-    function fixStateBlob(raw) {
-      if (!raw) return null;
-      try {
-        const data = JSON.parse(raw);
-        const t = fixCells(data && data.cells);
-        return t > 0 ? JSON.stringify(data) : null;
-      } catch (_) { return null; }
-    }
-    let total = 0;
-    try {
-      const live = localStorage.getItem('tinyworld:v1');
-      const fixed = fixStateBlob(live);
-      if (fixed) { localStorage.setItem('tinyworld:v1', fixed); total += 1; }
-    } catch (_) {}
-    try {
-      const raw = localStorage.getItem('tinyworld:worlds.v1');
-      if (raw) {
-        const list = JSON.parse(raw);
-        if (Array.isArray(list)) {
-          let any = false;
-          for (const slot of list) {
-            if (!slot || !slot.state) continue;
-            const t = fixCells(slot.state.cells);
-            if (t > 0) any = true;
-          }
-          if (any) { localStorage.setItem('tinyworld:worlds.v1', JSON.stringify(list)); total += 1; }
-        }
-      }
-    } catch (_) {}
-    try { localStorage.setItem(FLAG, '1'); } catch (_) {}
-    if (total > 0) console.info('[stilts-migration] flattened houses-on-stilts in saved state');
-  })();
-
-  function saveState() {
-    if (typeof window.__requestMinimapRepaint === 'function') window.__requestMinimapRepaint();
-    if (suppressSave) return;
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-      try {
-        const cells = [];
-        // Walk every populated row + cell, including out-of-home
-        // overrides from clicks on ghost boards. Cells with default
-        // grass / no kind return null from serializeCell and are
-        // skipped naturally.
-        for (const xKey of Object.keys(world)) {
-          const x = parseInt(xKey, 10);
-          if (!Number.isFinite(x)) continue;
-          const row = world[xKey];
-          if (!row) continue;
-          const insideHomeX = x >= 0 && x < GRID;
-          for (const zKey of Object.keys(row)) {
-            const z = parseInt(zKey, 10);
-            if (!Number.isFinite(z)) continue;
-            const c = row[zKey];
-            if (!c) continue;
-            const insideHome = insideHomeX && z >= 0 && z < GRID;
-            // Outside the home grid we only save cells the user has
-            // actually edited — skips the 20x20 pre-allocated buffer.
-            if (!insideHome && !c.userEdited) continue;
-            const entry = serializeCell(x, z, c);
-            if (entry) cells.push(entry);
-          }
-        }
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          v: STORAGE_VERSION,
-          gridSize: GRID,
-          cells,
-          cameraMode,
-          toolId: selectedTool && selectedTool.id,
-        }));
-      } catch (_) {}
-    }, 200);
-  }
-
-  // Apply a parsed state object to the world. Used by both localStorage
-  // restore and JSON file import. Accepts schema v1/v2 cells where `floors`
-  // was overloaded, v3 cells with separate terrainFloors, and v4 fence sides. Walks the FULL
-  // grid so every cell gets a tile mesh, then layers in the saved overrides.
-  function applyState(data, opts = {}) {
-    if (!data || !Array.isArray(data.cells)) return false;
-    normalizeWorldCells(data);
-    const err = validateWorld(data);
-    if (err) {
-      console.warn('[applyState] rejected world:', err, data);
-      return false;
-    }
-    if (data.v !== 1 && data.v !== 2 && data.v !== 3 && data.v !== 4) return false;
-
-    // Restore the saved home grid size before painting cells so the new
-    // tiles are framed correctly and ghost boards land in the right
-    // position. Falls back to the current GRID if the save predates the
-    // gridSize field.
-    if (HOME_GRID_OPTIONS.includes(data.gridSize) && data.gridSize !== GRID) {
-      // The cell loop below repaints every tile, so skip the rebuild
-      // step inside setHomeGridSize and just dispose old meshes.
-      setHomeGridSize(data.gridSize, { skipRebuild: true });
-    }
-    suppressSave = true;
-    const overrides = new Map();
-    for (const entry of data.cells) {
-      // Accept either tuple form [x,z,terrain,kind,floors,buildingType,terrainFloors,fenceSide]
-      // (storage / export) or object form {x,z,terrain,kind,floors,buildingType,terrainFloors,fenceSide}
-      // (canonical schema, AI generation output).
-      let x, z, terrain, kind, floors, buildingType, terrainFloors, fenceSide, extras, transform;
-      if (Array.isArray(entry)) {
-        if (entry.length < 4) continue;
-        [x, z, terrain, kind, floors, buildingType, terrainFloors, fenceSide, extras, transform] = entry;
-      } else if (entry && typeof entry === 'object') {
-        ({ x, z, terrain, kind, floors, buildingType, terrainFloors, fenceSide, extras, transform } = entry);
-      } else {
-        continue;
-      }
-      if (typeof x !== 'number' || typeof z !== 'number') continue;
-      const normalizedKind = kind || null;
-      const normalizedFloors = floors || 1;
-      let normalizedTerrainFloors = terrainFloors || (data.v === 3 ? 1 : (normalizedKind ? 1 : normalizedFloors));
-      // Houses-on-stilts guard: any built / man-made / planted kind that
-      // doesn't naturally sit on raised stone gets clamped to flat
-      // ground.  Rock is the only kind permitted to ride elevation (it
-      // reads as a mountain outcrop, not a table-top).  This catches both
-      // AI-generated worlds (where the LLM sometimes emits
-      // {kind:'house', terrainFloors:5}) and stale imports from the
-      // earlier procedural generator that didn't enforce the rule.
-      const FLAT_REQUIRED = new Set([
-        'house','fence','bridge','tree','tuft','flower','bush','cow','sheep',
-        'crop','corn','wheat','pumpkin','carrot','sunflower',
-      ]);
-      if (normalizedKind === 'house' && (terrain === 'water' || terrain === 'path' || terrain === 'lava')) {
-        terrain = 'grass';
-      }
-      if (normalizedKind && FLAT_REQUIRED.has(normalizedKind) && normalizedTerrainFloors > 1) {
-        normalizedTerrainFloors = 1;
-      }
-      // Paths and farmland (dirt under crops) are also intrinsically flat.
-      const flatTerrain = (terrain === 'path' || terrain === 'dirt');
-      if (flatTerrain && normalizedTerrainFloors > 1) {
-        normalizedTerrainFloors = 1;
-      }
-      const normalizedExtras = [];
-      let rotationY = 0, offsetX = 0, offsetZ = 0;
-      if (Array.isArray(transform) && transform.length >= 3) {
-        rotationY = +transform[0] || 0;
-        offsetX   = +transform[1] || 0;
-        offsetZ   = +transform[2] || 0;
-      } else if (transform && typeof transform === 'object') {
-        rotationY = +transform.rotationY || 0;
-        offsetX   = +transform.offsetX   || 0;
-        offsetZ   = +transform.offsetZ   || 0;
-      }
-      overrides.set(x + ',' + z, {
-        terrain: terrain || 'grass',
-        terrainFloors: normalizedTerrainFloors,
-        kind: normalizedKind,
-        floors: normalizedFloors,
-        buildingType: buildingType || null,
-        fenceSide: null,
-        extras: normalizedExtras,
-        rotationY, offsetX, offsetZ,
-        __outOfHome: x < 0 || x >= GRID || z < 0 || z >= GRID,
-        __x: x,
-        __z: z,
-      });
-    }
-
-    const TILE_STAGGER = opts.sliced ? 0.010 : 0.018;
-    // Progressive build: process chunks through rAF so large grids stay
-    // responsive. In sliced mode the first pass lays terrain only, then
-    // the second pass drops objects/extras. Both passes are distance
-    // ranked from the current camera target so nearby/central content
-    // appears first instead of filling row-by-row.
-    const cells = [];
-    for (let x = 0; x < GRID; x++) for (let z = 0; z < GRID; z++) cells.push([x, z]);
-    const renderOrigin = opts.renderOrigin || { x: target.x, z: target.z };
-    const originX = Number.isFinite(renderOrigin.x) ? renderOrigin.x : (GRID - 1) / 2;
-    const originZ = Number.isFinite(renderOrigin.z) ? renderOrigin.z : (GRID - 1) / 2;
-    const rankedCells = cells.slice().sort((a, b) => {
-      const ax = a[0] + 0.5 - originX;
-      const az = a[1] + 0.5 - originZ;
-      const bx = b[0] + 0.5 - originX;
-      const bz = b[1] + 0.5 - originZ;
-      const ad = ax * ax + az * az;
-      const bd = bx * bx + bz * bz;
-      return ad === bd ? (a[1] - b[1]) || (a[0] - b[0]) : ad - bd;
-    });
-
-    const buildItems = [];
-    if (opts.sliced) {
-      for (const [x, z] of rankedCells) buildItems.push({ x, z, phase: 'base' });
-      for (const [x, z] of rankedCells) {
-        const o = overrides.get(x + ',' + z);
-        if (o && (o.kind || (o.extras && o.extras.length))) buildItems.push({ x, z, phase: 'detail' });
-      }
-    } else {
-      for (const [x, z] of rankedCells) buildItems.push({ x, z, phase: 'full' });
-    }
-
-    const CHUNK = opts.sliced
-      ? Math.max(8, Math.min(256, Math.floor(Math.max(1, GRID * GRID) / 24)))
-      : Math.max(32, Math.min(384, Math.floor(Math.max(1, GRID * GRID) / 8)));
-    function paintBuildItem(item, itemIndex) {
-      const x = item.x, z = item.z;
-      const o = overrides.get(x + ',' + z);
-      const base = {
-        terrain: o ? o.terrain : 'grass',
-        terrainFloors: o ? o.terrainFloors : 1,
-        tileDelay: (itemIndex % CHUNK) * TILE_STAGGER,
-        objectDelay: (itemIndex % CHUNK) * TILE_STAGGER + 0.04,
-        impactDust: false,
-      };
-      if (item.phase === 'base') {
-        setCell(x, z, {
-          ...base,
-          kind: null,
-          floors: 1,
-          buildingType: null,
-          fenceSide: null,
-          extras: [],
-          rotationY: 0,
-          offsetX: 0,
-          offsetZ: 0,
-          animate: false,
-          forceTile: true,
-        });
-        return;
-      }
-      if (item.phase === 'full') {
-        setCell(x, z, {
-          ...base,
-          kind: null,
-          floors: 1,
-          buildingType: null,
-          fenceSide: null,
-          extras: [],
-          rotationY: 0,
-          offsetX: 0,
-          offsetZ: 0,
-          animate: false,
-          forceTile: true,
-        });
-      }
-      setCell(x, z, {
-        ...base,
-        kind: o ? o.kind : null,
-        floors: o ? o.floors : 1,
-        buildingType: o ? o.buildingType : null,
-        fenceSide: o ? o.fenceSide : null,
-        extras: o ? o.extras : [],
-        rotationY: o ? o.rotationY : 0,
-        offsetX: o ? o.offsetX : 0,
-        offsetZ: o ? o.offsetZ : 0,
-        animate: item.phase !== 'full' || !!(o && (o.kind || (o.extras && o.extras.length))),
-        forceTile: item.phase !== 'detail' && item.phase !== 'full',
-      });
-    }
-
-    function finishApplyState() {
-      // Final pass: settle only adjacency-aware terrain. On 32/48 boards,
-      // rebuilding every default grass tile doubled generation cost even
-      // though most cells cannot gain path trims, shore lips, or bridge
-      // re-orientation.
-      const settle = new Set();
-      function markSettle(x, z) {
-        if (x < 0 || x >= GRID || z < 0 || z >= GRID) return;
-        settle.add(x + ',' + z);
-      }
-      for (let x = 0; x < GRID; x++) {
-        for (let z = 0; z < GRID; z++) {
-          const c = world[x][z];
-          if (!c) continue;
-          if (c.terrain === 'path' || c.terrain === 'water') {
-            markSettle(x, z);
-            markSettle(x + 1, z);
-            markSettle(x - 1, z);
-            markSettle(x, z + 1);
-            markSettle(x, z - 1);
-          }
-        }
-      }
-      for (const key of settle) {
-        const [x, z] = key.split(',').map(Number);
-        renderCellTile(x, z, { animate: false });
-      }
-
-      // Replay out-of-home overrides — ghost board cells the user has
-      // built / erased / modified. setCell handles any global coord via
-      // tilePos, so the home cellMesh path renders them on top of (and in
-      // place of) the regenerated ghost board.
-      for (const o of overrides.values()) {
-        if (!o.__outOfHome) continue;
-        const x = o.__x, z = o.__z;
-        if (!world[x]) world[x] = [];
-        setCell(x, z, {
-          terrain: o.terrain,
-          terrainFloors: o.terrainFloors,
-          kind: o.kind,
-          floors: o.floors,
-          buildingType: o.buildingType,
-          fenceSide: o.fenceSide,
-          extras: o.extras,
-          rotationY: o.rotationY,
-          offsetX: o.offsetX,
-          offsetZ: o.offsetZ,
-          userEdited: true,
-          animate: false,
-          forceTile: true,
-        });
-        // Re-tag as user-edited so future ghost board builds know to skip.
-        if (world[x] && world[x][z]) world[x][z].userEdited = true;
-      }
-
-      suppressSave = false;
-      if (!opts.keepCamera) {
-        const okCameraMode = new Set(['ortho','topdown','soft','perspective','fp']);
-        if (data.cameraMode && okCameraMode.has(data.cameraMode)) setCameraMode(data.cameraMode);
-        else resetCameraDefaults();
-      }
-      if (typeof ensureGhostBoardsAroundTarget === 'function') ensureGhostBoardsAroundTarget();
-      if (data.toolId) {
-        const tool = TOOLS.find(t => t.id === data.toolId);
-        if (tool) selectTool(tool);
-      }
-      saveState();
-      if (typeof opts.onDone === 'function') {
-        try { opts.onDone(); } catch (_) {}
-      }
-    }
-
-    function buildOneChunk(start) {
-      const end = Math.min(buildItems.length, start + CHUNK);
-      for (let i = start; i < end; i++) {
-        paintBuildItem(buildItems[i], i);
-      }
-      if (typeof opts.onProgress === 'function') {
-        const last = buildItems[Math.max(0, end - 1)];
-        try { opts.onProgress({ done: end, total: buildItems.length, phase: last && last.phase }); } catch (_) {}
-      }
-      if (end < buildItems.length) {
-        // Yield to the event loop so animations + input keep firing.
-        if (typeof requestAnimationFrame === 'function') {
-          requestAnimationFrame(() => buildOneChunk(end));
-        } else {
-          setTimeout(() => buildOneChunk(end), 0);
-        }
-      } else {
-        finishApplyState();
-      }
-    }
-
-    buildOneChunk(0);
-    return true;
-  }
-
-  function cellPatchFromEntry(entry) {
-    let x, z, terrain, kind, floors, buildingType, terrainFloors, fenceSide, extras, transform;
-    if (Array.isArray(entry)) {
-      [x, z, terrain, kind, floors, buildingType, terrainFloors, fenceSide, extras, transform] = entry;
-    } else if (entry && typeof entry === 'object') {
-      ({ x, z, terrain, kind, floors, buildingType, terrainFloors, fenceSide, extras, transform } = entry);
-    }
-    if (!Number.isInteger(x) || !Number.isInteger(z)) return null;
-    if (x < 0 || x >= GRID || z < 0 || z >= GRID) return null;
-    let rotationY = 0, offsetX = 0, offsetZ = 0;
-    if (Array.isArray(transform) && transform.length >= 3) {
-      rotationY = +transform[0] || 0;
-      offsetX   = +transform[1] || 0;
-      offsetZ   = +transform[2] || 0;
-    } else if (transform && typeof transform === 'object') {
-      rotationY = +transform.rotationY || 0;
-      offsetX   = +transform.offsetX   || 0;
-      offsetZ   = +transform.offsetZ   || 0;
-    }
-    return {
-      x, z,
-      terrain: terrain || 'grass',
-      terrainFloors: terrainFloors || 1,
-      kind: kind || null,
-      floors: floors || 1,
-      buildingType: buildingType || null,
-      fenceSide: null,
-      extras: Array.isArray(extras) ? extras : [],
-      rotationY, offsetX, offsetZ,
-    };
-  }
-
-  function applyStatePatch(data) {
-    if (!data || !Array.isArray(data.cells)) return false;
-    normalizeWorldCells(data);
-    const err = validateWorld(data);
-    if (err) {
-      console.warn('[applyStatePatch] rejected world patch:', err, data);
-      return false;
-    }
-    let applied = 0;
-    suppressSave = true;
-    try {
-      for (const entry of data.cells) {
-        const c = cellPatchFromEntry(entry);
-        if (!c) continue;
-        setCell(c.x, c.z, {
-          terrain: c.terrain,
-          terrainFloors: c.terrainFloors,
-          kind: c.kind,
-          floors: c.floors,
-          buildingType: c.buildingType,
-          fenceSide: c.fenceSide,
-          extras: c.extras,
-          rotationY: c.rotationY,
-          offsetX: c.offsetX,
-          offsetZ: c.offsetZ,
-          animate: true,
-          impactDust: false,
-        });
-        applied++;
-      }
-    } finally {
-      suppressSave = false;
-    }
-    saveState();
-    return applied > 0;
-  }
-
-  // -------- API / webhooks / SSE bridge --------
-  // Stored in localStorage so anon and logged-in users both have a place
-  // to keep their config. Keys are generated client-side as v4-ish UUIDs.
-  const API_LS = 'tinyworld:api:v1';
-  const apiConfig = (function loadApiConfig() {
-    try {
-      const raw = localStorage.getItem(API_LS);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        return {
-          keys: Array.isArray(parsed.keys) ? parsed.keys : [],
-          webhookUrl: parsed.webhookUrl || '',
-          sseUrl: parsed.sseUrl || '',
-        };
-      }
-    } catch (_) {}
-    return { keys: [], webhookUrl: '', sseUrl: '' };
-  })();
-
-  function persistApiConfig() {
-    try { localStorage.setItem(API_LS, JSON.stringify(apiConfig)); } catch (_) {}
-  }
-
-  function generateApiKey() {
-    // RFC4122 v4-ish UUID using crypto where available.
-    const bytes = new Uint8Array(16);
-    if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(bytes);
-    else for (let i = 0; i < 16; i++) bytes[i] = Math.floor(Math.random() * 256);
-    bytes[6] = (bytes[6] & 0x0f) | 0x40;
-    bytes[8] = (bytes[8] & 0x3f) | 0x80;
-    const hex = [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
-    return 'twb_' + hex.slice(0, 8) + '_' + hex.slice(8, 16) + hex.slice(16, 24) + hex.slice(24);
-  }
-
-  function pickPrimaryToken() {
-    return apiConfig.keys.length ? apiConfig.keys[0].secret : '';
-  }
-
-  // ---- outbound webhooks ----
-  // Coalesce bursts of mutations so a clear-board doesn't fire 64 webhooks.
-  let webhookQueue = [];
-  let webhookFlushTimer = null;
-  function fireWebhook(event, payload) {
-    if (!apiConfig.webhookUrl) return;
-    webhookQueue.push({ event, payload, at: Date.now() });
-    clearTimeout(webhookFlushTimer);
-    webhookFlushTimer = setTimeout(flushWebhookQueue, 120);
-  }
-  function flushWebhookQueue() {
-    if (!apiConfig.webhookUrl || !webhookQueue.length) return;
-    const events = webhookQueue.splice(0, webhookQueue.length);
-    const token = pickPrimaryToken();
-    fetch(apiConfig.webhookUrl, {
-      method: 'POST',
-      headers: Object.assign(
-        { 'Content-Type': 'application/json' },
-        token ? { Authorization: 'Bearer ' + token } : {}
-      ),
-      body: JSON.stringify({ source: 'tiny-world-builder', events }),
-      mode: 'cors',
-      keepalive: true,
-    }).catch(err => {
-      // Fail silently — webhook downtime shouldn't kill the editor.
-      // Log so devs can find it in the console.
-      console.warn('[webhook]', err);
-    });
-  }
-
-  // ---- inbound SSE relay ----
-  let sseSource = null;
-  function connectSseRelay() {
-    if (sseSource) { try { sseSource.close(); } catch (_) {} sseSource = null; }
-    const url = apiConfig.sseUrl;
-    if (!url) return;
-    // EventSource doesn't allow custom headers — append token as a query
-    // param if there's room for one. The relay should accept either.
-    const token = pickPrimaryToken();
-    let target = url;
-    if (token) {
-      const sep = url.indexOf('?') >= 0 ? '&' : '?';
-      target = url + sep + 'token=' + encodeURIComponent(token);
-    }
-    try {
-      sseSource = new EventSource(target);
-    } catch (err) {
-      console.warn('[sse] failed to connect', err);
-      return;
-    }
-    sseSource.onmessage = (e) => {
-      try {
-        const msg = JSON.parse(e.data);
-        applyRemoteCommand(msg);
-      } catch (err) {
-        console.warn('[sse] bad message', err, e.data);
-      }
-    };
-    sseSource.onerror = (err) => {
-      // Browser auto-reconnects; nothing to do.
-      console.warn('[sse] error', err);
-    };
-  }
-
-  function applyRemoteCommand(msg) {
-    if (!msg || typeof msg !== 'object') return;
-    const op = msg.op || msg.event;
-    if (op === 'place' || op === 'set_cell') {
-      const { x, z, terrain, kind, floors, buildingType, fenceSide, rotationY, offsetX, offsetZ } = msg;
-      if (!Number.isFinite(x) || !Number.isFinite(z)) return;
-      if (x < 0 || x >= GRID || z < 0 || z >= GRID) return;
-      setCell(x, z, {
-        terrain: terrain || (world[x][z] && world[x][z].terrain) || 'grass',
-        terrainFloors: world[x][z] ? terrainLevelForCell(world[x][z]) : 1,
-        kind: kind || null,
-        floors: floors || 1,
-        buildingType: buildingType || null,
-        fenceSide: fenceSide || null,
-        rotationY: rotationY || 0,
-        offsetX: offsetX || 0,
-        offsetZ: offsetZ || 0,
-      });
-    } else if (op === 'clear') {
-      doClear();
-    } else if (op === 'reset') {
-      doReset();
-    }
-  }
-
-  // ---- panel hooks ----
-  function renderApiPanel() {
-    const list = document.getElementById('api-keys-list');
-    const urlField = document.getElementById('api-webhook-url');
-    const sseField = document.getElementById('api-sse-url');
-    if (!list || !urlField || !sseField) return;
-    list.innerHTML = '';
-    if (!apiConfig.keys.length) {
-      const li = document.createElement('li');
-      li.className = 'save-empty';
-      li.style.justifyContent = 'center';
-      li.textContent = 'No keys yet. Generate one to get started.';
-      list.appendChild(li);
-    } else {
-      for (const k of apiConfig.keys) {
-        const li = document.createElement('li');
-        const left = document.createElement('div');
-        const lbl = document.createElement('div');
-        lbl.className = 'api-key-label';
-        lbl.textContent = k.label || 'Untitled key';
-        const meta = document.createElement('div');
-        meta.className = 'api-key-meta';
-        meta.textContent = 'twb_…' + k.secret.slice(-8) + ' · ' + new Date(k.created).toLocaleDateString();
-        left.appendChild(lbl);
-        left.appendChild(meta);
-        const actions = document.createElement('div');
-        actions.className = 'api-key-actions';
-        const del = document.createElement('button');
-        del.textContent = 'Revoke';
-        del.title = 'Delete this key';
-        del.addEventListener('click', () => {
-          apiConfig.keys = apiConfig.keys.filter(x => x.id !== k.id);
-          persistApiConfig();
-          renderApiPanel();
-        });
-        actions.appendChild(del);
-        li.appendChild(left);
-        li.appendChild(actions);
-        list.appendChild(li);
-      }
-    }
-    urlField.value = apiConfig.webhookUrl || '';
-    sseField.value = apiConfig.sseUrl || '';
-  }
-
-  function initApiPanel() {
-    const genBtn = document.getElementById('api-key-generate');
-    const labelInput = document.getElementById('api-key-label');
-    const reveal = document.getElementById('api-key-reveal');
-    const saveBtn = document.getElementById('api-save');
-    const urlField = document.getElementById('api-webhook-url');
-    const sseField = document.getElementById('api-sse-url');
-    const status = document.getElementById('api-status');
-    if (!genBtn || !saveBtn) return;
-    genBtn.addEventListener('click', () => {
-      const secret = generateApiKey();
-      const entry = {
-        id: Math.random().toString(36).slice(2, 10),
-        label: (labelInput.value || '').trim() || 'API key',
-        secret,
-        created: Date.now(),
-      };
-      apiConfig.keys.unshift(entry);
-      persistApiConfig();
-      labelInput.value = '';
-      reveal.hidden = false;
-      reveal.innerHTML = '';
-      const head = document.createElement('strong');
-      head.textContent = 'Copy this token now — it won’t be shown in full again.';
-      const body = document.createElement('div');
-      body.textContent = secret;
-      reveal.appendChild(head);
-      reveal.appendChild(body);
-      renderApiPanel();
-    });
-    saveBtn.addEventListener('click', () => {
-      apiConfig.webhookUrl = (urlField.value || '').trim();
-      apiConfig.sseUrl     = (sseField.value || '').trim();
-      persistApiConfig();
-      status.textContent = 'Saved.';
-      status.className = 'success';
-      setTimeout(() => { status.textContent = ''; status.className = ''; }, 1800);
-      connectSseRelay();
-    });
-  }
-
-  // Wire the API tab to its UI initialiser; expose renderApiPanel for the
-  // tab switcher.
-  window.__initApiPanel = initApiPanel;
-  window.__renderApiPanel = renderApiPanel;
-  // Connect the SSE relay (if configured) at startup so remote commands
-  // can drive even an unattended browser.
-  setTimeout(connectSseRelay, 0);
-
-  function loadState() {
-    let data;
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return false;
-      data = JSON.parse(raw);
-    } catch (_) { return false; }
-    const ok = applyState(data, { keepCamera: true });
-    if (ok) resetCameraDefaults();
-    return ok;
-  }
-
   // -------- welcome dialog --------
-  // Bump WELCOME_NOTICE_ID when the welcome content has a genuinely new
-  // announcement worth re-showing to previously-dismissed users.
-  const WELCOME_NOTICE_ID = '2026-05-11-jigsaw';
-  const WELCOME_LS_KEY = 'tinyworld:welcome:dismissedId';
   function initWelcomeDialog() {
     const modal = document.getElementById('welcome-modal');
-    const closeBtn = document.getElementById('welcome-close');
     const startBtn = document.getElementById('welcome-start');
+    const closeBtn = document.getElementById('welcome-close');
     const dontShow = document.getElementById('welcome-dontshow');
-    if (!modal) return;
+    if (!modal || !startBtn || !closeBtn || !dontShow) return;
 
-    let dismissedId = null;
-    try { dismissedId = localStorage.getItem(WELCOME_LS_KEY); } catch (_) {}
-    // Only show when the current notice hasn't been dismissed yet.
-    if (dismissedId !== WELCOME_NOTICE_ID) {
-      openTinyModal(modal, startBtn || closeBtn);
-    }
+    const STORAGE_KEY = 'tinyworld:welcome:dontshow';
 
-    function close() {
+    function closeWelcome(saveChoice) {
+      if (saveChoice) {
+        try { localStorage.setItem(STORAGE_KEY, dontShow.checked ? '1' : '0'); } catch (_) {}
+      }
       closeTinyModal(modal);
-      try {
-        if (dontShow && dontShow.checked) {
-          localStorage.setItem(WELCOME_LS_KEY, WELCOME_NOTICE_ID);
-        } else {
-          // Unticked → user might want to see it next reload too.
-          localStorage.removeItem(WELCOME_LS_KEY);
-        }
-      } catch (_) {}
     }
-    modal.__closeModalHandler = close;
-    closeBtn.addEventListener('click', close);
-    startBtn.addEventListener('click', close);
+
+    function shouldShowWelcome() {
+      try { return localStorage.getItem(STORAGE_KEY) !== '1'; } catch (_) { return true; }
+    }
+
+    startBtn.addEventListener('click', () => closeWelcome(true));
+    closeBtn.addEventListener('click', () => closeWelcome(true));
     modal.addEventListener('click', e => {
-      if (e.target === modal) close();
-    });
-    window.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && !modal.hidden) close();
-    });
-  }
-
-  // -------- profile + saves --------
-  function initAccountModal() {
-    const Auth = window.TinyWorldAuth;
-    const modal = document.getElementById('account-modal');
-    const closeBtn = document.getElementById('account-close');
-    const tabProfile = document.getElementById('tab-profile');
-    const tabSaves = document.getElementById('tab-saves');
-    const tabApi = document.getElementById('tab-api');
-    const panelProfile = document.getElementById('panel-profile');
-    const panelSaves = document.getElementById('panel-saves');
-    const panelApi = document.getElementById('panel-api');
-    const profileUsername = document.getElementById('profile-username');
-    const profileDisplayName = document.getElementById('profile-display-name');
-    const profileAbout = document.getElementById('profile-about');
-    const profileImage = document.getElementById('profile-image');
-    const profilePhotoFile = document.getElementById('profile-photo-file');
-    const profilePhotoClear = document.getElementById('profile-photo-clear');
-    const profileAvatarImg = document.getElementById('profile-avatar-img');
-    const profileSaveBtn = document.getElementById('profile-save');
-    const profileStatus = document.getElementById('profile-status');
-    const saveCurrent = document.getElementById('save-current');
-    const saveName = document.getElementById('save-name');
-    const savesList = document.getElementById('saves-list');
-    const savesEmpty = document.getElementById('saves-empty');
-    const accountBtn = document.getElementById('account-btn');
-
-    let userProfile = null;
-    let userBuilds = [];
-
-    function showTab(tab) {
-      tabProfile.classList.toggle('active', tab === 'profile');
-      tabSaves.classList.toggle('active',   tab === 'saves');
-      if (tabApi) tabApi.classList.toggle('active', tab === 'api');
-      panelProfile.hidden = tab !== 'profile';
-      panelSaves.hidden   = tab !== 'saves';
-      if (panelApi) panelApi.hidden = tab !== 'api';
-      if (tab === 'saves') loadBuilds();
-      if (tab === 'api' && typeof window.__renderApiPanel === 'function') window.__renderApiPanel();
-    }
-    // Initialise the API panel handlers once per account-modal lifetime.
-    if (typeof window.__initApiPanel === 'function') window.__initApiPanel();
-    tabProfile.addEventListener('click', () => showTab('profile'));
-    tabSaves.addEventListener('click', () => showTab('saves'));
-    if (tabApi) tabApi.addEventListener('click', () => showTab('api'));
-
-    function openModal() { openTinyModal(modal, closeBtn); }
-    function closeModal() { closeTinyModal(modal); }
-    closeBtn.addEventListener('click', closeModal);
-    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
-
-    async function getAccessToken() {
-      const user = await Auth.getUser();
-      if (!user) return null;
-      if (user.token && user.token.access_token) return user.token.access_token;
-      const m = document.cookie.match(/(?:^|; )nf_jwt=([^;]*)/);
-      if (m) return decodeURIComponent(m[1]);
-      return null;
-    }
-
-    async function apiCall(path, method, body) {
-      try {
-        const opts = {
-          method,
-          headers: { 'Content-Type': 'application/json' },
-        };
-        if (body) opts.body = JSON.stringify(body);
-        const r = await fetch(path, opts);
-        const text = await r.text();
-        let data = null;
-        try { data = text ? JSON.parse(text) : null; } catch (_) {
-          data = { error: text || r.statusText || ('HTTP ' + r.status) };
-        }
-        if (!r.ok) return data || { error: r.statusText || ('HTTP ' + r.status) };
-        return data;
-      } catch (err) {
-        return { error: err.message || 'Network error' };
-      }
-    }
-
-    async function loadProfile() {
-      const p = await apiCall('/api/profile', 'GET');
-      if (p && p.id) {
-        userProfile = p;
-        profileUsername.value = p.username || '';
-        profileDisplayName.value = p.displayName || p.username || '';
-        profileAbout.value = p.about || '';
-        profileImage.value = p.image || '';
-        if (p.image) {
-          profileAvatarImg.src = p.image;
-          profileAvatarImg.hidden = false;
-        }
-      }
-    }
-
-    function syncAvatarPreview() {
-      const image = profileImage.value.trim();
-      if (image) { profileAvatarImg.src = image; profileAvatarImg.hidden = false; }
-      else { profileAvatarImg.removeAttribute('src'); profileAvatarImg.hidden = true; }
-    }
-
-    profilePhotoFile.addEventListener('change', () => {
-      const file = profilePhotoFile.files && profilePhotoFile.files[0];
-      if (!file) return;
-      if (!file.type.startsWith('image/')) {
-        profileStatus.textContent = 'Please choose an image file';
-        profilePhotoFile.value = '';
-        return;
-      }
-      if (file.size > 500 * 1024) {
-        profileStatus.textContent = 'Photo must be under 500KB';
-        profilePhotoFile.value = '';
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        profileImage.value = String(reader.result || '');
-        syncAvatarPreview();
-        profileStatus.textContent = 'Photo ready — save profile to keep it';
-      };
-      reader.readAsDataURL(file);
+      if (e.target === modal) closeWelcome(true);
     });
 
-    profilePhotoClear.addEventListener('click', () => {
-      profileImage.value = '';
-      profilePhotoFile.value = '';
-      syncAvatarPreview();
-    });
-
-    profileSaveBtn.addEventListener('click', async () => {
-      const username = profileUsername.value.trim().toLowerCase();
-      const displayName = profileDisplayName.value.trim();
-      if (!username) { profileStatus.textContent = 'Username required'; return; }
-      if (!/^[a-z0-9_]{3,24}$/.test(username)) { profileStatus.textContent = 'Username must be 3-24 lowercase letters, numbers, underscores'; return; }
-      if (!displayName) { profileStatus.textContent = 'Display name required'; return; }
-      profileUsername.value = username;
-      profileStatus.textContent = 'Saving...';
-      const result = await apiCall('/api/profile', 'PUT', {
-        username,
-        displayName,
-        about: profileAbout.value.trim(),
-        image: profileImage.value.trim(),
-      });
-      if (result && (result.id || result.username)) {
-        userProfile = result;
-        profileStatus.textContent = 'Saved!';
-        setTimeout(() => profileStatus.textContent = '', 2000);
-      } else {
-        profileStatus.textContent = (result && result.error) || 'Save failed';
-      }
-    });
-
-    async function loadBuilds() {
-      const list = await apiCall('/api/builds', 'GET');
-      userBuilds = Array.isArray(list) ? list : [];
-      renderBuilds();
+    if (shouldShowWelcome()) {
+      requestAnimationFrame(() => openTinyModal(modal, startBtn));
     }
-
-    function renderBuilds() {
-      savesList.innerHTML = '';
-      savesEmpty.hidden = userBuilds.length > 0;
-      userBuilds.forEach(b => {
-        const li = document.createElement('li');
-        const info = document.createElement('div');
-        const nameSpan = document.createElement('div');
-        nameSpan.className = 'save-name';
-        nameSpan.textContent = b.name;
-        const dateSpan = document.createElement('div');
-        dateSpan.className = 'save-date';
-        dateSpan.textContent = new Date(b.updatedAt || b.created_at).toLocaleDateString();
-        info.appendChild(nameSpan);
-        info.appendChild(dateSpan);
-        const actions = document.createElement('div');
-        actions.className = 'save-actions';
-        const loadBtn = document.createElement('button');
-        loadBtn.textContent = 'Load';
-        loadBtn.title = 'Load this build';
-        loadBtn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          const full = await apiCall('/api/builds?id=' + b.id, 'GET');
-          if (full && full.data) {
-            applyState(full.data);
-            closeModal();
-          }
-        });
-        const delBtn = document.createElement('button');
-        delBtn.textContent = '×';
-        delBtn.title = 'Delete';
-        delBtn.addEventListener('click', async (e) => {
-          e.stopPropagation();
-          if (!confirm('Delete "' + b.name + '"?')) return;
-          await apiCall('/api/builds?id=' + b.id, 'DELETE');
-          loadBuilds();
-        });
-        actions.appendChild(loadBtn);
-        actions.appendChild(delBtn);
-        li.appendChild(info);
-        li.appendChild(actions);
-        savesList.appendChild(li);
-      });
-    }
-
-    saveCurrent.addEventListener('click', async () => {
-      if (!userProfile) { alert('Please save your profile first.'); showTab('profile'); return; }
-      const name = saveName.value.trim() || ('Build ' + new Date().toLocaleDateString());
-      const cells = snapshotCells();
-      const data = { v: STORAGE_VERSION, gridSize: GRID, cells, cameraMode, toolId: selectedTool && selectedTool.id };
-      await apiCall('/api/builds', 'POST', { name, data });
-      saveName.value = '';
-      loadBuilds();
-    });
-
-    accountBtn.addEventListener('click', () => {
-      openModal();
-      loadProfile();
-    });
-  }
-
-  // -------- auth --------
-  // Static deploy bypass: when no optional auth library is present, run the
-  // existing "no auth library" branch so settings and AI generation stay
-  // available on static hosts such as Vercel.
-  function __isLocalDev() {
-    try {
-      const u = new URL(location.href);
-      if (u.searchParams.has('dev')) return true;
-      if (location.protocol === 'file:') return true;
-      const h = location.hostname;
-      return h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0' || h.endsWith('.local');
-    } catch (_) { return false; }
-  }
-  function initAuth() {
-    const Auth = __isLocalDev() ? null : window.TinyWorldAuth;
-    if (!Auth) {
-      // No auth library — single-user local mode. Hide all auth UI
-      // and treat the user as logged in so settings/AI aren't
-      // permanently locked.
-      window.__loggedIn = true;
-      // Hide sign-in/out/account UI; unhide AI generate; clear locked badge.
-      for (const id of ['auth-login-btn-top', 'auth-logout-btn', 'account-btn']) {
-        const el = document.getElementById(id);
-        if (el) el.hidden = true;
-      }
-      const genBtn = document.getElementById('generate');
-      if (genBtn) genBtn.hidden = false;
-      const settingsBtn = document.getElementById('render-settings');
-      if (settingsBtn) {
-        settingsBtn.classList.remove('locked');
-        settingsBtn.setAttribute('data-tooltip', 'Settings');
-      }
-      bootApp();
-      return;
-    }
-
-    const modal = document.getElementById('auth-modal');
-    const errorEl = document.getElementById('auth-error');
-    const successEl = document.getElementById('auth-success');
-    const loginForm = document.getElementById('auth-login');
-    const signupForm = document.getElementById('auth-signup');
-    const forgotForm = document.getElementById('auth-forgot');
-    const resetForm = document.getElementById('auth-reset');
-    const logoutBtn = document.getElementById('auth-logout-btn');
-    const accountBtn = document.getElementById('account-btn');
-
-    function showError(msg) {
-      errorEl.textContent = msg;
-      errorEl.hidden = false;
-      successEl.hidden = true;
-    }
-
-    function showSuccess(msg) {
-      successEl.textContent = msg;
-      successEl.hidden = false;
-      errorEl.hidden = true;
-    }
-
-    function clearMessages() {
-      errorEl.hidden = true;
-      successEl.hidden = true;
-    }
-
-    function showForm(name) {
-      clearMessages();
-      loginForm.hidden = name !== 'login';
-      signupForm.hidden = name !== 'signup';
-      forgotForm.hidden = name !== 'forgot';
-      resetForm.hidden = name !== 'reset';
-      const subtitle = modal.querySelector('.auth-subtitle');
-      if (name === 'login') subtitle.textContent = 'Sign in to start building';
-      else if (name === 'signup') subtitle.textContent = 'Create your account';
-      else if (name === 'forgot') subtitle.textContent = 'Reset your password';
-      else if (name === 'reset') subtitle.textContent = 'Choose a new password';
-    }
-
-    function setLoading(btn, loading) {
-      btn.disabled = loading;
-      btn.textContent = loading ? 'Please wait…' : btn.dataset.label;
-    }
-
-    document.getElementById('auth-login-btn').dataset.label = 'Sign in';
-    document.getElementById('auth-signup-btn').dataset.label = 'Create account';
-    document.getElementById('auth-forgot-btn').dataset.label = 'Send reset link';
-    document.getElementById('auth-reset-btn').dataset.label = 'Set new password';
-
-    document.getElementById('auth-show-signup').addEventListener('click', () => showForm('signup'));
-    document.getElementById('auth-show-forgot').addEventListener('click', () => showForm('forgot'));
-    document.getElementById('auth-show-login').addEventListener('click', () => showForm('login'));
-    document.getElementById('auth-back-login').addEventListener('click', () => showForm('login'));
-
-    // Google OAuth
-    document.getElementById('auth-google-login').addEventListener('click', () => Auth.oauthLogin('google'));
-    document.getElementById('auth-google-signup').addEventListener('click', () => Auth.oauthLogin('google'));
-
-    // Show Google buttons if the provider is enabled
-    Auth.getSettings().then(settings => {
-      if (settings && settings.providers && settings.providers.google) {
-        document.getElementById('auth-oauth-login').hidden = false;
-        document.getElementById('auth-oauth-signup').hidden = false;
-      }
-    }).catch(() => {});
-
-    // Tracks the live login state so gated controls can react to it.
-    // Anonymous users get the app, settings/AI/cloud are locked.
-    window.__loggedIn = false;
-    function setLoggedInState(isLoggedIn) {
-      window.__loggedIn = !!isLoggedIn;
-      if (logoutBtn) logoutBtn.hidden = !isLoggedIn;
-      if (accountBtn) accountBtn.hidden = !isLoggedIn;
-      const loginBtnTop = document.getElementById('auth-login-btn-top');
-      if (loginBtnTop) loginBtnTop.hidden = !!isLoggedIn;
-      // Lock badges + tooltips for the gated buttons.
-      const settingsBtn = document.getElementById('render-settings');
-      const generateBtn = document.getElementById('generate');
-      if (settingsBtn) {
-        settingsBtn.classList.toggle('locked', !isLoggedIn);
-        settingsBtn.setAttribute('data-tooltip', isLoggedIn ? 'Settings' : 'Sign in to use settings');
-      }
-      if (generateBtn) {
-        generateBtn.hidden = !isLoggedIn;
-      }
-    }
-
-    function openLoginModal(reason) {
-      clearMessages();
-      const subtitle = modal.querySelector('.auth-subtitle');
-      if (subtitle && reason) subtitle.textContent = reason;
-      showForm('login');
-      openTinyModal(modal, document.getElementById('auth-email'));
-    }
-    // Expose to gated handlers outside this closure.
-    window.__openLoginModal = openLoginModal;
-
-    function enterApp() {
-      closeTinyModal(modal);
-      setLoggedInState(true);
-      bootApp();
-      initAccountModal();
-    }
-
-    function enterAnonApp() {
-      closeTinyModal(modal);
-      setLoggedInState(false);
-      bootApp();
-    }
-
-    // Login
-    document.getElementById('auth-login-btn').addEventListener('click', async () => {
-      const btn = document.getElementById('auth-login-btn');
-      const email = document.getElementById('auth-email').value.trim();
-      const password = document.getElementById('auth-password').value;
-      if (!email || !password) { showError('Please enter your email and password.'); return; }
-      setLoading(btn, true);
-      try {
-        await Auth.login(email, password);
-        enterApp();
-      } catch (err) {
-        if (err instanceof Auth.AuthError) {
-          showError(err.status === 401 ? 'Invalid email or password.' : err.message);
-        } else if (err instanceof Auth.MissingIdentityError) {
-          showError('Identity is not enabled on this site.');
-        } else {
-          showError('Something went wrong. Please try again.');
-        }
-      } finally {
-        setLoading(btn, false);
-      }
-    });
-
-    // Signup
-    document.getElementById('auth-signup-btn').addEventListener('click', async () => {
-      const btn = document.getElementById('auth-signup-btn');
-      const username = document.getElementById('auth-signup-username').value.trim().toLowerCase();
-      const name = document.getElementById('auth-signup-name').value.trim();
-      const email = document.getElementById('auth-signup-email').value.trim();
-      const password = document.getElementById('auth-signup-password').value;
-      if (!/^[a-z0-9_]{3,24}$/.test(username)) { showError('Username must be 3-24 lowercase letters, numbers, underscores.'); return; }
-      if (!name) { showError('Please enter a display name.'); return; }
-      if (!email || !password) { showError('Please enter an email and password.'); return; }
-      setLoading(btn, true);
-      try {
-        const user = await Auth.signup(email, password, { full_name: name, username, display_name: name });
-        if (user.emailVerified) {
-          enterApp();
-        } else {
-          showSuccess('Check your email to confirm your account, then sign in.');
-          showForm('login');
-        }
-      } catch (err) {
-        if (err instanceof Auth.AuthError) {
-          showError(err.status === 403 ? 'Signups are not allowed.' : err.message);
-        } else if (err instanceof Auth.MissingIdentityError) {
-          showError('Identity is not enabled on this site.');
-        } else {
-          showError('Something went wrong. Please try again.');
-        }
-      } finally {
-        setLoading(btn, false);
-      }
-    });
-
-    // Forgot password
-    document.getElementById('auth-forgot-btn').addEventListener('click', async () => {
-      const btn = document.getElementById('auth-forgot-btn');
-      const email = document.getElementById('auth-forgot-email').value.trim();
-      if (!email) { showError('Please enter your email address.'); return; }
-      setLoading(btn, true);
-      try {
-        await Auth.requestPasswordRecovery(email);
-        showSuccess('Check your email for a password reset link.');
-      } catch (err) {
-        if (err instanceof Auth.AuthError) {
-          showError(err.message);
-        } else {
-          showError('Something went wrong. Please try again.');
-        }
-      } finally {
-        setLoading(btn, false);
-      }
-    });
-
-    // Password reset
-    document.getElementById('auth-reset-btn').addEventListener('click', async () => {
-      const btn = document.getElementById('auth-reset-btn');
-      const password = document.getElementById('auth-reset-password').value;
-      if (!password) { showError('Please choose a new password.'); return; }
-      setLoading(btn, true);
-      try {
-        await Auth.updateUser({ password });
-        showSuccess('Password updated. You are now signed in.');
-        setTimeout(enterApp, 1200);
-      } catch (err) {
-        if (err instanceof Auth.AuthError) {
-          showError(err.message);
-        } else {
-          showError('Something went wrong. Please try again.');
-        }
-      } finally {
-        setLoading(btn, false);
-      }
-    });
-
-    // Logout — drop back to anonymous mode, no forced re-login.
-    if (logoutBtn) logoutBtn.addEventListener('click', async () => {
-      try {
-        await Auth.logout();
-      } catch (_) {}
-      setLoggedInState(false);
-    });
-
-    // Top-bar Sign In button opens the login modal.
-    const topLoginBtn = document.getElementById('auth-login-btn-top');
-    if (topLoginBtn) topLoginBtn.addEventListener('click', () => openLoginModal('Sign in to unlock AI, settings & cloud saves'));
-
-    // Handle auth callbacks (OAuth, recovery, confirmation, invite)
-    async function processCallback() {
-      try {
-        const result = await Auth.handleAuthCallback();
-        if (!result) return false;
-        switch (result.type) {
-          case 'oauth':
-          case 'confirmation':
-            enterApp();
-            return true;
-          case 'recovery':
-            showForm('reset');
-            openTinyModal(modal, document.getElementById('auth-reset-password'));
-            return true;
-          case 'invite':
-            showSuccess('Set a password to accept your invite.');
-            showForm('reset');
-            openTinyModal(modal, document.getElementById('auth-reset-password'));
-            return true;
-          case 'email_change':
-            showSuccess('Email address updated.');
-            openTinyModal(modal, document.getElementById('auth-email'));
-            return true;
-        }
-      } catch (err) {
-        if (err instanceof Auth.AuthError) showError(err.message);
-      }
-      return false;
-    }
-
-    // Check existing session or callback
-    (async () => {
-      const handled = await processCallback();
-      if (handled) return;
-      const user = await Auth.getUser();
-      if (user) {
-        enterApp();
-      } else {
-        // Anonymous mode by default — boot the app, gate
-        // settings / AI / cloud behind a sign-in prompt.
-        enterAnonApp();
-      }
-    })();
   }
 
   // -------- boot --------
@@ -13515,7 +10168,6 @@
   function bootApp() {
     if (appBooted) return;
     appBooted = true;
-    initWelcomeDialog();
     buildToolbar();
     selectTool(DEFAULT_TOOL);
     if (!loadState()) {
@@ -13523,6 +10175,7 @@
       resetCameraDefaults();
     }
     ensureGhostBoardsAroundTarget();
+    initWelcomeDialog();
     onResize();
     requestAnimationFrame(animate);
   }
@@ -14287,7 +10940,7 @@
   // Maintains an array of named local slots in localStorage keyed by id.
   // The brand title doubles as the popup trigger; the popup lets the user
   // rename the current world, switch to another, create a new one,
-  // duplicate, or open the AI generation modal.  The existing single
+  // duplicate, or open the procedural generator.  The existing single
   // autosave (STORAGE_KEY = 'tinyworld:v1') stays the source of truth for
   // the live world; each slot is a snapshot copy.
   const WORLDS_LS = {
@@ -14479,10 +11132,6 @@
           const active = findActiveWorld();
           const baseName = (active && active.name) || 'World';
           saveAsNew(baseName + ' (copy)');
-        } else if (action === 'generate') {
-          if (typeof openGenerateModal === 'function') openGenerateModal();
-          else { const g = document.getElementById('generate'); if (g) g.click(); }
-          close();
         } else if (action === 'save-as') {
           const name = (nameInput.value.trim()) || ('World ' + (readWorldsMeta().length + 1));
           saveAsNew(name);
@@ -14582,17 +11231,12 @@
       items.push({ group: 'World', label: 'Clear to grass', hint: 'wipe to empty grass', run: topBtnAction('clear') });
       items.push({ group: 'World', label: 'Export world as JSON', run: topBtnAction('export') });
       items.push({ group: 'World', label: 'Import world from JSON', run: topBtnAction('import') });
-      items.push({ group: 'World', label: 'Generate from prompt…', hint: 'AI generation panel', kbd: '⌘G', run: () => {
-        if (typeof openGenerateModal === 'function') openGenerateModal();
-        else topBtnAction('generate')();
-      } });
-      items.push({ group: 'World', label: 'Generate procedurally (offline)', hint: 'seed + biomes, no LLM', run: () => {
+      items.push({ group: 'World', label: 'Generate procedurally (offline)', hint: 'seed + biomes, offline', run: () => {
         try {
-          const state = (typeof window.__genState === 'function') ? window.__genState() : null;
-          const seed = (state && state.seed) || randomSeed();
-          const gridSize = (state && state.gridSize) || GRID;
-          const biomes = (state && state.biomes) || { grass: 55, forest: 20, water: 10, dirt: 10, settlement: 5 };
-          const elevation = (state && state.elevation) || { plains: 55, hills: 30, mountains: 15 };
+          const seed = randomSeed();
+          const gridSize = GRID;
+          const biomes = { grass: 55, forest: 20, water: 10, dirt: 10, settlement: 5 };
+          const elevation = { plains: 55, hills: 30, mountains: 15 };
           const data = generateProceduralWorld({ seed, biomes, elevation, gridSize });
           applyState(data);
         } catch (err) { console.warn('[palette] procedural failed:', err); }
@@ -14601,7 +11245,6 @@
       items.push({ group: 'Settings', label: 'Settings — Screen', run: settingsTab('screen') });
       items.push({ group: 'Settings', label: 'Settings — World',  run: settingsTab('world') });
       items.push({ group: 'Settings', label: 'Settings — Sky',    run: settingsTab('sky') });
-      items.push({ group: 'Settings', label: 'Settings — AI',     run: settingsTab('ai') });
       if (window.TinyWorldAuth) {
         items.push({ group: 'Account', label: 'Open account / My Builds', run: topBtnAction('account-btn') });
         items.push({ group: 'Account', label: 'Sign in', run: topBtnAction('auth-login-btn-top') });
@@ -14723,7 +11366,9 @@
     window.__openCommandPalette = open;
   })();
 
-  initAuth();
+  window.__loggedIn = true;
+  window.__openLoginModal = null;
+  bootApp();
   </script>
 </body>
 </html>
