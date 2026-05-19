@@ -118,10 +118,6 @@
     margin-top: 6px;
     letter-spacing: 0.02em;
   }
-  /* world-menu-btn lives inside .brand only so JS can find it and
-     relocate it into the toolbar's world-slot; not visible here. */
-  .brand #world-menu-btn { display: none; }
-
   /* Icon pill — sits top-right; the minimap stacks beneath it. */
   .appbar {
     position: fixed;
@@ -1143,7 +1139,6 @@
     padding: 8px;
     font-size: 13px;
     color: var(--ink);
-    animation: world-menu-pop 0.14s ease-out;
   }
   .topbar-popup[hidden] { display: none; }
   .topbar-popup-title {
@@ -1267,8 +1262,6 @@
   body.tod-dusk  .audio-panel,
   body.tod-night .topbar-popup,
   body.tod-dusk  .topbar-popup,
-  body.tod-night .world-menu,
-  body.tod-dusk  .world-menu,
   body.tod-night .modal-card,
   body.tod-dusk  .modal-card {
     background-color: #f3f5f9 !important;
@@ -1357,142 +1350,6 @@
   }
   .brand-title-btn[aria-expanded="true"] .brand-chevron { transform: rotate(180deg); }
   .brand-title-btn:hover { color: var(--ink); }
-
-  .world-menu {
-    position: fixed;
-    /* Drop cleanly below the brand sub-line: brand sits at top:26px,
-       title 28px + 6px gap + sub-line 12px = ~72px; allow 8px gutter. */
-    top: 86px; left: 28px;
-    z-index: 60;
-    width: 320px;
-    background: rgba(255, 255, 255, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    border-radius: 18px;
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.85) inset,
-      0 -1px 0 rgba(120, 130, 150, 0.10) inset,
-      0 1px 2px rgba(20, 30, 50, 0.05),
-      0 12px 36px -12px rgba(40, 50, 80, 0.22);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    overflow: hidden;
-    font-size: 13px;
-    color: var(--ink);
-    animation: world-menu-pop 0.14s ease-out;
-  }
-  .world-menu[hidden] { display: none; }
-  @keyframes world-menu-pop {
-    from { opacity: 0; transform: translateY(-4px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .world-menu-head {
-    display: flex; gap: 6px;
-    padding: 10px 10px 8px;
-    border-bottom: 1px solid var(--line-soft);
-  }
-  .world-menu-input {
-    flex: 1;
-    background: #fff;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 6px 9px;
-    font: inherit;
-    font-size: 13px;
-    color: var(--ink);
-    outline: none;
-  }
-  .world-menu-input:focus { border-color: rgba(60, 130, 247, 0.5); }
-  .world-menu-rename {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    width: 30px; height: 30px;
-    display: inline-flex; align-items: center; justify-content: center;
-    color: var(--muted);
-    cursor: pointer;
-    flex-shrink: 0;
-  }
-  .world-menu-rename:hover { color: var(--ink); background: rgba(255, 255, 255, 0.55); }
-  .world-menu-section { padding: 6px; }
-  .world-menu-section + .world-menu-section { border-top: 1px solid var(--line-soft); }
-  .world-menu-section-title {
-    font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
-    text-transform: uppercase; color: var(--muted);
-    padding: 6px 8px 4px;
-  }
-  .world-menu-item {
-    display: flex; align-items: center; gap: 10px;
-    width: 100%;
-    background: transparent;
-    border: none;
-    text-align: left;
-    padding: 7px 8px;
-    border-radius: 7px;
-    cursor: pointer;
-    color: var(--ink);
-    font: inherit; font-size: 12.5px;
-  }
-  .world-menu-item:hover { background: rgba(255, 255, 255, 0.55); }
-  .world-menu-icon {
-    width: 22px; height: 22px;
-    display: inline-flex; align-items: center; justify-content: center;
-    color: var(--muted);
-    border-radius: 6px;
-    background: #f3ecdc;
-    flex-shrink: 0;
-  }
-  .world-menu-label { flex: 1; }
-  .world-menu-hint {
-    font-size: 11px; color: var(--muted);
-    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-  }
-  .world-menu-list {
-    list-style: none; margin: 0; padding: 0;
-    max-height: 230px; overflow-y: auto;
-  }
-  .world-menu-slot {
-    display: flex; align-items: center; gap: 8px;
-    padding: 7px 8px;
-    border-radius: 7px;
-    cursor: pointer;
-    color: var(--ink);
-    font-size: 12.5px;
-  }
-  .world-menu-slot:hover { background: rgba(255, 255, 255, 0.55); }
-  .world-menu-slot.active { background: rgba(255, 255, 255, 0.78); }
-  .world-menu-slot .slot-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
-  .world-menu-slot .slot-date { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .world-menu-slot .slot-delete {
-    background: transparent; border: none; color: var(--muted); cursor: pointer;
-    width: 22px; height: 22px; border-radius: 5px;
-    display: inline-flex; align-items: center; justify-content: center;
-    opacity: 0; transition: opacity 0.12s, background 0.12s, color 0.12s;
-  }
-  .world-menu-slot:hover .slot-delete { opacity: 1; }
-  .world-menu-slot .slot-delete:hover { color: #b84838; background: var(--line); }
-  .world-menu-empty {
-    padding: 12px 12px 14px;
-    color: var(--muted);
-    font-size: 12px;
-  }
-  .world-menu-foot {
-    display: flex; gap: 6px;
-    padding: 8px;
-    border-top: 1px solid var(--line-soft);
-    background: var(--bg);
-  }
-  .world-menu-foot-btn {
-    flex: 1;
-    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 6px 10px;
-    font: inherit; font-size: 12px;
-    color: var(--ink);
-    cursor: pointer;
-  }
-  .world-menu-foot-btn:hover { background: rgba(255, 255, 255, 0.55); }
 
 /* --- Command palette (⌘K) --- */
   .palette-overlay {
@@ -2200,11 +2057,6 @@
   <div class="brand">
     <div class="title">Tiny World <em>Builder</em></div>
     <div class="sub">Tap to place · drag to orbit · pinch or scroll to zoom</div>
-    <!-- Kept for JS to relocate into the toolbar's world-slot. -->
-    <button type="button" class="brand-title-btn" id="world-menu-btn" aria-haspopup="menu" aria-expanded="false">
-      <span id="world-menu-label">My world</span>
-      <svg class="brand-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
-    </button>
   </div>
 
   <!-- View modes popup -->
@@ -2281,43 +2133,6 @@
     </label>
     <div class="time-foot">
       <em>Intensity controls falling particles and storm severity; splashes controls rain impacts, puddles, and snow buildup.</em>
-    </div>
-  </div>
-
-  <!-- World-name popup menu -->
-  <div class="world-menu" id="world-menu" hidden role="menu">
-    <div class="world-menu-head">
-      <input class="world-menu-input" id="world-menu-name" placeholder="Whispering Vale" maxlength="80" aria-label="World name" />
-      <button class="world-menu-rename" id="world-menu-rename" data-tooltip="Save name">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-      </button>
-    </div>
-    <div class="world-menu-section">
-      <button class="world-menu-item" data-action="new" role="menuitem">
-        <span class="world-menu-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
-        <span class="world-menu-label">New world</span>
-        <span class="world-menu-hint">clear to grass</span>
-      </button>
-      <button class="world-menu-item" data-action="duplicate" role="menuitem">
-        <span class="world-menu-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span>
-        <span class="world-menu-label">Duplicate</span>
-        <span class="world-menu-hint">copy of this world</span>
-      </button>
-    </div>
-    <div class="world-menu-section" id="world-menu-slots">
-      <div class="world-menu-section-title">My worlds</div>
-      <ul class="world-menu-list" id="world-menu-list"></ul>
-      <div class="world-menu-empty" id="world-menu-empty" hidden>No saved worlds yet. Build one and choose “Save as new”.</div>
-    </div>
-    <div class="world-menu-foot">
-      <button class="world-menu-foot-btn" data-action="save-as" role="menuitem">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        Save as new
-      </button>
-      <button class="world-menu-foot-btn" data-action="manage" role="menuitem">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        Cloud builds
-      </button>
     </div>
   </div>
 
@@ -6249,13 +6064,6 @@
     bar.innerHTML = '';
     thumbScenes.forEach(t => { try { t.scene.traverse(o => safeDisposeGeometry(o.geometry)); } catch(_) {} });
     thumbScenes.clear();
-    const worldBtn = document.getElementById('world-menu-btn');
-    if (worldBtn) {
-      const slot = document.createElement('div');
-      slot.className = 'toolbar-world-slot';
-      slot.appendChild(worldBtn);
-      bar.appendChild(slot);
-    }
     const cottage = TOOLS.find(t => t.id === 'house');
     if (cottage) bar.appendChild(buildToolButton(cottage));
 
@@ -10797,231 +10605,6 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
         closeAllPopups();
       }
     });
-  })();
-
-  // -------- world-name popup menu (multi-world local slots) --------
-  // Maintains an array of named local slots in localStorage keyed by id.
-  // The brand title doubles as the popup trigger; the popup lets the user
-  // rename the current world, switch to another, create a new one,
-  // duplicate, or open the procedural generator.  The existing single
-  // autosave (STORAGE_KEY = 'tinyworld:v1') stays the source of truth for
-  // the live world; each slot is a snapshot copy.
-  const WORLDS_LS = {
-    list: 'tinyworld:worlds.v1',
-    active: 'tinyworld:worlds.active.v1',
-  };
-  function readWorldsMeta() {
-    try {
-      const raw = localStorage.getItem(WORLDS_LS.list);
-      if (!raw) return [];
-      const list = JSON.parse(raw);
-      return Array.isArray(list) ? list : [];
-    } catch (_) { return []; }
-  }
-  function writeWorldsMeta(list) {
-    try { localStorage.setItem(WORLDS_LS.list, JSON.stringify(list)); } catch (_) {}
-  }
-  function getActiveWorldId() {
-    try { return localStorage.getItem(WORLDS_LS.active) || ''; } catch (_) { return ''; }
-  }
-  function setActiveWorldId(id) {
-    try { localStorage.setItem(WORLDS_LS.active, id || ''); } catch (_) {}
-  }
-  function findActiveWorld() {
-    const list = readWorldsMeta();
-    const id = getActiveWorldId();
-    return list.find(w => w.id === id) || null;
-  }
-  function makeWorldId() {
-    return 'w_' + Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
-  }
-  function snapshotCurrentState() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch (_) { return null; }
-  }
-  function relativeTime(ts) {
-    if (!ts) return '';
-    const diff = Date.now() - ts;
-    if (diff < 60_000) return 'just now';
-    if (diff < 3_600_000) return Math.floor(diff / 60_000) + 'm ago';
-    if (diff < 86_400_000) return Math.floor(diff / 3_600_000) + 'h ago';
-    if (diff < 7 * 86_400_000) return Math.floor(diff / 86_400_000) + 'd ago';
-    try { return new Date(ts).toLocaleDateString(); } catch (_) { return ''; }
-  }
-
-  (function wireWorldMenu() {
-    const trigger = document.getElementById('world-menu-btn');
-    const menu = document.getElementById('world-menu');
-    const labelEl = document.getElementById('world-menu-label');
-    const nameInput = document.getElementById('world-menu-name');
-    const renameBtn = document.getElementById('world-menu-rename');
-    const listEl = document.getElementById('world-menu-list');
-    const emptyEl = document.getElementById('world-menu-empty');
-    if (!trigger || !menu || !labelEl || !nameInput || !listEl) return;
-    const manageBtn = menu.querySelector('[data-action="manage"]');
-    if (!window.TinyWorldAuth && manageBtn) manageBtn.hidden = true;
-
-    function paintLabel() {
-      const active = findActiveWorld();
-      const name = active && active.name ? active.name : 'My world';
-      labelEl.innerHTML = escapeName(name);
-      nameInput.value = (active && active.name) || '';
-      nameInput.placeholder = (active && active.name) || 'Untitled world';
-    }
-    function escapeName(s) {
-      const d = document.createElement('div');
-      d.textContent = s;
-      return d.innerHTML;
-    }
-    function paintList() {
-      const list = readWorldsMeta();
-      const activeId = getActiveWorldId();
-      listEl.innerHTML = '';
-      if (list.length === 0) { emptyEl.hidden = false; return; }
-      emptyEl.hidden = true;
-      // Sort by updatedAt desc.
-      list.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)).forEach(w => {
-        const li = document.createElement('li');
-        li.className = 'world-menu-slot' + (w.id === activeId ? ' active' : '');
-        li.setAttribute('data-id', w.id);
-        const name = document.createElement('span');
-        name.className = 'slot-name';
-        name.textContent = w.name || 'Untitled';
-        const date = document.createElement('span');
-        date.className = 'slot-date';
-        date.textContent = relativeTime(w.ts);
-        const del = document.createElement('button');
-        del.className = 'slot-delete';
-        del.setAttribute('data-tooltip', 'Delete');
-        del.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
-        del.addEventListener('click', e => {
-          e.stopPropagation();
-          const next = readWorldsMeta().filter(x => x.id !== w.id);
-          writeWorldsMeta(next);
-          if (getActiveWorldId() === w.id) setActiveWorldId('');
-          paintList(); paintLabel();
-        });
-        li.appendChild(name); li.appendChild(date); li.appendChild(del);
-        li.addEventListener('click', () => loadSlot(w.id));
-        listEl.appendChild(li);
-      });
-    }
-
-    function loadSlot(id) {
-      const slot = readWorldsMeta().find(w => w.id === id);
-      if (!slot || !slot.state) return;
-      try {
-        if (typeof applyState === 'function' && applyState(slot.state)) {
-          setActiveWorldId(id);
-          paintLabel(); paintList();
-          close();
-        }
-      } catch (err) { console.warn('[world-menu] load failed:', err); }
-    }
-
-    function saveAsNew(name) {
-      const state = snapshotCurrentState();
-      if (!state) return;
-      const id = makeWorldId();
-      const list = readWorldsMeta();
-      list.push({ id, name: name || ('World ' + (list.length + 1)), ts: Date.now(), state });
-      writeWorldsMeta(list);
-      setActiveWorldId(id);
-      paintLabel(); paintList();
-    }
-
-    function updateActiveSnapshot() {
-      // Keep the active slot's snapshot fresh as the world changes.
-      const id = getActiveWorldId();
-      if (!id) return;
-      const list = readWorldsMeta();
-      const idx = list.findIndex(w => w.id === id);
-      if (idx === -1) return;
-      list[idx].state = snapshotCurrentState();
-      list[idx].ts = Date.now();
-      writeWorldsMeta(list);
-    }
-
-    function renameActive(name) {
-      const id = getActiveWorldId();
-      const list = readWorldsMeta();
-      const idx = list.findIndex(w => w.id === id);
-      if (idx === -1) {
-        // No active world yet — create one with this name.
-        saveAsNew(name);
-        return;
-      }
-      list[idx].name = name;
-      list[idx].ts = Date.now();
-      writeWorldsMeta(list);
-      paintLabel(); paintList();
-    }
-
-    function open() {
-      paintLabel(); paintList();
-      const r = trigger.getBoundingClientRect();
-      const width = menu.offsetWidth || 320;
-      const left = Math.max(12, Math.min(window.innerWidth - width - 12, r.left));
-      menu.style.left = left + 'px';
-      menu.style.top = 'auto';
-      menu.style.bottom = (window.innerHeight - r.top + 10) + 'px';
-      menu.hidden = false;
-      trigger.setAttribute('aria-expanded', 'true');
-    }
-    function close() {
-      menu.hidden = true;
-      trigger.setAttribute('aria-expanded', 'false');
-    }
-    function toggle() { if (menu.hidden) open(); else close(); }
-
-    trigger.addEventListener('click', e => { e.stopPropagation(); toggle(); });
-    menu.addEventListener('click', e => { e.stopPropagation(); });
-    document.addEventListener('click', () => { if (!menu.hidden) close(); });
-    window.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && !menu.hidden) { close(); }
-    });
-
-    menu.querySelectorAll('[data-action]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const action = btn.getAttribute('data-action');
-        if (action === 'new') {
-          const clearBtn = document.getElementById('clear');
-          if (clearBtn) clearBtn.click();
-          setActiveWorldId('');
-          paintLabel(); paintList();
-        } else if (action === 'duplicate') {
-          const active = findActiveWorld();
-          const baseName = (active && active.name) || 'World';
-          saveAsNew(baseName + ' (copy)');
-        } else if (action === 'save-as') {
-          const name = (nameInput.value.trim()) || ('World ' + (readWorldsMeta().length + 1));
-          saveAsNew(name);
-        } else if (action === 'manage') {
-          const acc = document.getElementById('account-btn');
-          if (acc) acc.click();
-          close();
-        }
-      });
-    });
-
-    if (renameBtn) {
-      renameBtn.addEventListener('click', () => {
-        const v = nameInput.value.trim();
-        if (!v) return;
-        renameActive(v);
-      });
-    }
-    nameInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') { e.preventDefault(); renameBtn && renameBtn.click(); }
-    });
-
-    // Cheap live update — periodically refresh the active slot snapshot
-    // (every 5s) so the popup list reflects the user's current world.
-    setInterval(updateActiveSnapshot, 5000);
-
-    paintLabel();
   })();
 
 // -------- command palette (⌘K) --------
