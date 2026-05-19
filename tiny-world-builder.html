@@ -592,22 +592,6 @@
     background: repeating-linear-gradient(45deg, #e8e3d6, #e8e3d6 3px, #d6cdb8 3px, #d6cdb8 6px) !important;
     box-shadow: inset 0 0 0 1px #c4ba9e;
   }
-  .tool .swatch.select {
-    background: #f6efd9;
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    box-shadow: inset 0 -3px 0 rgba(120, 90, 30, 0.16), 0 1px 2px rgba(0, 0, 0, 0.10);
-  }
-  .tool .swatch.select::before {
-    content: '';
-    position: absolute;
-    left: 8px;
-    top: 5px;
-    width: 8px;
-    height: 14px;
-    border-left: 3px solid #5f4a20;
-    border-bottom: 3px solid #5f4a20;
-    transform: rotate(-35deg) skewY(20deg);
-  }
   .tool .swatch.auto {
     background:
       linear-gradient(135deg, #3a72c8 0 50%, #86b53e 50% 100%);
@@ -663,10 +647,9 @@
     stroke-linecap: round;
     stroke-linejoin: round;
   }
-  /* Select + Erase render as clean monochrome icons rather than coloured
-     swatches. Mask-image draws the glyph in currentColor (ink), so they
-     match the group-name typography. */
-  .tool .swatch.select,
+  /* Erase renders as a clean monochrome icon rather than a coloured
+     swatch. Mask-image draws the glyph in currentColor (ink), so it
+     matches the group-name typography. */
   .tool .swatch.eraser {
     background: currentColor !important;
     border: none !important;
@@ -680,25 +663,16 @@
     -webkit-mask-size: 20px 20px;
     mask-size: 20px 20px;
   }
-  .tool .swatch.select::before { content: none !important; }
-  .tool .swatch.select {
-    -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'><path d='M4 3.5 18.8 11l-6.2 1.6-3.1 6.2Z'/></svg>");
-    mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'><path d='M4 3.5 18.8 11l-6.2 1.6-3.1 6.2Z'/></svg>");
-  }
   .tool .swatch.eraser {
     -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.15' stroke-linecap='round' stroke-linejoin='round'><path d='M4 6.5h16'/><path d='M9 6.5V4.7c0-.9.7-1.6 1.6-1.6h2.8c.9 0 1.6.7 1.6 1.6v1.8'/><path d='m18.5 6.5-.8 13.1c-.1.8-.8 1.4-1.6 1.4H7.9c-.8 0-1.5-.6-1.6-1.4L5.5 6.5'/><path d='M10 11v5.5'/><path d='M14 11v5.5'/></svg>");
     mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.15' stroke-linecap='round' stroke-linejoin='round'><path d='M4 6.5h16'/><path d='M9 6.5V4.7c0-.9.7-1.6 1.6-1.6h2.8c.9 0 1.6.7 1.6 1.6v1.8'/><path d='m18.5 6.5-.8 13.1c-.1.8-.8 1.4-1.6 1.4H7.9c-.8 0-1.5-.6-1.6-1.4L5.5 6.5'/><path d='M10 11v5.5'/><path d='M14 11v5.5'/></svg>");
   }
 
-  /* Select + Erase: icon only — drop the text label and kbd badge so the
-     glyph stands alone, matching the rest of the icon-only chrome. */
-  .toolbar .tool:has(.swatch.select) > span:not(.tool-icon),
-  .toolbar .tool:has(.swatch.select) > kbd,
-  .toolbar .tool:has(.swatch.eraser) > span:not(.tool-icon),
+  /* Erase: icon only — drop the text label and kbd badge so the glyph
+     stands alone, matching the rest of the icon-only chrome. */
   .toolbar .tool:has(.swatch.eraser) > kbd {
     display: none !important;
   }
-  .toolbar .tool:has(.swatch.select),
   .toolbar .tool:has(.swatch.eraser),
   .toolbar .tool.icon-only {
     width: 44px;
@@ -710,7 +684,6 @@
   .toolbar .tool.icon-only > kbd {
     display: none !important;
   }
-  .toolbar .tool:has(.swatch.select) .swatch,
   .toolbar .tool:has(.swatch.eraser) .swatch {
     width: 22px;
     height: 22px;
@@ -4418,199 +4391,6 @@
     return new THREE.Vector3(cellWorldX(x), 0, cellWorldZ(z));
   }
 
-  // -------- selection (select-tool) --------
-  // Track a Set of "x,z" string keys for selected cells. A semi-transparent
-  // overlay quad is rendered on top of each selected tile. Listeners are
-  // notified via a CustomEvent so UI can refresh.
-  const selectedCells = new Set();
-  const selectionGroup = new THREE.Group();
-  selectionGroup.name = 'selection-highlights';
-  scene.add(selectionGroup);
-  const selectionMat = new THREE.MeshBasicMaterial({
-    color: 0x3c82f7,
-    transparent: true,
-    opacity: 0.32,
-    depthWrite: false,
-    depthTest: true,
-  });
-  const selectionEdgeMat = new THREE.MeshBasicMaterial({
-    color: 0x1f5fd8,
-    transparent: true,
-    opacity: 0.95,
-    depthWrite: false,
-    depthTest: true,
-  });
-  // Depth-tested so trees and tall objects in front of the selection
-  // plane occlude the marquee naturally.
-  function clearSelectionMeshes() {
-    while (selectionGroup.children.length) {
-      const m = selectionGroup.children.pop();
-      if (m.geometry && !(m.userData && m.userData.sharedGeometry)) m.geometry.dispose();
-    }
-  }
-  function addEdgeStrip(p, y, length, thickness, axis) {
-    // axis 'x' = aligned along x; 'z' = along z.
-    const g = axis === 'x'
-      ? new THREE.BoxGeometry(length, 0.02, thickness)
-      : new THREE.BoxGeometry(thickness, 0.02, length);
-    const m = new THREE.Mesh(g, selectionEdgeMat);
-    m.position.set(p.x, y, p.z);
-    m.renderOrder = 999;
-    selectionGroup.add(m);
-  }
-  // Inverted-hull outline material: render only back faces in a flat
-  // colour so a slightly-scaled clone of the mesh appears as a thick
-  // outline around the original. Beats LineSegments because GPU line
-  // width is typically capped at 1px.
-  const selectionOutlineMat = new THREE.MeshBasicMaterial({
-    color: 0x1f5fd8,
-    side: THREE.BackSide,
-    transparent: false,
-    depthWrite: true,
-    depthTest: true,
-  });
-  const OUTLINE_SCALE = 1.08;
-  function addObjectOutline(rootObject) {
-    if (!rootObject) return;
-    rootObject.updateMatrixWorld(true);
-    rootObject.traverse(node => {
-      if (!node.isMesh || !node.geometry) return;
-      try {
-        // Reuse the mesh's geometry (shared, cheap). The hull is a fresh
-        // Mesh with the outline material and a scaled-up world transform.
-        const hull = new THREE.Mesh(node.geometry, selectionOutlineMat);
-        hull.userData.sharedGeometry = true;
-        // Apply the source mesh's full world transform, then bump scale.
-        hull.matrix.copy(node.matrixWorld);
-        hull.matrixAutoUpdate = false;
-        // Scale around local origin by post-multiplying a scale matrix.
-        // Geometry on these objects is already centered on their local
-        // origin, so this produces a uniform fattening.
-        const s = new THREE.Matrix4().makeScale(OUTLINE_SCALE, OUTLINE_SCALE, OUTLINE_SCALE);
-        hull.matrix.multiply(s);
-        hull.renderOrder = 999;
-        selectionGroup.add(hull);
-      } catch (_) {}
-    });
-  }
-  function parseCellKey(key) {
-    const parts = key.split(',').map(Number);
-    // Backwards-compatible: 2-part keys (x,z) refer to the home board.
-    if (parts.length === 2) return { bx: 0, bz: 0, x: parts[0], z: parts[1] };
-    return { bx: parts[0], bz: parts[1], x: parts[2], z: parts[3] };
-  }
-  function cellForKey(key) {
-    const { bx, bz, x, z } = parseCellKey(key);
-    if (bx === 0 && bz === 0) {
-      return (world[x] && world[x][z]) ? world[x][z] : null;
-    }
-    try {
-      const ghost = makeGhostWorld(bx, bz);
-      return (ghost && ghost[x] && ghost[x][z]) ? ghost[x][z] : null;
-    } catch (_) { return null; }
-  }
-  function rebuildSelectionMeshes() {
-    clearSelectionMeshes();
-    selectedCells.forEach(key => {
-      const { bx, bz, x, z } = parseCellKey(key);
-      if (!Number.isFinite(x) || !Number.isFinite(z)) return;
-      const cell = cellForKey(key);
-      const rise = cell ? terrainRiseForLevel(terrainLevelForCell(cell)) : 0;
-      // Sit just above the tile top so the outline reads as on the surface.
-      const y = rise + TOP_H + 0.05;
-      const p = (bx || bz) ? ghostCellPos(bx, bz, x, z) : tilePos(x, z);
-      // Translucent fill
-      const fill = new THREE.Mesh(new THREE.BoxGeometry(0.96, 0.02, 0.96), selectionMat);
-      fill.position.set(p.x, y, p.z);
-      fill.renderOrder = 998;
-      selectionGroup.add(fill);
-      // Thick, opaque-feeling tile border made of four edge strips.
-      const T = 0.07;          // thickness
-      const L = 1.02;          // strip length (slightly past tile edge)
-      const yEdge = y + 0.005;
-      addEdgeStrip({ x: p.x, z: p.z - 0.5 }, yEdge, L, T, 'x');
-      addEdgeStrip({ x: p.x, z: p.z + 0.5 }, yEdge, L, T, 'x');
-      addEdgeStrip({ x: p.x - 0.5, z: p.z }, yEdge, L, T, 'z');
-      addEdgeStrip({ x: p.x + 0.5, z: p.z }, yEdge, L, T, 'z');
-      // Outline the object on this cell (house / tree / rock / fence /
-      // bridge / crop). Only home-board cells have entries in cellMeshes;
-      // ghost-board outlines are skipped (those meshes live in a
-      // per-board group).
-      if (bx === 0 && bz === 0 && cell && cell.kind) {
-        const entry = cellMeshes[x + ',' + z];
-        if (entry && entry.object) addObjectOutline(entry.object);
-      }
-    });
-  }
-  function notifySelectionChanged() {
-    rebuildSelectionMeshes();
-    window.dispatchEvent(new CustomEvent('tinyworld:selection-changed', {
-      detail: { cells: Array.from(selectedCells) }
-    }));
-  }
-  function clearSelection() {
-    if (!selectedCells.size) return;
-    selectedCells.clear();
-    notifySelectionChanged();
-  }
-  function makeKey(bx, bz, x, z) {
-    return (bx || 0) + ',' + (bz || 0) + ',' + x + ',' + z;
-  }
-  function setRectangleSelection(aHit, bHit, mode) {
-    // aHit, bHit: pickTile results {x, z, boardX, boardZ}. Rectangle is
-    // built on whichever board the anchor (aHit) belongs to; if the
-    // current cell is on a different board we just include that single
-    // cell so the user can extend selections off-board with successive
-    // shift-clicks.
-    if (mode !== 'add') selectedCells.clear();
-    const ax = aHit.x, az = aHit.z;
-    const abx = aHit.boardX || 0, abz = aHit.boardZ || 0;
-    const bx = bHit.x, bz = bHit.z;
-    const bbx = bHit.boardX || 0, bbz = bHit.boardZ || 0;
-    if (abx !== bbx || abz !== bbz) {
-      selectedCells.add(makeKey(abx, abz, ax, az));
-      selectedCells.add(makeKey(bbx, bbz, bx, bz));
-    } else {
-      const x0 = Math.min(ax, bx), x1 = Math.max(ax, bx);
-      const z0 = Math.min(az, bz), z1 = Math.max(az, bz);
-      for (let x = x0; x <= x1; x++) {
-        for (let z = z0; z <= z1; z++) {
-          // No GRID clamp — selection works anywhere a tile actually
-          // exists (home board OR ghost boards).
-          selectedCells.add(makeKey(abx, abz, x, z));
-        }
-      }
-    }
-    notifySelectionChanged();
-  }
-  function toggleCellSelection(hit) {
-    const key = makeKey(hit.boardX, hit.boardZ, hit.x, hit.z);
-    if (selectedCells.has(key)) selectedCells.delete(key);
-    else selectedCells.add(key);
-    notifySelectionChanged();
-  }
-  // Expose for cross-module access (form submit pulls this in to scope prompts).
-  window.__tinyworldSelection = {
-    get cells() { return new Set(selectedCells); },
-    clear: clearSelection,
-    summary() {
-      if (!selectedCells.size) return null;
-      const counts = {};
-      const totalTerrain = {};
-      selectedCells.forEach(key => {
-        const cell = cellForKey(key) || defaultCell();
-        const k = cell.kind || cell.terrain;
-        counts[k] = (counts[k] || 0) + 1;
-        totalTerrain[cell.terrain] = (totalTerrain[cell.terrain] || 0) + 1;
-      });
-      return {
-        cellCount: selectedCells.size,
-        kinds: counts,
-        terrains: totalTerrain,
-      };
-    },
-  };
-
   function defaultCell() {
     return { terrain: 'grass', terrainFloors: 1, kind: null, floors: 1, buildingType: null, fenceSide: null, extras: [] };
   }
@@ -6212,7 +5992,6 @@
 
   // -------- tools --------
   const TOOLS = [
-    { id: 'select', label: 'Select', select: true, color: '#c8b06f', shortcut: 'v' },
     { id: 'grass',  label: 'Grass',  terrain: 'grass', color: '#9ec74b', shortcut: '1' },
     { id: 'path',   label: 'Path',   terrain: 'path',  color: '#e8d5a8', shortcut: '2' },
     { id: 'dirt',   label: 'Dirt',   terrain: 'dirt',  color: '#5a3b27', shortcut: '3' },
@@ -6411,17 +6190,17 @@
 
   function buildToolButton(t, opts) {
     const btn = document.createElement('button');
-    btn.className = 'tool' + ((opts && opts.flyout) ? ' flyout-tool' : '') + ((t.eraser || t.select) ? ' icon-only' : '');
+    btn.className = 'tool' + ((opts && opts.flyout) ? ' flyout-tool' : '') + (t.eraser ? ' icon-only' : '');
     btn.dataset.id = t.id;
     btn.type = 'button';
     const toolTip = t.label + (t.shortcut ? ' (' + t.shortcut.toUpperCase() + ')' : '');
     btn.title = toolTip;
     btn.setAttribute('data-tooltip', toolTip);
 
-    if (t.eraser || t.select) {
+    if (t.eraser) {
       const icon = document.createElement('span');
       icon.className = 'tool-icon';
-      icon.innerHTML = toolbarIconSvg(t.eraser ? 'erase' : 'select');
+      icon.innerHTML = toolbarIconSvg('erase');
       btn.appendChild(icon);
     } else if (t.kind === 'house') {
       const icon = document.createElement('span');
@@ -6477,8 +6256,6 @@
       slot.appendChild(worldBtn);
       bar.appendChild(slot);
     }
-    const select = TOOLS.find(t => t.id === 'select');
-    if (select) bar.appendChild(buildToolButton(select));
     const cottage = TOOLS.find(t => t.id === 'house');
     if (cottage) bar.appendChild(buildToolButton(cottage));
 
@@ -6578,9 +6355,6 @@
   }
 
   function applyTool(x, z) {
-    if (selectedTool.select) {
-      return;
-    }
     // Audible feedback for any user-initiated placement / erase. The
     // per-group rate limiter inside playSfx keeps drag-painting sane.
     if (typeof playSfxForTool === 'function') playSfxForTool(selectedTool);
@@ -6623,8 +6397,7 @@
   let pointerDown = null;     // {x, y}
   let lastPointer = null;
   let didDrag = false;
-  let dragMode = null;        // 'orbit' | 'pan' | 'pinch' | 'select-area'
-  let selectionDragAnchor = null;
+  let dragMode = null;        // 'orbit' | 'pan' | 'pinch'
   let spaceDown = false;
   const DRAG_THRESHOLD = 5;
   const activePointers = new Map(); // pointerId -> {x, y, type}
@@ -6664,18 +6437,6 @@
     }
 
     dragMode = (e.button === 2 || spaceDown) ? 'pan' : 'orbit';
-    // Select tool:
-//   - Shift+drag  → marquee (rectangular area selection)
-//   - Plain click → single cell + its object (handled on pointerup)
-//   - Plain drag  → still orbits the camera, no selection change
-    if (dragMode === 'orbit' && selectedTool && selectedTool.select && (e.shiftKey || e.metaKey)) {
-      const hit = pickTile(e.clientX, e.clientY);
-      if (hit) {
-        dragMode = 'select-area';
-        selectionDragAnchor = { hit };
-        setRectangleSelection(hit, hit, 'replace');
-      }
-    }
     pointerDown = { x: e.clientX, y: e.clientY };
     lastPointer = { x: e.clientX, y: e.clientY };
     didDrag = false;
@@ -6723,12 +6484,6 @@
         const ddy = e.clientY - lastPointer.y;
         if (dragMode === 'pan') {
           panCameraByPixels(ddx, ddy);
-        } else if (dragMode === 'select-area') {
-          // Extend the marquee rectangle to the cell under the cursor.
-          const hit = pickTile(e.clientX, e.clientY);
-          if (hit && selectionDragAnchor) {
-            setRectangleSelection(selectionDragAnchor.hit, hit, 'replace');
-          }
         } else {
           markCameraMoving();
           // azimuth -= ddx * 0.008;
@@ -6769,21 +6524,13 @@
       return;
     }
 
-    if (pointerDown && !didDrag && currentHover && dragMode !== 'pan' && dragMode !== 'select-area') {
-      // Plain click on the select tool is a no-op; the user must hold
-      // shift to engage selection (shift+click for one cell, shift+drag
-      // for a marquee). Other tools apply as usual.
-      if (!(selectedTool && selectedTool.select)) {
-        applyToolToCell(currentHover);
-      }
+    if (pointerDown && !didDrag && currentHover && dragMode !== 'pan') {
+      applyToolToCell(currentHover);
     }
-    // (Shift+click + shift+drag are handled by setRectangleSelection
-    // in pointerdown/pointermove respectively.)
     if (activePointers.size === 0) {
       pointerDown = null;
       lastPointer = null;
       dragMode = null;
-      selectionDragAnchor = null;
       // Touch devices: clear the hover marker after a tap so it doesn't linger.
       if (e.pointerType !== 'mouse') {
         hoverMesh.visible = false;
