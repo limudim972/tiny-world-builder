@@ -4764,6 +4764,27 @@
     };
   }
 
+  // Solo cottages face inward when they sit on a land edge. The cottage's
+  // door/window pair is on the +z face in its default orientation, so we
+  // rotate it away from the most exposed side when it sits on the home-board
+  // boundary or next to non-grass terrain.
+  function cottageFacingForCell(x, z) {
+    const terrain = getTerrainNeighbors(x, z);
+    const edgeNorth = z <= 0;
+    const edgeSouth = z >= GRID_D - 1;
+    const edgeEast  = x >= GRID_W - 1;
+    const edgeWest  = x <= 0;
+    if (edgeNorth) return 0;
+    if (edgeSouth) return Math.PI;
+    if (edgeWest) return Math.PI / 2;
+    if (edgeEast) return -Math.PI / 2;
+    if (terrain.n !== 'grass') return 0;
+    if (terrain.s !== 'grass') return Math.PI;
+    if (terrain.w !== 'grass') return Math.PI / 2;
+    if (terrain.e !== 'grass') return -Math.PI / 2;
+    return 0;
+  }
+
   function getKindNeighbors(x, z, kind) {
     return {
       n: getWorldCell(x, z - 1).kind === kind,
@@ -5098,7 +5119,10 @@
     // whenever the kind changes so a fresh placement starts at the
     // default orientation.
     const kindIsNew = (prev.kind || null) !== nextKind;
-    const newRotationY = (rotationY !== undefined) ? rotationY : (kindIsNew ? 0 : (prev.rotationY || 0));
+    const autoRotationY = (nextKind === 'house' && newBType === 'cottage' && rotationY === undefined)
+      ? cottageFacingForCell(x, z)
+      : 0;
+    const newRotationY = (rotationY !== undefined) ? rotationY : (autoRotationY || (kindIsNew ? 0 : (prev.rotationY || 0)));
     const newOffsetX   = (offsetX   !== undefined) ? offsetX   : (kindIsNew ? 0 : (prev.offsetX   || 0));
     const newOffsetZ   = (offsetZ   !== undefined) ? offsetZ   : (kindIsNew ? 0 : (prev.offsetZ   || 0));
     const userEdited = !!(prev.userEdited || (opts && opts.userEdited));
@@ -5126,6 +5150,9 @@
       for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
         const nx = x + dx, nz = z + dz;
         renderCellTile(nx, nz, { animate: false });
+        if (getWorldCell(nx, nz).kind === 'house') {
+          renderCellObject(nx, nz, { animate: false, impactDust: false });
+        }
       }
     }
     if (!kindChanged && !floorsChanged && !terrainFloorsChanged && !bTypeChanged) {
