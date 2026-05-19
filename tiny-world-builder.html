@@ -5934,8 +5934,21 @@
   function removeHouseFloor(cell) {
     const worldCell = worldCellForHover(cell);
     clearPendingHouseClick();
-    const nextFloors = Math.max(1, (worldCell.floors || 1) - 1);
-    if (nextFloors === (worldCell.floors || 1)) return;
+    const currentFloors = worldCell.floors || 1;
+    if (currentFloors <= 1) {
+      setCell(cell.x, cell.z, {
+        terrain: worldCell.terrain,
+        terrainFloors: terrainLevelForCell(worldCell),
+        kind: null,
+        floors: 1,
+        buildingType: null,
+        rotationY: worldCell.rotationY || 0,
+        offsetX: worldCell.offsetX || 0,
+        offsetZ: worldCell.offsetZ || 0,
+      });
+      return;
+    }
+    const nextFloors = currentFloors - 1;
     setCell(cell.x, cell.z, {
       terrain: worldCell.terrain,
       terrainFloors: terrainLevelForCell(worldCell),
