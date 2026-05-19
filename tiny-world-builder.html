@@ -3492,20 +3492,21 @@
   function buildHouse(cells, orientation = 'z', floors = 1, opts = {}) {
     const g = new THREE.Group();
     const length = cells.length;
-    // Solo cottage keeps its original slimmer depth. Clusters fill the cells.
-    const WALL_D = (length === 1) ? 0.7 : length * TILE - 0.18;
+    // Solo cottage uses a square footprint. Clusters still fill their cells.
+    const WALL_D = (length === 1) ? H.WALL_W : length * TILE - 0.18;
+    const WALL_H = (length === 1) ? H.WALL_W : H.WALL_H;
     const halfW = H.WALL_W / 2;
     const halfD = WALL_D / 2;
     const floorGap = floors > 1 ? 0.05 : 0;
-    const floorStep = H.WALL_H + floorGap;
-    const wallHTotal = H.WALL_H * floors + floorGap * Math.max(0, floors - 1);
+    const floorStep = WALL_H + floorGap;
+    const wallHTotal = WALL_H * floors + floorGap * Math.max(0, floors - 1);
     const roofLift   = (floors - 1) * floorStep;
     const showFloorBands = floors > 1;
 
     // Walls are stacked per floor with a tiny gap between levels so the
     // seam reads as a real notch around the whole building, not a painted trim.
     for (let f = 0; f < floors; f++) {
-      const walls = new THREE.Mesh(roundedBox(H.WALL_W, H.WALL_H, WALL_D, 0.04), M.wallCream);
+      const walls = new THREE.Mesh(roundedBox(H.WALL_W, WALL_H, WALL_D, 0.04), M.wallCream);
       walls.position.y = f * floorStep;
       g.add(walls);
     }
@@ -3579,11 +3580,11 @@
       const stairsBottomZ = halfD - 0.10;
       const stairsX = halfW + 0.13;
       const stairsTopZ = stairsBottomZ - 5 * 0.10; // 5 steps further north (z=-)
-      const stairs = Parts.externalStairs(H.WALL_H);
+      const stairs = Parts.externalStairs(WALL_H);
       stairs.position.set(stairsX, 0, stairsBottomZ);
       g.add(stairs);
       const upd = Parts.upperDoor();
-      upd.position.set(halfW + 0.005, H.WALL_H, stairsTopZ);
+      upd.position.set(halfW + 0.005, WALL_H, stairsTopZ);
       g.add(upd);
     }
 
