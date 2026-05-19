@@ -5772,8 +5772,6 @@
     rainBtn.addEventListener('click', e => {
       e.stopPropagation();
       if (typeof window.setRain100Mode === 'function') window.setRain100Mode(!(typeof window.isRain100Mode === 'function' ? window.isRain100Mode() : false));
-      paintPills();
-      paintReadout();
     });
     bar.appendChild(rainBtn);
     rain100Btn = rainBtn;
@@ -7719,6 +7717,20 @@
     };
     return mesh;
   }
+  function clearWeatherBuildPool(pool) {
+    if (!pool || !pool.userData) return;
+    const u = pool.userData;
+    u.head = 0;
+    u.visibleCount = 0;
+    pool.count = 0;
+    pool.visible = false;
+    if (u.lives) {
+      for (let i = 0; i < u.lives.length; i++) u.lives[i] = -1;
+    }
+    const zero = new THREE.Matrix4().makeScale(0, 0, 0);
+    for (let i = 0; i < u.maxCount; i++) pool.setMatrixAt(i, zero);
+    pool.instanceMatrix.needsUpdate = true;
+  }
 
   const rainSurface = makeWeatherBuildPool(900, { color: 0x9ed1f0, size: 0.42, opacity: 0.20, shape: 'circle' });
   rainSurface.renderOrder = 28;
@@ -7776,17 +7788,11 @@
   }
 
   function emitRainSurface(x, y, z) {
-    const heavy = weatherEffectFactor();
-    const splash = Math.max(0, Math.min(3, weatherSplashIntensity));
-    const chance = Math.min(1, splash * (0.34 + heavy * 0.34));
-    emitWeatherBuildSurface(rainSurface, x, y, z, chance, 0.58 + heavy * 0.12, 1.20 + heavy * 0.42);
+    return;
   }
 
   function emitSnowSurface(x, y, z) {
-    const heavy = weatherHeavyFactor();
-    const splash = Math.max(0, Math.min(3, weatherSplashIntensity));
-    const chance = Math.min(1, splash * (0.58 + heavy * 0.22));
-    emitWeatherBuildSurface(snowSurface, x, y, z, chance, 0.58 + heavy * 0.18, 1.05 + heavy * 0.42);
+    return;
   }
 
   function tickSplashes(pool, dt) {
@@ -7886,23 +7892,9 @@
   }
 
   function seedWeatherSurfaceMarks(mode, burst = 1) {
-    if (weatherSplashIntensity <= 0 || (mode !== 'rain' && mode !== 'storm' && mode !== 'snow')) return;
-    const heavy = weatherEffectFactor();
-    const count = Math.round((mode === 'storm' ? 220 : mode === 'snow' ? 150 : 95) * Math.max(0.7, Math.min(2.2, weatherSplashIntensity)) * burst);
-    let placed = 0;
-    for (let attempt = 0; attempt < count * 5 && placed < count; attempt++) {
-      const x = target.x + (Math.random() - 0.5) * WEATHER_VOLUME * 1.55;
-      const z = target.z + (Math.random() - 0.5) * WEATHER_VOLUME * 1.55;
-      const y = weatherSurfaceAt(x, z);
-      if (y === null) continue;
-      if (mode === 'snow') {
-        emitWeatherBuildSurface(snowSurface, x, y, z, 1, 0.62 + heavy * 0.16, 1.16 + heavy * 0.34);
-      } else {
-        if (placed % 2 === 0) emitSplash(rainSplash, x, y, z);
-        emitWeatherBuildSurface(rainSurface, x, y, z, 1, 0.64 + heavy * 0.10, 1.30 + heavy * 0.36);
-      }
-      placed++;
-    }
+    clearWeatherBuildPool(rainSurface);
+    clearWeatherBuildPool(snowSurface);
+    return;
   }
 
   function setWeatherMode(mode) {
@@ -7914,6 +7906,8 @@
     const heavy = weatherEffectFactor();
     if (rainMat) rainMat.opacity = Math.min(1, 0.38 + 0.24 * heavy);
     if (snowMat) snowMat.opacity = Math.min(1, 0.78 + 0.12 * heavy);
+    clearWeatherBuildPool(rainSurface);
+    clearWeatherBuildPool(snowSurface);
     setPrecipActive(rainMesh, (mode === 'rain' || mode === 'storm') ? weatherScaledCount(180, 700) : 0);
     setPrecipActive(snowMesh, mode === 'snow' ? weatherScaledCount(120, 520) : 0);
     if (mode !== previous && (mode === 'rain' || mode === 'storm' || mode === 'snow')) seedWeatherSurfaceMarks(mode, 1);
@@ -7923,13 +7917,15 @@
     applyWeatherTileOpacity();
     applyWeatherSplashOpacity();
     applyWeatherMaterialTint();
+    clearWeatherBuildPool(rainSurface);
+    clearWeatherBuildPool(snowSurface);
     setWeatherMode(weatherMode);
-    if (weatherMode === 'storm' || weatherIntensity > 1) seedWeatherSurfaceMarks(weatherMode, 0.35);
   }
   function setWeatherSplashIntensity(value) {
     weatherSplashIntensity = Math.max(0, Math.min(3, Number.isFinite(value) ? value : 1.5));
     applyWeatherSplashOpacity();
-    seedWeatherSurfaceMarks(weatherMode, 0.35);
+    clearWeatherBuildPool(rainSurface);
+    clearWeatherBuildPool(snowSurface);
   }
   // Watch body class for weather changes — this is the integration with
   // the existing time-weather popup which writes body.weather-* classes.
@@ -10079,8 +10075,8 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
           splashes: weatherSplashIntensity,
         };
         weather = 'rain';
-        if (typeof setWeatherIntensity === 'function') setWeatherIntensity(1);
         if (typeof setWeatherSplashIntensity === 'function') setWeatherSplashIntensity(0);
+        if (typeof setWeatherIntensity === 'function') setWeatherIntensity(1);
         applyWeather('rain');
       } else {
         const prev = rain100Snapshot || { weather: 'clear', intensity: 0.25, splashes: 1.5 };
