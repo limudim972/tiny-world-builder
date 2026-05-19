@@ -3490,6 +3490,8 @@
     return cells;
   }
 
+  const SECOND_FLOOR_STAIR_SHIFT = 0.17;
+
   // Assemble a house from a cell plan. orientation: 'z' (long-axis along z, no
 // rotation) or 'x' (long-axis along x, geometry rotated +π/2 around Y).
   // floors: 1 (default), 2, 3 — walls stretch upward, per-floor windows added,
@@ -3586,14 +3588,13 @@
     // Stairs sit alongside the +x face, climbing from south (bottom) to north
     // (top); the upper door sits at the top, on the +x wall at floor 2 height.
     if (floors === 2) {
-      const stairsBottomZ = halfD - 0.10;
-      const stairsX = halfW + 0.13;
+      const stairsBottomZ = halfD - SECOND_FLOOR_STAIR_SHIFT;
       const stairsTopZ = stairsBottomZ - 5 * 0.10; // 5 steps further north (z=-)
       const stairs = Parts.externalStairs(WALL_H);
-      stairs.position.set(stairsX, 0, stairsBottomZ);
+      stairs.position.set(halfW + 0.13, 0, stairsBottomZ);
       g.add(stairs);
       const upd = Parts.upperDoor();
-      upd.position.set(halfW + 0.005, WALL_H, stairsTopZ);
+      upd.position.set(halfW + 0.005, WALL_H + 0.05, stairsTopZ);
       g.add(upd);
     }
 
@@ -3728,14 +3729,13 @@
 
     // External stairs on +x face when floors === 2
     if (floors === 2) {
-      const stairsBottomZ = halfSide - 0.10;
-      const stairsX = halfSide + 0.13;
+      const stairsBottomZ = halfSide - SECOND_FLOOR_STAIR_SHIFT;
       const stairsTopZ = stairsBottomZ - 5 * 0.10;
       const stairs = Parts.externalStairs(H.WALL_H);
-      stairs.position.set(stairsX, 0, stairsBottomZ);
+      stairs.position.set(halfSide + 0.13, 0, stairsBottomZ);
       g.add(stairs);
       const upd = Parts.upperDoor();
-      upd.position.set(halfSide + 0.005, H.WALL_H, stairsTopZ);
+      upd.position.set(halfSide + 0.005, H.WALL_H + 0.05, stairsTopZ);
       g.add(upd);
     }
 
