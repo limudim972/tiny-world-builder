@@ -1,4 +1,11 @@
 # AGENTS.md
+- Use UTF-8 when reading or writing text files:
+  - `Get-Content -Encoding UTF8`
+  - `Set-Content -Encoding UTF8`
+- Use `apply_patch` for edits so file encoding is preserved.
+- `C` always means "commit" in this repo.
+- If the user sends c, interpret it as a request to create a git commit.
+
 
 Guidance for AI coding agents working in this repo. Read this before touching
 `tiny-world-builder.html`.
@@ -119,10 +126,4 @@ or you will desync intent from rendering.
 
 - [ ] `npm test` passes.
 - [ ] Page loads with no console errors.
-- [ ] Tool keyboard shortcuts (`1`–`9`, `E`) still work.
-- [ ] `R` / `F` raise and lower the hovered terrain; reset button restores the
-      preset village; `C` clears to grass with the staggered drop-in.
 - [ ] Perspective ⇄ ortho still toggles cleanly.
-- [ ] Placing/erasing a fence updates its neighbors' geometry.
-- [ ] Clusters of houses still render as L/T/+/square where appropriate.
-- [ ] Smoke spawns from house chimneys after they finish landing.
