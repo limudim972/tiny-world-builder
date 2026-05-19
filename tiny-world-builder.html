@@ -1110,6 +1110,7 @@
       calc(100% / var(--minimap-cols, 1)) 100%,
       100% calc(100% / var(--minimap-rows, 1));
     background-repeat: repeat;
+    direction: ltr;
     user-select: none;
     touch-action: none;
   }
@@ -5167,6 +5168,7 @@
     }
     saveState();
     emitCellWebhook();
+    if (typeof requestMinimapRepaint === 'function') requestMinimapRepaint();
   }
 
   function disposeGroup(group) {
@@ -9487,14 +9489,13 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
         const gx = startGx + x;
         const gz = startGz + z;
         const cell = minimapGlobalCell(gx, gz);
-        const terrainFloors = cell ? (cell.terrainFloors || 1) : 1;
-        const objectFloors = cell ? (cell.floors || 1) : 1;
-        const floors = Math.max(1, terrainFloors, objectFloors);
+        const floors = cell ? (cell.kind ? (cell.floors || 1) : (cell.terrainFloors || 1)) : 1;
+        const showFloors = !!cell && !!cell.kind;
         const cellEl = document.createElement('div');
         cellEl.className = 'stacked-map-cell';
         if (x === W - 1) cellEl.classList.add('is-edge-right');
         if (z === D - 1) cellEl.classList.add('is-edge-bottom');
-        cellEl.innerHTML = `<span class="stacked-map-number">${floors}</span>`;
+        cellEl.innerHTML = showFloors ? `<span class="stacked-map-number">${floors}</span>` : '';
         fragment.appendChild(cellEl);
       }
     }
