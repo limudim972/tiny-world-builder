@@ -3503,6 +3503,7 @@
   function buildHouse(cells, orientation = 'z', floors = 1, opts = {}) {
     const g = new THREE.Group();
     const length = cells.length;
+    const isSoloCottage = length === 1;
     // Solo cottage uses a square footprint. Clusters still fill their cells.
     const WALL_D = (length === 1) ? H.WALL_W : length * TILE - 0.18;
     const WALL_H = (length === 1) ? H.WALL_W : H.WALL_H;
@@ -3582,6 +3583,26 @@
         bwin.rotation.y = Math.PI;
         g.add(bwin);
       }
+    }
+
+    // Solo cottages get windows on every ground-floor face so the 1x1 footprint
+    // reads as a proper little house from all angles.
+    if (isSoloCottage) {
+      const sideY = 0.32;
+      const dx = halfW + 0.005;
+      const dz = halfD + 0.005;
+
+ 
+
+      const winW = Parts.window('side');
+      winW.position.set(-dx, sideY, 0);
+      winW.rotation.y = Math.PI;
+      g.add(winW);
+
+      const winN = Parts.window('gable');
+      winN.position.set(0, sideY, -dz);
+      winN.rotation.y = Math.PI;
+      g.add(winN);
     }
 
     // External staircase + upper door — only when there's exactly 2 floors.
