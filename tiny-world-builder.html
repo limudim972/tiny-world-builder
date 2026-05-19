@@ -1,9 +1,9 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Tiny World Builder</title>
+<title>עולם קטן</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌍</text></svg>" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -25,9 +25,13 @@
     background: var(--bg);
     color: var(--ink);
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    direction: rtl;
     -webkit-font-smoothing: antialiased;
     user-select: none;
     -webkit-user-select: none;
+  }
+  input, button, select, textarea {
+    font: inherit;
   }
   body::before {
     content: '';
@@ -95,9 +99,10 @@
   .brand {
     position: fixed;
     top: 26px;
-    left: 28px;
+    right: 28px;
     pointer-events: none;
     z-index: 10;
+    text-align: right;
   }
   .brand .title {
     font-family: 'Fraunces', Georgia, serif;
@@ -125,7 +130,7 @@
     right: auto;
     transform: translateX(-50%);
     display: flex;
-    flex-direction: row;
+    flex-direction: row-reverse;
     align-items: center;
     gap: 6px;
     flex-wrap: wrap;
@@ -174,7 +179,7 @@
   .btn.on::before {
     content: '●';
     color: #6fb442;
-    margin-right: 4px;
+    margin-left: 4px;
     font-size: 9px;
     vertical-align: 1px;
   }
@@ -221,7 +226,7 @@
     content: '';
     position: absolute;
     bottom: -2px;
-    right: -2px;
+    left: -2px;
     width: 9px;
     height: 7px;
     background: var(--panel);
@@ -236,7 +241,7 @@
   .audio-panel {
     position: fixed;
     bottom: 140px;
-    right: 14px;
+    left: 14px;
     z-index: 40;
     background: rgba(255, 255, 255, 0.6);
     border: 1px solid rgba(255, 255, 255, 0.55);
@@ -255,7 +260,7 @@
   @media (max-width: 800px) {
     .audio-panel {
       bottom: 160px;
-      right: 8px;
+      left: 8px;
       min-width: 170px;
       padding: 6px 8px;
     }
@@ -404,9 +409,9 @@
     height: 44px;
     display: flex;
     align-items: center;
-    padding: 0 12px 0 0;
-    margin-right: 8px;
-    border-right: 1px solid rgba(120, 130, 150, 0.18);
+    padding: 0 0 0 12px;
+    margin-left: 8px;
+    border-left: 1px solid rgba(120, 130, 150, 0.18);
     flex: 0 0 auto;
   }
   .toolbar .brand-title-btn {
@@ -436,7 +441,7 @@
   .toolbar .brand-title-btn::after {
     content: '';
     position: absolute;
-    left: 7px;
+    right: 7px;
     top: 15px;
     width: 10px;
     height: 8px;
@@ -450,7 +455,7 @@
   .toolbar .brand-title-btn .brand-chevron {
     width: 11px;
     height: 11px;
-    margin-left: 1px;
+    margin-right: 1px;
     color: #8d887d;
   }
   .tool > span {
@@ -529,11 +534,11 @@
       0 1px 2px rgba(20, 30, 50, 0.06);
   }
   .tool:active { transform: translateY(1px); }
-  .tool.group-start { margin-left: 10px; position: relative; }
+  .tool.group-start { margin-right: 10px; position: relative; }
   .tool.group-start::before {
     content: '';
     position: absolute;
-    left: -7px;
+    right: -7px;
     top: 10px;
     bottom: 10px;
     width: 1px;
@@ -1784,15 +1789,15 @@
     }
     .toolbar-world-slot {
       height: 44px;
-      padding-right: 8px;
-      margin-right: 5px;
+      padding-left: 8px;
+      margin-left: 5px;
     }
     .toolbar .brand-title-btn {
       height: 38px;
       font-size: 12px;
     }
     .toolbar .brand-title-btn::before { width: 24px; height: 24px; }
-    .toolbar .brand-title-btn::after { left: 7px; top: 15px; width: 10px; height: 8px; }
+    .toolbar .brand-title-btn::after { right: 7px; top: 15px; width: 10px; height: 8px; }
     .toolbar .audio-panel { min-width: 130px; }
     .toolbar .audio-row { grid-template-columns: 22px 70px 28px; }
     .tool { width: 50px; height: 50px; font-size: 10px; padding: 3px 2px; border-radius: 15px; }
@@ -1852,159 +1857,159 @@
       <div id="minimap-canvas" class="stacked-map" role="grid" aria-label="Stacked map showing floor counts"></div>
       <div class="minimap-foot">
         <span id="minimap-size">3×3</span>
-        <span id="minimap-fps" data-tooltip="Frames per second">60 fps</span>
+        <span id="minimap-fps" data-tooltip="פריימים לשנייה">60 fps</span>
       </div>
     </div>
   </div>
 
   <div class="brand">
-    <div class="title">Tiny World <em>Builder</em></div>
-    <div class="sub">Tap to place · drag to orbit · pinch or scroll to zoom</div>
+    <div class="title">עולם קטן</div>
+    <div class="sub">הקשה להצבה · גרירה לסיבוב · צביטה או גלילה להגדלה</div>
   </div>
 
   <!-- View modes popup -->
   <div class="topbar-popup" id="view-popup" hidden role="menu">
-    <div class="topbar-popup-title">Camera view</div>
+    <div class="topbar-popup-title">תצוגת מצלמה</div>
     <button class="view-option" data-view="topdown" role="menuitem">
       <span class="view-thumb" aria-hidden="true">
         <svg viewBox="0 0 32 28" width="36" height="32"><rect x="6" y="6" width="20" height="16" rx="1" fill="#a08454"/><rect x="9" y="9" width="14" height="10" fill="#cdb98a"/><rect x="11" y="11" width="3" height="3" fill="#86b53e"/><rect x="18" y="14" width="3" height="3" fill="#86b53e"/></svg>
       </span>
-      <span class="view-body"><strong>Top-down</strong><em>bird's eye, straight down</em></span>
+      <span class="view-body"><strong>מלמעלה</strong><em>מבט על, ישר כלפי מטה</em></span>
     </button>
     <button class="view-option" data-view="ortho" role="menuitem">
       <span class="view-thumb" aria-hidden="true">
         <svg viewBox="0 0 32 28" width="36" height="32"><path d="M16 4 28 11l-12 7L4 11z" fill="#cdb98a"/><path d="M16 18l12-7v9l-12 7z" fill="#a08454"/><path d="M16 18l-12-7v9l12 7z" fill="#8a6f44"/></svg>
       </span>
-      <span class="view-body"><strong>Isometric</strong><em>angled overhead</em></span>
+      <span class="view-body"><strong>איזומטרי</strong><em>מבט על בזווית</em></span>
     </button>
     <button class="view-option" data-view="soft" role="menuitem">
       <span class="view-thumb" aria-hidden="true">
         <svg viewBox="0 0 32 28" width="36" height="32"><path d="M16 7 27 12l-11 6L5 12z" fill="#cdb98a"/><path d="M16 18l11-6v8l-11 5z" fill="#a08454"/><path d="M16 18l-11-6v8l11 5z" fill="#8a6f44"/></svg>
       </span>
-      <span class="view-body"><strong>Soft</strong><em>tilted perspective</em></span>
+      <span class="view-body"><strong>רכה</strong><em>פרספקטיבה נטויה</em></span>
     </button>
     <button class="view-option" data-view="perspective" role="menuitem">
       <span class="view-thumb" aria-hidden="true">
         <svg viewBox="0 0 32 28" width="36" height="32"><path d="M16 10 26 12l-10 4L6 12z" fill="#cdb98a"/><path d="M16 16l10-4v6l-10 4z" fill="#a08454"/><path d="M16 16l-10-4v6l10 4z" fill="#8a6f44"/></svg>
       </span>
-      <span class="view-body"><strong>Perspective</strong><em>close orbit</em></span>
+      <span class="view-body"><strong>פרספקטיבה</strong><em>מסלול קרוב</em></span>
     </button>
     <button class="view-option" data-view="fp" role="menuitem">
       <span class="view-thumb" aria-hidden="true">
         <svg viewBox="0 0 32 28" width="36" height="32"><circle cx="16" cy="13" r="3" fill="#cdb98a"/><path d="M14 17h4l-2 8z" fill="#a08454"/><path d="M10 22l6-4 6 4" stroke="#8a6f44" stroke-width="1.5" fill="none"/></svg>
       </span>
-      <span class="view-body"><strong>Walk (first-person)</strong><em>WASD · mouse · space jumps · esc exits</em></span>
+      <span class="view-body"><strong>הליכה (גוף ראשון)</strong><em>WASD · עכבר · רווח לקפיצה · Esc ליציאה</em></span>
     </button>
   </div>
 
   <!-- Time / season / weather popup -->
   <div class="topbar-popup time-popup" id="time-popup" hidden role="menu">
-    <div class="topbar-popup-title">Time &amp; weather</div>
+    <div class="topbar-popup-title">זמן ומזג אוויר</div>
     <label class="time-row">
-      <span class="time-row-label">Time of day</span>
+      <span class="time-row-label">שעת היום</span>
       <input id="time-range" type="range" min="0" max="1440" step="5" value="720" />
       <span class="time-row-val" id="time-readout">12:00</span>
     </label>
     <div class="time-row time-row-pills">
       <span class="time-row-label">Season</span>
       <div class="pill-row" id="season-pills">
-        <button class="pill" data-season="spring">Spring</button>
-        <button class="pill" data-season="summer">Summer</button>
-        <button class="pill" data-season="autumn">Autumn</button>
-        <button class="pill" data-season="winter">Winter</button>
+        <button class="pill" data-season="spring">אביב</button>
+        <button class="pill" data-season="summer">קיץ</button>
+        <button class="pill" data-season="autumn">סתיו</button>
+        <button class="pill" data-season="winter">חורף</button>
       </div>
     </div>
     <div class="time-row time-row-pills">
-      <span class="time-row-label">Weather</span>
+      <span class="time-row-label">מזג אוויר</span>
       <div class="pill-row" id="weather-pills">
-        <button class="pill" data-weather="clear">Clear</button>
-        <button class="pill" data-weather="cloudy">Cloudy</button>
-        <button class="pill" data-weather="rain">Rain</button>
-        <button class="pill" data-weather="storm">Storm</button>
-        <button class="pill" data-weather="snow">Snow</button>
+        <button class="pill" data-weather="clear">בהיר</button>
+        <button class="pill" data-weather="cloudy">מעונן</button>
+        <button class="pill" data-weather="rain">גשום</button>
+        <button class="pill" data-weather="storm">סערה</button>
+        <button class="pill" data-weather="snow">שלג</button>
       </div>
     </div>
     <label class="time-row">
-      <span class="time-row-label">Weather intensity</span>
+      <span class="time-row-label">עוצמת מזג האוויר</span>
       <input id="weather-intensity" type="range" min="25" max="300" step="5" value="25" />
       <span class="time-row-val" id="weather-intensity-readout">25%</span>
     </label>
     <label class="time-row">
-      <span class="time-row-label">Splashes / buildup</span>
+      <span class="time-row-label">נתזים / הצטברות</span>
       <input id="weather-splashes" type="range" min="0" max="300" step="5" value="150" />
       <span class="time-row-val" id="weather-splashes-readout">150%</span>
     </label>
     <div class="time-foot">
-      <em>Intensity controls falling particles and storm severity; splashes controls rain impacts, puddles, and snow buildup.</em>
+      <em>העוצמה שולטת בחלקיקים הנופלים ובעוצמת הסערה; הנתזים שולטים בפגיעות גשם, בשלוליות ובצבירת שלג.</em>
     </div>
   </div>
 
   <div class="unsaved-banner" id="unsaved-banner" hidden>
     <span class="dot" aria-hidden="true"></span>
-    <span id="unsaved-banner-text">Areas outside your home grid aren't saved</span>
+    <span id="unsaved-banner-text">אזורים מחוץ לרשת הבית לא נשמרים</span>
   </div>
 
-  <div id="audio-panel" class="audio-panel" role="group" aria-label="Sound controls">
+  <div id="audio-panel" class="audio-panel" role="group" aria-label="בקרת צליל">
     <div class="audio-row">
-      <button type="button" class="audio-mute" id="audio-music-mute" data-tooltip="Mute music" aria-label="Mute music">
+      <button type="button" class="audio-mute" id="audio-music-mute" data-tooltip="השתקת מוזיקה" aria-label="השתקת מוזיקה">
         <svg class="ic-on" viewBox="0 0 24 24"><path d="M9 18V6l11-3v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="15" r="3"/></svg>
         <svg class="ic-off" viewBox="0 0 24 24"><path d="M9 18V6l11-3v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="15" r="3"/><path d="M3 3l18 18"/></svg>
       </button>
-      <input type="range" id="audio-music-vol" min="0" max="100" step="1" aria-label="Music volume" />
+      <input type="range" id="audio-music-vol" min="0" max="100" step="1" aria-label="עוצמת מוזיקה" />
     </div>
     <div class="audio-row">
-      <button type="button" class="audio-mute" id="audio-sfx-mute" data-tooltip="Mute SFX" aria-label="Mute SFX">
+      <button type="button" class="audio-mute" id="audio-sfx-mute" data-tooltip="השתקת אפקטים" aria-label="השתקת אפקטים">
         <svg class="ic-on" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
         <svg class="ic-off" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6"/><path d="M16 9l6 6"/></svg>
       </button>
-      <input type="range" id="audio-sfx-vol" min="0" max="100" step="1" aria-label="SFX volume" />
+      <input type="range" id="audio-sfx-vol" min="0" max="100" step="1" aria-label="עוצמת אפקטים" />
     </div>
   </div>
 
   <div class="controls" id="controls-menu" hidden>
-    <button class="btn icon" id="home" data-tooltip="Center on your grid" aria-label="Center on your home grid">
+    <button class="btn icon" id="home" data-tooltip="מרכוז על הרשת שלך" aria-label="מרכוז על רשת הבית">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"/></svg>
     </button>
-    <button class="btn icon" id="persp" data-tooltip="Perspective" aria-label="Toggle camera mode">
+    <button class="btn icon" id="persp" data-tooltip="פרספקטיבה" aria-label="החלפת מצב מצלמה">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>
     </button>
-    <button class="btn icon" id="view-modes" data-tooltip="View modes" aria-label="Pick a camera view">
+    <button class="btn icon" id="view-modes" data-tooltip="מצבי תצוגה" aria-label="בחירת תצוגת מצלמה">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
-    <button class="btn icon" id="time-weather" data-tooltip="Time &amp; weather" aria-label="Time and weather">
+    <button class="btn icon" id="time-weather" data-tooltip="זמן ומזג אוויר" aria-label="זמן ומזג אוויר">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
     </button>
-    <button class="btn icon" id="showcase-mode" data-tooltip="Showcase mode (hide chrome + orbit)" aria-label="Showcase mode">
+    <button class="btn icon" id="showcase-mode" data-tooltip="מצב תצוגה" aria-label="מצב תצוגה">
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg>
     </button>
-    <button class="btn icon" id="dev-mode" data-tooltip="Developer overlay (`)" aria-label="Developer overlay">
+    <button class="btn icon" id="dev-mode" data-tooltip="שכבת מפתח (`)" aria-label="שכבת מפתח">
       <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
     </button>
-    <button class="btn icon" id="reset" data-tooltip="Reset world" aria-label="Reset world">
+    <button class="btn icon" id="reset" data-tooltip="איפוס העולם" aria-label="איפוס העולם">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
     </button>
-    <button class="btn icon" id="clear" data-tooltip="Clear to grass" aria-label="Clear world to grass">
+    <button class="btn icon" id="clear" data-tooltip="ניקוי לדשא" aria-label="ניקוי העולם לדשא">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
     </button>
-    <button class="btn icon" id="render-settings" data-tooltip="Settings" aria-label="Settings">
+    <button class="btn icon" id="render-settings" data-tooltip="הגדרות" aria-label="הגדרות">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
   </div>
 
-  <button class="showcase-exit" id="showcase-exit" type="button" aria-label="Exit showcase mode">
-    Exit showcase <span aria-hidden="true">Esc</span>
+  <button class="showcase-exit" id="showcase-exit" type="button" aria-label="יציאה ממצב תצוגה">
+    יציאה ממצב תצוגה <span aria-hidden="true">Esc</span>
   </button>
 
   <div id="confirm-reset-modal" class="modal" hidden>
     <form class="modal-card confirm-card" role="dialog" aria-modal="true" aria-labelledby="confirm-reset-title" onsubmit="return false">
       <div class="modal-head">
-        <strong id="confirm-reset-title">Reset to the starter world?</strong>
-        <button class="modal-close" id="confirm-reset-close" title="Close" aria-label="Close">×</button>
+        <strong id="confirm-reset-title">לאפס לעולם ההתחלתי?</strong>
+        <button class="modal-close" id="confirm-reset-close" title="סגירה" aria-label="סגירה">×</button>
       </div>
-      <p class="confirm-copy" id="confirm-reset-copy">This replaces your current build with the preset village. You'll lose anything you've placed on the home grid.</p>
+      <p class="confirm-copy" id="confirm-reset-copy">פעולה זו תחליף את הבנייה הנוכחית בכפר המוגדר מראש. כל מה שהצבת ברשת הבית יאבד.</p>
       <div class="modal-foot confirm-actions">
-        <button class="btn confirm-cancel" id="confirm-reset-cancel" type="button">Cancel</button>
-        <button class="btn confirm-destructive" id="confirm-reset-ok" type="button">Reset world</button>
+        <button class="btn confirm-cancel" id="confirm-reset-cancel" type="button">ביטול</button>
+        <button class="btn confirm-destructive" id="confirm-reset-ok" type="button">איפוס העולם</button>
       </div>
     </form>
   </div>
@@ -2012,21 +2017,21 @@
   <div id="welcome-modal" class="modal" hidden>
     <form class="modal-card welcome-card" role="dialog" aria-modal="true" aria-labelledby="welcome-title" onsubmit="return false">
       <div class="modal-head">
-        <strong id="welcome-title" class="welcome-title">Tiny World <em>Builder</em></strong>
-        <button class="modal-close" id="welcome-close" title="Close" aria-label="Close welcome dialog">×</button>
+        <strong id="welcome-title" class="welcome-title">עולם קטן</strong>
+        <button class="modal-close" id="welcome-close" title="סגירה" aria-label="סגירת חלון הפתיחה">×</button>
       </div>
-      <p class="welcome-copy">Build a little voxel world by painting terrain, dropping houses, drawing fences, planting crops, and shaping paths.</p>
-      <div class="welcome-tips" aria-label="Quick tips">
-        <div class="welcome-tip"><strong>Tap or click to build</strong>Select a tool, then tap any tile to place it.</div>
-        <div class="welcome-tip"><strong>Move the camera</strong>One finger or left-drag to orbit · two fingers / right-drag / Space to pan · pinch or scroll to zoom.</div>
-        <div class="welcome-tip"><strong>Keep going</strong>Use Reset, Clear, Export, Import, and Render from the top bar.</div>
+      <p class="welcome-copy">בנו עולם ווקסלים קטן על ידי צביעת שטח, הנחת בתים, ציור גדרות, שתילת גידולים ועיצוב שבילים.</p>
+      <div class="welcome-tips" aria-label="טיפים מהירים">
+        <div class="welcome-tip"><strong>הקשה או לחיצה לבנייה</strong>בחרו כלי ואז הקישו על כל אריח כדי להציב אותו.</div>
+        <div class="welcome-tip"><strong>הזזת המצלמה</strong>אצבע אחת או גרירה שמאלה לסיבוב · שתי אצבעות / גרירה ימנית / רווח להזזה · צביטה או גלילה להגדלה.</div>
+        <div class="welcome-tip"><strong>המשיכו לבנות</strong>השתמשו באיפוס, ניקוי, ייצוא, ייבוא והגדרות מהסרגל העליון.</div>
       </div>
       <div class="welcome-actions">
         <label class="welcome-dontshow">
           <input type="checkbox" id="welcome-dontshow" />
-          <span>Don't show this again</span>
+          <span>לא להציג שוב</span>
         </label>
-        <button class="btn" id="welcome-start" type="button">Start building</button>
+        <button class="btn" id="welcome-start" type="button">להתחיל לבנות</button>
       </div>
     </form>
   </div>
@@ -2034,50 +2039,50 @@
   <div id="render-modal" class="modal" hidden>
     <form class="modal-card settings-card" role="dialog" aria-modal="true" aria-labelledby="render-title" onsubmit="return false">
       <div class="modal-head">
-        <strong id="render-title">Settings</strong>
-        <button class="modal-close" id="render-close" title="Close">×</button>
+        <strong id="render-title">הגדרות</strong>
+        <button class="modal-close" id="render-close" title="סגירה">×</button>
       </div>
       <div class="settings-layout">
-        <nav class="settings-tabs" aria-label="Settings sections">
-          <button type="button" class="settings-tab active" data-settings-tab="screen">Screen</button>
-          <button type="button" class="settings-tab" data-settings-tab="world">World</button>
-          <button type="button" class="settings-tab" data-settings-tab="sky">Sky</button>
+        <nav class="settings-tabs" aria-label="קטעי הגדרות">
+          <button type="button" class="settings-tab active" data-settings-tab="screen">מסך</button>
+          <button type="button" class="settings-tab" data-settings-tab="world">עולם</button>
+          <button type="button" class="settings-tab" data-settings-tab="sky">שמים</button>
         </nav>
         <div class="settings-panels">
           <section class="settings-panel active" data-settings-panel="screen">
-            <div class="settings-section-title">Screen</div>
-            <label>Shadow quality
+            <div class="settings-section-title">מסך</div>
+            <label>איכות צללים
               <select id="render-shadow">
-                <option value="low">Low</option>
-                <option value="balanced">Balanced</option>
-                <option value="high">High</option>
+                <option value="low">נמוכה</option>
+                <option value="balanced">מאוזנת</option>
+                <option value="high">גבוהה</option>
               </select>
             </label>
             <div class="range-row">
-              <span>Resolution</span>
+              <span>רזולוציה</span>
               <input id="render-resolution" type="range" min="55" max="150" step="5" />
               <output id="render-resolution-value"></output>
             </div>
             <div class="range-row">
-              <span>Lighting</span>
+              <span>תאורה</span>
               <input id="render-lighting" type="range" min="50" max="145" step="1" />
               <output id="render-lighting-value"></output>
             </div>
           </section>
 
           <section class="settings-panel" data-settings-panel="world">
-            <div class="settings-section-title">World</div>
+            <div class="settings-section-title">עולם</div>
             <div class="range-row">
-              <span>Preview distance</span>
+              <span>מרחק תצוגה מקדימה</span>
               <input id="render-distance" type="range" min="1" max="4" step="1" />
               <output id="render-distance-value"></output>
             </div>
             <div class="range-row">
-              <span>Preview window</span>
+              <span>חלון תצוגה מקדימה</span>
               <input id="render-visible-size" type="range" min="2" max="6" step="1" />
               <output id="render-visible-size-value"></output>
             </div>
-            <label>Home board size
+            <label>גודל לוח הבית
               <select id="render-home-grid">
                 <option value="2x2">2 × 2</option>
                 <option value="2x3">2 × 3</option>
@@ -2091,61 +2096,61 @@
               </select>
             </label>
             <div class="range-row">
-              <span>Preview opacity</span>
+              <span>שקיפות התצוגה המקדימה</span>
               <input id="render-ghost-opacity" type="range" min="5" max="100" step="1" />
               <output id="render-ghost-opacity-value"></output>
             </div>
             <div class="range-row">
-              <span>Preview floors</span>
+              <span>רצפות תצוגה מקדימה</span>
               <input id="render-floor-opacity" type="range" min="10" max="100" step="1" />
               <output id="render-floor-opacity-value"></output>
             </div>
             <div class="range-row">
-              <span>Preview objects</span>
+              <span>אובייקטים בתצוגה מקדימה</span>
               <input id="render-object-opacity" type="range" min="0" max="100" step="1" />
               <output id="render-object-opacity-value"></output>
             </div>
             <div class="range-row">
-              <span>Brightness</span>
+              <span>בהירות</span>
               <input id="render-brightness" type="range" min="75" max="130" step="1" />
               <output id="render-brightness-value"></output>
             </div>
             <div class="range-row">
-              <span>Saturation</span>
+              <span>רוויה</span>
               <input id="render-saturation" type="range" min="80" max="130" step="1" />
               <output id="render-saturation-value"></output>
             </div>
             <div class="range-row">
-              <span>Contrast</span>
+              <span>ניגודיות</span>
               <input id="render-contrast" type="range" min="85" max="125" step="1" />
               <output id="render-contrast-value"></output>
             </div>
           </section>
 
           <section class="settings-panel" data-settings-panel="sky">
-            <div class="settings-section-title">Sky</div>
+            <div class="settings-section-title">שמים</div>
             <div class="range-row">
-              <span>Clouds</span>
+              <span>עננים</span>
               <input id="render-clouds" type="range" min="0" max="100" step="1" />
               <output id="render-clouds-value"></output>
             </div>
             <div class="range-row">
-              <span>Cloud speed</span>
+              <span>מהירות עננים</span>
               <input id="render-cloud-speed" type="range" min="0" max="100" step="1" />
               <output id="render-cloud-speed-value"></output>
             </div>
             <div class="range-row">
-              <span>Cloud height</span>
+              <span>גובה עננים</span>
               <input id="render-cloud-height" type="range" min="2" max="14" step="0.5" />
               <output id="render-cloud-height-value"></output>
             </div>
             <div class="range-row">
-              <span>Cloud shadow</span>
+              <span>צל עננים</span>
               <input id="render-cloud-shadow" type="range" min="0" max="100" step="1" />
               <output id="render-cloud-shadow-value"></output>
             </div>
-<div class="range-row">
-              <span>Tilt focus</span>
+            <div class="range-row">
+              <span>מיקוד הטיה</span>
               <input id="render-tilt-focus" type="range" min="15" max="80" step="1" />
               <output id="render-tilt-focus-value"></output>
             </div>
@@ -2155,7 +2160,7 @@
       </div>
       <div class="modal-foot">
         <span id="render-status"></span>
-        <button class="btn" id="render-reset" type="button">Reset</button>
+        <button class="btn" id="render-reset" type="button">איפוס</button>
       </div>
     </form>
   </div>
@@ -2170,12 +2175,12 @@
       <span class="palette-search-icon" aria-hidden="true">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </span>
-      <input class="palette-search" id="palette-search" placeholder="Search tools, commands, settings…" autocomplete="off" />
+      <input class="palette-search" id="palette-search" placeholder="חיפוש כלים, פקודות, הגדרות…" autocomplete="off" />
       <div class="palette-results" id="palette-results" role="listbox"></div>
       <div class="palette-footer">
-<span><kbd>↑↓</kbd> navigate</span>
-<span><kbd>↵</kbd> select</span>
-        <span><kbd>esc</kbd> close</span>
+        <span><kbd>↑↓</kbd> ניווט</span>
+<span><kbd>↵</kbd> בחירה</span>
+        <span><kbd>esc</kbd> סגירה</span>
       </div>
     </div>
   </div>
@@ -5687,10 +5692,10 @@
     menuBtn.className = 'tool icon-only toolbar-menu-btn';
     menuBtn.id = 'controls-toggle';
     menuBtn.type = 'button';
-    menuBtn.setAttribute('data-tooltip', 'More controls');
-    menuBtn.setAttribute('aria-label', 'Show or hide top controls');
+    menuBtn.setAttribute('data-tooltip', 'עוד בקרות');
+    menuBtn.setAttribute('aria-label', 'הצגה או הסתרה של הבקרות העליונות');
     menuBtn.setAttribute('aria-expanded', 'false');
-    menuBtn.innerHTML = '<span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></span><span>Menu</span>';
+    menuBtn.innerHTML = '<span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></span><span>תפריט</span>';
     menuBtn.addEventListener('click', e => {
       e.stopPropagation();
       toggleControlsMenu();
@@ -6193,10 +6198,10 @@
     perspBtn.classList.toggle('on', cameraMode !== 'ortho' || isTopdown);
     perspBtn.classList.remove('disabled');
     perspBtn.setAttribute('data-tooltip',
-      isTopdown              ? 'Top-down (bird\'s eye)' :
-      cameraMode === 'ortho' ? 'Isometric' :
-      cameraMode === 'soft'  ? 'Soft perspective' :
-      cameraMode === 'fp'    ? 'Walk (esc to exit)' : 'Perspective');
+      isTopdown              ? 'מלמעלה (מבט על)' :
+      cameraMode === 'ortho' ? 'איזומטרי' :
+      cameraMode === 'soft'  ? 'פרספקטיבה רכה' :
+      cameraMode === 'fp'    ? 'הליכה (Esc ליציאה)' : 'פרספקטיבה');
     if (effective === 'fp') enterFP();
     if (typeof updateCamera === 'function') updateCamera();
     onResize();
@@ -10083,22 +10088,22 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
         }
       } catch (_) {}
       // Top-bar buttons
-      items.push({ group: 'Camera', label: 'Toggle perspective', hint: 'orbit vs orthographic', kbd: 'P', run: topBtnAction('persp') });
-      items.push({ group: 'Camera', label: 'Pick camera view…', hint: 'top-down / soft / first-person', run: topBtnAction('view-modes') });
-      items.push({ group: 'Camera', label: 'Center on home grid', hint: 'frame the home board', kbd: 'H', run: topBtnAction('home') });
+      items.push({ group: 'מצלמה', label: 'החלפת פרספקטיבה', hint: 'מסלול או אורטוגרפי', kbd: 'P', run: topBtnAction('persp') });
+      items.push({ group: 'מצלמה', label: 'בחירת תצוגת מצלמה…', hint: 'מלמעלה / רכה / גוף ראשון', run: topBtnAction('view-modes') });
+      items.push({ group: 'מצלמה', label: 'מרכוז על רשת הבית', hint: 'מסגור לוח הבית', kbd: 'H', run: topBtnAction('home') });
       // World — raise/lower the hovered cell
-      items.push({ group: 'World', label: 'Raise terrain at cursor', hint: 'terrainFloors +1 (max 8)', kbd: 'R', run: () => {
+      items.push({ group: 'עולם', label: 'הגבהת שטח בסמן', hint: 'terrainFloors +1 (מקסימום 8)', kbd: 'R', run: () => {
         if (typeof window.__adjustHoverTerrainHeight === 'function') window.__adjustHoverTerrainHeight(+1);
       } });
-      items.push({ group: 'World', label: 'Lower terrain at cursor', hint: 'terrainFloors -1 (min 1)', kbd: 'F', run: () => {
+      items.push({ group: 'עולם', label: 'הנמכת שטח בסמן', hint: 'terrainFloors -1 (מינימום 1)', kbd: 'F', run: () => {
         if (typeof window.__adjustHoverTerrainHeight === 'function') window.__adjustHoverTerrainHeight(-1);
       } });
       // Scene
-      items.push({ group: 'Scene', label: 'Time & weather…', hint: 'tint, season, weather', run: topBtnAction('time-weather') });
-      items.push({ group: 'Scene', label: 'Toggle developer overlay', hint: 'FPS / draws / tris', kbd: '`', run: topBtnAction('dev-mode') });
-      items.push({ group: 'World', label: 'Reset world', hint: 'back to the starter scene', run: topBtnAction('reset') });
-      items.push({ group: 'World', label: 'Clear to grass', hint: 'wipe to empty grass', run: topBtnAction('clear') });
-      items.push({ group: 'World', label: 'Generate procedurally (offline)', hint: 'seed + biomes, offline', run: () => {
+      items.push({ group: 'סצנה', label: 'זמן ומזג אוויר…', hint: 'גוון, עונה, מזג אוויר', run: topBtnAction('time-weather') });
+      items.push({ group: 'סצנה', label: 'הצגת שכבת מפתח', hint: 'FPS / draws / tris', kbd: '`', run: topBtnAction('dev-mode') });
+      items.push({ group: 'עולם', label: 'איפוס העולם', hint: 'חזרה לסצנת הפתיחה', run: topBtnAction('reset') });
+      items.push({ group: 'עולם', label: 'ניקוי לדשא', hint: 'מחיקה לדשא ריק', run: topBtnAction('clear') });
+      items.push({ group: 'עולם', label: 'יצירה פרוצדורלית (לא מקוון)', hint: 'seed + biomes, offline', run: () => {
         try {
           const seed = randomSeed();
           const biomes = { grass: 55, forest: 20, water: 10, dirt: 10, settlement: 5 };
@@ -10108,9 +10113,9 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
         } catch (err) { console.warn('[palette] procedural failed:', err); }
       } });
       // Settings tabs (router into the Settings modal)
-      items.push({ group: 'Settings', label: 'Settings — Screen', run: settingsTab('screen') });
-      items.push({ group: 'Settings', label: 'Settings — World',  run: settingsTab('world') });
-      items.push({ group: 'Settings', label: 'Settings — Sky',    run: settingsTab('sky') });
+      items.push({ group: 'הגדרות', label: 'הגדרות - מסך', run: settingsTab('screen') });
+      items.push({ group: 'הגדרות', label: 'הגדרות - עולם',  run: settingsTab('world') });
+      items.push({ group: 'הגדרות', label: 'הגדרות - שמים',  run: settingsTab('sky') });
       return items;
     }
 
@@ -10152,7 +10157,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
 
     function paint() {
       if (filtered.length === 0) {
-        results.innerHTML = '<div class="palette-empty">No matches.</div>';
+        results.innerHTML = '<div class="palette-empty">אין התאמות.</div>';
         return;
       }
       let html = '';
