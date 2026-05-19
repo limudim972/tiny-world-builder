@@ -1125,6 +1125,7 @@
     border-radius: 6px;
     overflow: hidden;
     border: 1px solid rgba(42, 39, 34, 0.24);
+    background: rgba(255, 255, 255, 0.65);
     user-select: none;
     touch-action: none;
   }
@@ -1137,29 +1138,12 @@
     border-right: 1px solid rgba(42, 39, 34, 0.18);
     border-bottom: 1px solid rgba(42, 39, 34, 0.18);
     box-sizing: border-box;
-    background:
-      linear-gradient(180deg, rgba(255,255,255,0.50), rgba(255,255,255,0.16));
+    background: transparent;
   }
   .stacked-map-cell.is-edge-right { border-right: none; }
   .stacked-map-cell.is-edge-bottom { border-bottom: none; }
-  .stacked-map-cell[data-floors='1'] { color: rgba(47, 42, 32, 0.70); }
-  .stacked-map-cell[data-floors='2'] { color: #2f4d1d; }
-  .stacked-map-cell[data-floors='3'] { color: #5a4616; }
-  .stacked-map-cell[data-floors='4'] { color: #6a2d12; }
-  .stacked-map-cell[data-floors='5'] { color: #4c1d13; }
-  .stacked-map-cell[data-floors='6'] { color: #341b29; }
-  .stacked-map-cell[data-floors='7'],
-  .stacked-map-cell[data-floors='8'] { color: #1f1f1f; }
   .stacked-map-cell .stacked-map-number {
     transform: translateY(-0.02em);
-  }
-  .stacked-map-cell.is-focused {
-    box-shadow: inset 0 0 0 2px rgba(42, 39, 34, 0.75);
-    position: relative;
-    z-index: 1;
-  }
-  .stacked-map-cell.is-empty .stacked-map-number {
-    opacity: 0.35;
   }
   .minimap-foot {
     display: flex; justify-content: space-between;
@@ -9855,74 +9839,10 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
   // Repaints the stacked 2D map window from the live world state. The map
   // follows the current camera target, so panning keeps the overview centered
   // on the active area instead of pinning to the saved home grid.
-  // Tile colour comes from the terrain palette (matches the 3D scene);
-  // floor counts are overlaid so stacked cells read the same way they do in 3D.
+  // The minimap is intentionally plain: grid lines only, with floor counts
+  // overlaid so stacked cells remain readable without terrain coloring.
   // Repainting is throttled: setCell + saveState + applyState all call
   // requestMinimapRepaint(), and the next animation frame consolidates.
-  const MINIMAP_TERRAIN_MATERIALS = {
-    grass: 'grass',
-    path:  'path',
-    dirt:  'dirtRich',
-    water: 'water',
-    stone: 'stone',
-    lava:  'lava',
-    sand:  'sand',
-    snow:  'snow',
-  };
-  const MINIMAP_FALLBACK_COLORS = {
-    grass: 0x9ec74b,
-    path:  0xe8d5a8,
-    dirt:  0x7d4519,
-    water: 0x3a8fcc,
-    stone: 0x8f8a82,
-    lava:  0xe7592b,
-    sand:  0xe6cc7c,
-    snow:  0xf2f5fa,
-  };
-  function minimapHexToCss(hex) {
-    return '#' + (hex & 0xffffff).toString(16).padStart(6, '0');
-  }
-  function minimapCssToHex(css, fallback = 0x9ec74b) {
-    if (typeof css !== 'string' || css[0] !== '#') return fallback;
-    const n = parseInt(css.slice(1), 16);
-    return Number.isFinite(n) ? n : fallback;
-  }
-  function minimapMixHex(a, b, t) {
-    const ar = (a >> 16) & 0xff, ag = (a >> 8) & 0xff, ab = a & 0xff;
-    const br = (b >> 16) & 0xff, bg = (b >> 8) & 0xff, bb = b & 0xff;
-    const r = Math.round(ar + (br - ar) * t);
-    const g = Math.round(ag + (bg - ag) * t);
-    const bl = Math.round(ab + (bb - ab) * t);
-    return (r << 16) | (g << 8) | bl;
-  }
-  function minimapMaterialHex(matName, fallback) {
-    const mat = M[matName];
-    return mat && mat.color ? mat.color.getHex() : fallback;
-  }
-  function minimapThemeHex(hex) {
-    let out = hex;
-    const body = document.body;
-    if (body.classList.contains('tod-night')) out = minimapMixHex(out, 0x14213a, 0.38);
-    else if (body.classList.contains('tod-dusk')) out = minimapMixHex(out, 0xd9784a, 0.14);
-    else if (body.classList.contains('tod-dawn')) out = minimapMixHex(out, 0xffc794, 0.10);
-    const mode = typeof weatherMode === 'string' ? weatherMode : 'clear';
-    if (mode === 'cloudy') out = minimapMixHex(out, 0xaeb4b7, 0.16);
-    else if (mode === 'rain') out = minimapMixHex(out, 0x607487, 0.12);
-    else if (mode === 'storm') out = minimapMixHex(out, 0x364252, 0.22);
-    else if (mode === 'snow') out = minimapMixHex(out, 0xeaf3ff, 0.18);
-    return out;
-  }
-  function minimapTerrainHex(terrain) {
-    const fallback = MINIMAP_FALLBACK_COLORS[terrain] || MINIMAP_FALLBACK_COLORS.grass;
-    return minimapMaterialHex(MINIMAP_TERRAIN_MATERIALS[terrain] || 'grass', fallback);
-  }
-  function minimapColor(matName, fallbackCss) {
-    const fallback = minimapCssToHex(fallbackCss, 0x9ec74b);
-    return minimapHexToCss(minimapThemeHex(minimapMaterialHex(matName, fallback)));
-  }
-  function minimapThemeCss(css) {
-    return minimapHexToCss(minimapThemeHex(minimapCssToHex(css, 0x9ec74b)));
-  }
   let minimapRepaintQueued = false;
   function requestMinimapRepaint() {
     if (minimapRepaintQueued) return;
@@ -9930,8 +9850,11 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     requestAnimationFrame(() => { minimapRepaintQueued = false; redrawMinimap(); });
   }
   window.__requestMinimapRepaint = requestMinimapRepaint;
-  function minimapViewCellCount() {
-    return Math.max(GRID, Math.min(HOME_GRID_MAX, Math.ceil(renderVisibleSize || GRID)));
+  function minimapViewCellCounts() {
+    return {
+      width: GRID_W,
+      depth: GRID_D,
+    };
   }
   function minimapSizeLabel() {
     return boardSizeLabel() + ' home';
@@ -9940,47 +9863,34 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     if (!Number.isFinite(gx) || !Number.isFinite(gz)) return null;
     return world[gx] && world[gx][gz] ? world[gx][gz] : null;
   }
-  function minimapShouldDrawCell(gx, gz) {
-    if (gx >= 0 && gx < GRID_W && gz >= 0 && gz < GRID_D) return true;
-    if (world[gx] && world[gx][gz] && world[gx][gz].userEdited) return true;
-    return hasUserPanned;
-  }
   function redrawMinimap() {
     const map = document.getElementById('minimap-canvas');
     if (!map) return;
-    const N = minimapViewCellCount();
+    const size = minimapViewCellCounts();
+    const W = Math.max(1, size.width);
+    const D = Math.max(1, size.depth);
     const centerGx = Math.floor(target.x + GRID_W / 2);
     const centerGz = Math.floor(target.z + GRID_D / 2);
-    const startGx = centerGx - Math.floor(N / 2);
-    const startGz = centerGz - Math.floor(N / 2);
+    const startGx = centerGx - Math.floor(W / 2);
+    const startGz = centerGz - Math.floor(D / 2);
     const sizeEl = document.getElementById('minimap-size');
     if (sizeEl) sizeEl.textContent = minimapSizeLabel();
-    map.style.gridTemplateColumns = `repeat(${N}, minmax(0, 1fr))`;
-    map.style.gridTemplateRows = `repeat(${N}, minmax(0, 1fr))`;
+    map.style.gridTemplateColumns = `repeat(${W}, minmax(0, 1fr))`;
+    map.style.gridTemplateRows = `repeat(${D}, minmax(0, 1fr))`;
     map.textContent = '';
     const fragment = document.createDocumentFragment();
-    for (let z = 0; z < N; z++) {
-      for (let x = 0; x < N; x++) {
+    for (let z = 0; z < D; z++) {
+      for (let x = 0; x < W; x++) {
         const gx = startGx + x;
         const gz = startGz + z;
-        const cell = minimapShouldDrawCell(gx, gz) ? minimapGlobalCell(gx, gz) : null;
-        const terrain = (cell && cell.terrain) || 'grass';
+        const cell = minimapGlobalCell(gx, gz);
         const terrainFloors = cell ? (cell.terrainFloors || 1) : 1;
         const objectFloors = cell ? (cell.floors || 1) : 1;
         const floors = Math.max(1, terrainFloors, objectFloors);
-        const baseHex = minimapTerrainHex(terrain);
-        const tintedHex = minimapThemeHex(baseHex);
-        const shade = floors > 1 ? Math.min(0.45, (floors - 1) * 0.10) : 0;
-        const bgHex = shade > 0 ? minimapMixHex(tintedHex, 0x000000, shade) : tintedHex;
         const cellEl = document.createElement('div');
         cellEl.className = 'stacked-map-cell';
-        if (x === N - 1) cellEl.classList.add('is-edge-right');
-        if (z === N - 1) cellEl.classList.add('is-edge-bottom');
-        if (gx === Math.floor(target.x + GRID_W / 2) && gz === Math.floor(target.z + GRID_D / 2)) cellEl.classList.add('is-focused');
-        if (!cell) cellEl.classList.add('is-empty');
-        if (cell && cell.kind) cellEl.classList.add('is-populated');
-        cellEl.dataset.floors = String(floors);
-        cellEl.style.background = `linear-gradient(180deg, ${minimapHexToCss(minimapMixHex(bgHex, 0xffffff, 0.26))}, ${minimapHexToCss(bgHex)})`;
+        if (x === W - 1) cellEl.classList.add('is-edge-right');
+        if (z === D - 1) cellEl.classList.add('is-edge-bottom');
         cellEl.innerHTML = `<span class="stacked-map-number">${floors}</span>`;
         fragment.appendChild(cellEl);
       }
