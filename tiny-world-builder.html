@@ -9852,12 +9852,11 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
   }
 
   // -------- minimap (ported from OWB hud.js redrawMinimap) --------
-  // Repaints a 2D top-down map window from world + generated preview-board
-  // state. The map follows the current camera target, so panning away from
-  // the home board keeps a useful 2D overview instead of a stale home-board tile.
+  // Repaints the stacked 2D map window from the live world state. The map
+  // follows the current camera target, so panning keeps the overview centered
+  // on the active area instead of pinning to the saved home grid.
   // Tile colour comes from the terrain palette (matches the 3D scene);
-  // a per-kind silhouette is overlaid for any populated cell so trees,
-  // houses, animals etc. read as the same shape they do in 3D.
+  // floor counts are overlaid so stacked cells read the same way they do in 3D.
   // Repainting is throttled: setCell + saveState + applyState all call
   // requestMinimapRepaint(), and the next animation frame consolidates.
   const MINIMAP_TERRAIN_MATERIALS = {
@@ -9925,7 +9924,6 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     return minimapHexToCss(minimapThemeHex(minimapCssToHex(css, 0x9ec74b)));
   }
   let minimapRepaintQueued = false;
-  let minimapState = null;
   function requestMinimapRepaint() {
     if (minimapRepaintQueued) return;
     minimapRepaintQueued = true;
@@ -9939,24 +9937,13 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     return boardSizeLabel() + ' home';
   }
   function minimapGlobalCell(gx, gz) {
-    const bx = Math.floor(gx / GRID_W);
-    const bz = Math.floor(gz / GRID_D);
-    const lx = gx - bx * GRID_W;
-    const lz = gz - bz * GRID_D;
-    if (lx < 0 || lx >= GRID_W || lz < 0 || lz >= GRID_D) return null;
-    return ghostCellAt(bx, bz, lx, lz);
+    if (!Number.isFinite(gx) || !Number.isFinite(gz)) return null;
+    return world[gx] && world[gx][gz] ? world[gx][gz] : null;
   }
   function minimapShouldDrawCell(gx, gz) {
     if (gx >= 0 && gx < GRID_W && gz >= 0 && gz < GRID_D) return true;
     if (world[gx] && world[gx][gz] && world[gx][gz].userEdited) return true;
     return hasUserPanned;
-  }
-  function minimapWorldFromCanvasPoint(px, py) {
-    if (!minimapState) return null;
-    const { startGx, startGz, cells, width, height } = minimapState;
-    const gx = startGx + (px / Math.max(1, width)) * cells;
-    const gz = startGz + (py / Math.max(1, height)) * cells;
-    return { x: gx - GRID_W / 2, z: gz - GRID_D / 2 };
   }
   function redrawMinimap() {
     const map = document.getElementById('minimap-canvas');
@@ -9966,7 +9953,6 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     const centerGz = Math.floor(target.z + GRID_D / 2);
     const startGx = centerGx - Math.floor(N / 2);
     const startGz = centerGz - Math.floor(N / 2);
-    minimapState = { startGx, startGz, cells: N, width: map.clientWidth || 168, height: map.clientHeight || 168 };
     const sizeEl = document.getElementById('minimap-size');
     if (sizeEl) sizeEl.textContent = minimapSizeLabel();
     map.style.gridTemplateColumns = `repeat(${N}, minmax(0, 1fr))`;
@@ -10097,49 +10083,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     wrap.addEventListener('pointercancel', endMinimapDrag);
     applyStoredMinimapPos();
 
-    // -- map panning --
-    // Dragging the stacked map pans the world/camera target. Drag the card chrome
-    // or footer if you want to move the minimap widget itself.
-    let mapPan = null;
-    function panWorldFromMinimapEvent(e) {
-      if (!canvas || !minimapState) return;
-      const r = canvas.getBoundingClientRect();
-      const px = Math.max(0, Math.min(r.width, e.clientX - r.left));
-      const py = Math.max(0, Math.min(r.height, e.clientY - r.top));
-      const worldPoint = minimapWorldFromCanvasPoint(
-        px * (canvas.width / Math.max(1, r.width)),
-        py * (canvas.height / Math.max(1, r.height)),
-      );
-      if (!worldPoint) return;
-      target.x = worldPoint.x;
-      target.z = worldPoint.z;
-      expandVisibleSizeOnFirstMove();
-      updateCamera();
-      ensureGhostBoardsAroundTarget();
-      requestMinimapRepaint();
-    }
-    if (canvas) {
-      canvas.addEventListener('pointerdown', e => {
-        e.preventDefault();
-        e.stopPropagation();
-        mapPan = { id: e.pointerId };
-        try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
-        panWorldFromMinimapEvent(e);
-      });
-      canvas.addEventListener('pointermove', e => {
-        if (!mapPan) return;
-        e.preventDefault();
-        e.stopPropagation();
-        panWorldFromMinimapEvent(e);
-      });
-      const endMapPan = e => {
-        if (!mapPan) return;
-        e.stopPropagation();
-        mapPan = null;
-      };
-      canvas.addEventListener('pointerup', endMapPan);
-      canvas.addEventListener('pointercancel', endMapPan);
-    }
+    // The stacked minimap is display-only now; clicks are intentionally inert.
     // FPS readout — own RAF sampler so it reflects real frame time
     // regardless of whether the dev stats overlay is enabled.
     if (fpsEl) {
