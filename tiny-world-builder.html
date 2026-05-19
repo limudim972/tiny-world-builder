@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -35,8 +35,8 @@
     inset: 0;
     pointer-events: none;
     z-index: 7;
-    backdrop-filter: blur(var(--tilt-blur, 3.5px)) saturate(1.04);
-    -webkit-backdrop-filter: blur(var(--tilt-blur, 3.5px)) saturate(1.04);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     mask-image: linear-gradient(
       to bottom,
       #000 0%,
@@ -140,8 +140,8 @@
       0 -1px 0 rgba(120, 130, 150, 0.10) inset,
       0 1px 2px rgba(20, 30, 50, 0.05),
       0 12px 36px -12px rgba(40, 50, 80, 0.22);
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
   .appbar .btn.icon {
     width: 30px;
@@ -174,8 +174,8 @@
       0 -1px 0 rgba(120, 130, 150, 0.10) inset,
       0 1px 2px rgba(20, 30, 50, 0.05),
       0 12px 36px -12px rgba(40, 50, 80, 0.22);
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     z-index: 12;
   }
   .controls::-webkit-scrollbar { display: none; }
@@ -279,8 +279,8 @@
     flex-direction: column;
     gap: 6px;
     min-width: 200px;
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
   @media (max-width: 800px) {
     .audio-panel {
@@ -335,8 +335,8 @@
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.95) inset,
       0 1px 2px rgba(20, 30, 50, 0.18);
-    backdrop-filter: blur(10px) saturate(180%);
-    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     cursor: pointer;
   }
   .audio-row input[type="range"]::-moz-range-thumb {
@@ -421,8 +421,8 @@
     box-shadow:
       0 1px 2px rgba(20, 30, 50, 0.05),
       0 12px 36px -12px rgba(40, 50, 80, 0.22);
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     z-index: 12;
     max-width: calc(100vw - 32px);
     overflow-x: auto;
@@ -814,8 +814,8 @@
       0 -1px 0 rgba(120, 130, 150, 0.10) inset,
       0 1px 2px rgba(20, 30, 50, 0.05),
       0 12px 36px -12px rgba(40, 50, 80, 0.22);
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     z-index: 36;
     transform-origin: bottom center;
     transform: translate(-50%, 14px) scaleX(0.42) scaleY(0.92);
@@ -901,8 +901,8 @@
   .modal {
     position: fixed; inset: 0;
     background: rgba(20, 24, 40, 0.18);
-    backdrop-filter: blur(8px) saturate(140%);
-    -webkit-backdrop-filter: blur(8px) saturate(140%);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     z-index: 50;
     display: flex; align-items: flex-start; justify-content: center;
     padding: 80px 20px 20px;
@@ -920,8 +920,8 @@
       0 -1px 0 rgba(120, 130, 150, 0.10) inset,
       0 1px 2px rgba(20, 30, 50, 0.05),
       0 24px 56px -16px rgba(40, 50, 80, 0.30);
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     display: flex; flex-direction: column; gap: 10px;
     font-size: 13px;
   }
@@ -942,8 +942,8 @@
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.85) inset,
       0 1px 2px rgba(20, 30, 50, 0.04);
-    backdrop-filter: blur(10px) saturate(180%);
-    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
   .modal-card textarea { resize: vertical; min-height: 64px; }
   .modal-card input:focus,
@@ -1008,8 +1008,8 @@
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.95) inset,
       0 1px 3px rgba(20, 30, 50, 0.22);
-    backdrop-filter: blur(10px) saturate(180%);
-    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     cursor: pointer;
   }
   .modal-card input[type="range"]::-moz-range-thumb,
@@ -1103,7 +1103,7 @@
     letter-spacing: 0.08em;
     text-transform: uppercase;
     box-shadow: 0 12px 32px rgba(0,0,0,0.28);
-    backdrop-filter: blur(10px);
+    backdrop-filter: none;
     cursor: pointer;
   }
   body.showcase .showcase-exit { display: inline-flex; }
@@ -1134,8 +1134,8 @@
       0 -1px 0 rgba(120, 130, 150, 0.10) inset,
       0 1px 2px rgba(20, 30, 50, 0.05),
       0 12px 36px -12px rgba(40, 50, 80, 0.22);
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
   .minimap-card canvas {
     display: block;
@@ -1165,8 +1165,8 @@
       0 -1px 0 rgba(120, 130, 150, 0.10) inset,
       0 1px 2px rgba(20, 30, 50, 0.05),
       0 12px 36px -12px rgba(40, 50, 80, 0.22);
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     padding: 8px;
     font-size: 13px;
     color: var(--ink);
@@ -1352,7 +1352,7 @@
   }
   body.weather-cloudy #tod-tint { background: linear-gradient(180deg, rgba(180,180,180,0.18), transparent 70%); opacity: 1; }
 
-  /* --- Brand → World menu popup --- */
+/* --- Brand → World menu popup --- */
   .brand-title-btn {
     pointer-events: auto;
     background: transparent;
@@ -1400,8 +1400,8 @@
       0 -1px 0 rgba(120, 130, 150, 0.10) inset,
       0 1px 2px rgba(20, 30, 50, 0.05),
       0 12px 36px -12px rgba(40, 50, 80, 0.22);
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     overflow: hidden;
     font-size: 13px;
     color: var(--ink);
@@ -1521,12 +1521,12 @@
   }
   .world-menu-foot-btn:hover { background: rgba(255, 255, 255, 0.55); }
 
-  /* --- Command palette (⌘K) --- */
+/* --- Command palette (⌘K) --- */
   .palette-overlay {
     position: fixed; inset: 0;
     background: rgba(20, 18, 16, 0.34);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     z-index: 80;
     display: flex; align-items: flex-start; justify-content: center;
     padding: 96px 20px 20px;
@@ -1995,7 +1995,7 @@
     pointer-events: none;
     opacity: 0;
     mix-blend-mode: screen;
-    filter: blur(10px);
+    filter: none;
     background:
       radial-gradient(circle at 16% 28%, rgba(255,255,255,0.55) 0 4%, transparent 9%),
       radial-gradient(circle at 34% 18%, rgba(255,255,255,0.42) 0 5%, transparent 11%),
@@ -2737,12 +2737,7 @@
               <input id="render-cloud-shadow" type="range" min="0" max="100" step="1" />
               <output id="render-cloud-shadow-value"></output>
             </div>
-            <div class="range-row">
-              <span>Tilt blur</span>
-              <input id="render-tilt-blur" type="range" min="0" max="8" step="0.5" />
-              <output id="render-tilt-blur-value"></output>
-            </div>
-            <div class="range-row">
+<div class="range-row">
               <span>Tilt focus</span>
               <input id="render-tilt-focus" type="range" min="15" max="80" step="1" />
               <output id="render-tilt-focus-value"></output>
@@ -2762,7 +2757,7 @@
   <div class="flyout" id="flyout" hidden></div>
 
 
-  <!-- Command palette ⌘K -->
+<!-- Command palette ⌘K -->
   <div class="palette-overlay" id="palette-overlay" hidden>
     <div class="palette">
       <span class="palette-search-icon" aria-hidden="true">
@@ -2771,8 +2766,8 @@
       <input class="palette-search" id="palette-search" placeholder="Search tools, commands, settings…" autocomplete="off" />
       <div class="palette-results" id="palette-results" role="listbox"></div>
       <div class="palette-footer">
-        <span><kbd>↑↓</kbd> navigate</span>
-        <span><kbd>↵</kbd> select</span>
+<span><kbd>↑↓</kbd> navigate</span>
+<span><kbd>↵</kbd> select</span>
         <span><kbd>esc</kbd> close</span>
       </div>
     </div>
@@ -2984,7 +2979,6 @@
     cloudSpeed: 'tinyworld:render:cloudSpeed',
     cloudHeight: 'tinyworld:render:cloudHeight',
     cloudShadow: 'tinyworld:render:cloudShadow',
-    tiltBlur: 'tinyworld:render:tiltBlur',
     tiltFocus: 'tinyworld:render:tiltFocus',
     ghostOpacity: 'tinyworld:render:ghostOpacity',
     floorOpacity: 'tinyworld:render:floorOpacity',
@@ -2998,7 +2992,7 @@
     //   - resolution kept at 1 (dropping it to 0.85 made silhouettes
     //     pixelated under DPR>1 — the visible "smoothing fails" issue).
     //   - shadow kept at 'balanced' (PCF filtering 1024 map).  'low'
-    //     swaps in BasicShadowMap with no filtering → jagged dropouts.
+//     swaps in BasicShadowMap with no filtering → jagged dropouts.
     //   - preview distance/window are auto-sized from GRID on first load and
     //     whenever the board size changes, so large boards don't preload too
     //     much neighbouring preview content.
@@ -3018,7 +3012,6 @@
     cloudSpeed: '0.35',
     cloudHeight: '6',
     cloudShadow: '0',
-    tiltBlur: '3.5',
     tiltFocus: '18',
     ghostOpacity: '1',
     floorOpacity: '1',
@@ -3119,7 +3112,6 @@
   // Cloud shadow strength — controls per-puff alphaTest so only the
   // denser parts of each cloud cast on the world below.
   let renderCloudShadow = storedNumber(RENDER_LS.cloudShadow, 0.5, 0, 1);
-  let renderTiltBlur = storedNumber(RENDER_LS.tiltBlur, 3.5, 0, 8);
   let renderTiltFocus = storedNumber(RENDER_LS.tiltFocus, 18, 15, 80);
   let renderGhostOpacity = storedNumber(RENDER_LS.ghostOpacity, 1, 0.05, 1);
   let renderFloorOpacity = storedNumber(RENDER_LS.floorOpacity, 1, 0.10, 1);
@@ -3188,13 +3180,11 @@
   }
 
   function applyTiltShiftSettings() {
-    const blur = Math.max(0, Math.min(8, renderTiltBlur));
     const focus = Math.max(15, Math.min(80, renderTiltFocus));
     const clearTop = (100 - focus) / 2;
     const clearBottom = 100 - clearTop;
     const soft = Math.min(18, clearTop);
     const edge = Math.min(28, clearTop);
-    document.body.style.setProperty('--tilt-blur', blur.toFixed(1) + 'px');
     document.body.style.setProperty('--tilt-clear-top', clearTop.toFixed(1) + '%');
     document.body.style.setProperty('--tilt-clear-bottom', clearBottom.toFixed(1) + '%');
     document.body.style.setProperty('--tilt-soft-top', Math.max(0, clearTop - soft).toFixed(1) + '%');
@@ -3205,7 +3195,6 @@
 
   let tiltShiftResumeTimer = 0;
   function markCameraMoving() {
-    if (renderTiltBlur <= 0) return;
     document.body.classList.add('tilt-shift-paused');
     clearTimeout(tiltShiftResumeTimer);
     tiltShiftResumeTimer = setTimeout(() => {
@@ -3382,7 +3371,7 @@
 
   // Fixed sun direction relative to the camera target — same angle of
   // attack everywhere on the map.
-  // Lower y → flatter sun angle → longer, more visible shadows.
+// Lower y → flatter sun angle → longer, more visible shadows.
   const SUN_OFFSET = new THREE.Vector3(8, 9, 6);
   const sun = new THREE.DirectionalLight(0xffffff, 1.35);
   sun.position.copy(target).add(SUN_OFFSET);
@@ -4104,7 +4093,7 @@
   }
 
   // Assemble a house from a cell plan. orientation: 'z' (long-axis along z, no
-  // rotation) or 'x' (long-axis along x, geometry rotated +π/2 around Y).
+// rotation) or 'x' (long-axis along x, geometry rotated +π/2 around Y).
   // floors: 1 (default), 2, 3 — walls stretch upward, per-floor windows added,
   // and at floors === 2 an exterior staircase appears against the +x face
   // leading to an upper door (floors >= 3 implies internal stairs and the
@@ -4957,7 +4946,7 @@
   }
   function pickFadeMaterial(baseMat, grayscale, displayOpacity) {
     const bucket = fadeBucketFor(displayOpacity);
-    // Fully opaque, non-grayscale → use the shared base material directly.
+// Fully opaque, non-grayscale → use the shared base material directly.
     // This is the best case (most home-grid meshes hit it) — no clone at all.
     if (bucket === FADE_BUCKETS && !grayscale) return baseMat;
     const key = baseMat.uuid + '|' + (grayscale ? 1 : 0) + '|' + bucket;
@@ -6521,7 +6510,7 @@
     resetGhostTransform();
   }
 
-  // -------- click → place / erase --------
+// -------- click → place / erase --------
   // Remove the ghost board's mesh for a given local cell so a freshly
   // materialised home cellMesh doesn't render on top of the original
   // ghost tile/object at the same world position.
@@ -6676,9 +6665,9 @@
 
     dragMode = (e.button === 2 || spaceDown) ? 'pan' : 'orbit';
     // Select tool:
-    //   - Shift+drag  → marquee (rectangular area selection)
-    //   - Plain click → single cell + its object (handled on pointerup)
-    //   - Plain drag  → still orbits the camera, no selection change
+//   - Shift+drag  → marquee (rectangular area selection)
+//   - Plain click → single cell + its object (handled on pointerup)
+//   - Plain drag  → still orbits the camera, no selection change
     if (dragMode === 'orbit' && selectedTool && selectedTool.select && (e.shiftKey || e.metaKey)) {
       const hit = pickTile(e.clientX, e.clientY);
       if (hit) {
@@ -7539,7 +7528,6 @@
     const cloudSpeedEl = document.getElementById('render-cloud-speed');
     const cloudHeightEl = document.getElementById('render-cloud-height');
     const cloudShadowEl = document.getElementById('render-cloud-shadow');
-    const tiltBlurEl = document.getElementById('render-tilt-blur');
     const tiltFocusEl = document.getElementById('render-tilt-focus');
     const ghostOpacityEl = document.getElementById('render-ghost-opacity');
     const floorOpacityEl = document.getElementById('render-floor-opacity');
@@ -7555,7 +7543,6 @@
     const cloudSpeedValue = document.getElementById('render-cloud-speed-value');
     const cloudHeightValue = document.getElementById('render-cloud-height-value');
     const cloudShadowValue = document.getElementById('render-cloud-shadow-value');
-    const tiltBlurValue = document.getElementById('render-tilt-blur-value');
     const tiltFocusValue = document.getElementById('render-tilt-focus-value');
     const ghostOpacityValue = document.getElementById('render-ghost-opacity-value');
     const floorOpacityValue = document.getElementById('render-floor-opacity-value');
@@ -7585,7 +7572,6 @@
       cloudSpeedEl.value = String(Math.round(renderCloudSpeed * 100));
       cloudHeightEl.value = String(renderCloudHeight);
       cloudShadowEl.value = String(Math.round(renderCloudShadow * 100));
-      tiltBlurEl.value = String(renderTiltBlur);
       tiltFocusEl.value = String(Math.round(renderTiltFocus));
       ghostOpacityEl.value = String(Math.round(renderGhostOpacity * 100));
       floorOpacityEl.value = String(Math.round(renderFloorOpacity * 100));
@@ -7601,7 +7587,6 @@
       cloudSpeedValue.textContent = cloudSpeedEl.value + '%';
       cloudHeightValue.textContent = cloudHeightEl.value;
       cloudShadowValue.textContent = cloudShadowEl.value + '%';
-      tiltBlurValue.textContent = tiltBlurEl.value + 'px';
       tiltFocusValue.textContent = tiltFocusEl.value + '%';
       ghostOpacityValue.textContent = ghostOpacityEl.value + '%';
       floorOpacityValue.textContent = floorOpacityEl.value + '%';
@@ -7622,7 +7607,6 @@
       localStorage.setItem(RENDER_LS.cloudSpeed, renderCloudSpeed.toFixed(2));
       localStorage.setItem(RENDER_LS.cloudHeight, renderCloudHeight.toFixed(1));
       localStorage.setItem(RENDER_LS.cloudShadow, renderCloudShadow.toFixed(2));
-      localStorage.setItem(RENDER_LS.tiltBlur, renderTiltBlur.toFixed(1));
       localStorage.setItem(RENDER_LS.tiltFocus, renderTiltFocus.toFixed(0));
       localStorage.setItem(RENDER_LS.ghostOpacity, renderGhostOpacity.toFixed(2));
       localStorage.setItem(RENDER_LS.floorOpacity, renderFloorOpacity.toFixed(2));
@@ -7646,7 +7630,6 @@
       if (typeof applyCloudShadowSetting === 'function') applyCloudShadowSetting();
       applyCloudSettings();
       if (typeof applyCloudHeight === 'function') applyCloudHeight();
-      renderTiltBlur = parseFloat(tiltBlurEl.value);
       renderTiltFocus = parseInt(tiltFocusEl.value, 10);
       applyTiltShiftSettings();
       renderGhostOpacity = parseInt(ghostOpacityEl.value, 10) / 100;
@@ -7688,7 +7671,7 @@
     });
     closeBtn.addEventListener('click', () => { closeTinyModal(modal); });
     modal.addEventListener('click', e => { if (e.target === modal) closeTinyModal(modal); });
-    for (const el of [shadowEl, resolutionEl, distanceEl, visibleSizeEl, brightnessEl, lightingEl, saturationEl, contrastEl, cloudsEl, cloudSpeedEl, cloudHeightEl, cloudShadowEl, tiltBlurEl, tiltFocusEl, ghostOpacityEl, floorOpacityEl, objectOpacityEl]) {
+    for (const el of [shadowEl, resolutionEl, distanceEl, visibleSizeEl, brightnessEl, lightingEl, saturationEl, contrastEl, cloudsEl, cloudSpeedEl, cloudHeightEl, cloudShadowEl,  tiltFocusEl, ghostOpacityEl, floorOpacityEl, objectOpacityEl]) {
       if (!el) continue;
       el.addEventListener('input', applyFromControls);
       el.addEventListener('change', applyFromControls);
@@ -7715,7 +7698,6 @@
       renderCloudShadow = 0.5;
       applyCloudSettings();
       if (typeof applyCloudHeight === 'function') applyCloudHeight();
-      renderTiltBlur = 3.5;
       renderTiltFocus = 18;
       applyTiltShiftSettings();
       renderGhostOpacity = 1;
@@ -7917,7 +7899,7 @@
   // object on it, we don't silently swap meshes. Instead we:
   //  1. Detach the existing object mesh from cellMeshes (so setCell won't
   //     dispose it) and leave it parented to worldGroup.
-  //  2. Snap it flat (scale.y → ~0), oversize XZ by 10%, and rotate
+//  2. Snap it flat (scale.y → ~0), oversize XZ by 10%, and rotate
   //     5–10° (1° increments, random sign) on the y axis.
   //  3. Burst a quick dust ring out of the impact point.
   //  4. Fade the squashed remnant out over 2 s and dispose it.
@@ -8104,7 +8086,7 @@
   }
 
   function cloudShadowAlphaTest() {
-    // Higher renderCloudShadow → lower threshold → more puffs contribute to
+// Higher renderCloudShadow → lower threshold → more puffs contribute to
     // the depth pass. At 0%, almost all puffs fail shadow casting, while
     // their regular materials still render visibly.
     return Math.max(0, Math.min(0.99, 1 - renderCloudShadow));
@@ -8629,7 +8611,7 @@
 
   function updateClouds(dt) {
     if (!clouds || !clouds.length) return;
-    const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
+const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     const cx = target.x;
     const cz = target.z;
     for (const c of clouds) {
@@ -10690,7 +10672,7 @@
     if (viewBtn && viewPopup) {
       function paintViewActive() {
         const mode = (typeof cameraMode !== 'undefined') ? cameraMode : 'ortho';
-        // 'topdown' is a virtual mode (ortho + polar≈0). Detect it so the
+// 'topdown' is a virtual mode (ortho + polar≈0). Detect it so the
         // bird's-eye row stays highlighted instead of the Isometric row.
         const isTopdown = (mode === 'ortho') && (typeof polar !== 'undefined') && polar < 0.05;
         viewPopup.querySelectorAll('.view-option').forEach(opt => {
@@ -10788,7 +10770,7 @@
     }
     function todProfile(min) {
       // Smooth blend across four anchor points: 00:00 night, 07:00 dawn,
-      // 13:00 day, 19:30 dusk → 23:00 back to night.  Returns multipliers
+// 13:00 day, 19:30 dusk → 23:00 back to night.  Returns multipliers
       // and colour anchors.
       const ANCHORS = [
         { t:    0, sunI: 0.18, hemiI: 0.40, sunC: 0x6f8acf, hemiSky: 0x4760a8, hemiGround: 0x2a2522 }, // deep night
@@ -11295,7 +11277,7 @@
     paintLabel();
   })();
 
-  // -------- command palette (⌘K) --------
+// -------- command palette (⌘K) --------
   // Indexes tools, top-bar buttons, and settings tabs into a fuzzy-search
   // overlay. Selection routes through existing wiring (selectTool / .click()
   // on the underlying DOM nodes) so the palette stays a thin shortcut —
@@ -11505,5 +11487,6 @@
   </script>
 </body>
 </html>
+
 
 
