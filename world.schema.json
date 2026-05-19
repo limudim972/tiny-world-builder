@@ -59,11 +59,11 @@
     },
     "kind": {
       "type": ["string", "null"],
-      "enum": [null, "house", "tree", "fence", "rock", "bridge", "crop", "corn", "wheat", "pumpkin", "carrot", "sunflower", "tuft", "flower", "bush", "cow", "sheep"]
+      "enum": [null, "house", "plane", "tree", "fence", "rock", "bridge", "crop", "corn", "wheat", "pumpkin", "carrot", "sunflower", "tuft", "flower", "bush", "cow", "sheep"]
     },
     "buildingType": {
       "type": ["string", "null"],
-      "enum": [null, "cottage", "manor", "tower", "turret", "skyscraper"]
+      "enum": [null, "cottage", "manor", "tower", "turret", "skyscraper", "banner"]
     },
     "fenceSide": {
       "type": ["string", "null"],
