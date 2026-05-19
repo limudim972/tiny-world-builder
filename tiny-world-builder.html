@@ -4774,6 +4774,13 @@
     const edgeSouth = z >= GRID_D - 1;
     const edgeEast  = x >= GRID_W - 1;
     const edgeWest  = x <= 0;
+    // Corner cells need explicit handling. The north-east and south-west
+    // corners are the two cases where the default edge-facing would leave the
+    // second-floor stairs on the outside edge.
+    if (edgeNorth && edgeEast) return -Math.PI / 2;
+    if (edgeSouth && edgeWest) return Math.PI / 2;
+    if (edgeNorth && edgeWest) return 0;
+    if (edgeSouth && edgeEast) return Math.PI;
     if (edgeNorth) return 0;
     if (edgeSouth) return Math.PI;
     if (edgeWest) return Math.PI / 2;
