@@ -5389,36 +5389,48 @@
   // -------- raycaster --------
   const raycaster = new THREE.Raycaster();
   const ndc = new THREE.Vector2();
+  const pickPoint = new THREE.Vector3();
+  const pickBox = new THREE.Box3();
 
   function pickTile(clientX, clientY) {
     ndc.x = (clientX / window.innerWidth) * 2 - 1;
     ndc.y = -(clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(ndc, camera);
-    const hits = raycaster.intersectObjects(worldGroup.children, true);
-    for (const h of hits) {
-      let n = h.object;
-      while (n && (n.userData.gx === undefined)) n = n.parent;
-      if (n && n.userData.gx !== undefined) {
+
+    let best = null;
+    worldGroup.updateWorldMatrix(true, true);
+
+    worldGroup.traverse(obj => {
+      if (!obj.isMesh || !obj.visible) return;
+      let n = obj;
+      while (n && n.userData && n.userData.gx === undefined) n = n.parent;
+      if (!n || !n.userData || n.userData.gx === undefined) return;
+      if (n.userData.fadeRole === 'tile' || n.userData.fadeRole === 'object' || n.userData.kind === 'house' || n.userData.boardX !== undefined) {
+        pickBox.setFromObject(obj);
+        if (!raycaster.ray.intersectBox(pickBox, pickPoint)) return;
+        const dist = raycaster.ray.origin.distanceTo(pickPoint);
+        if (best && dist >= best.dist) return;
         const boardX = n.userData.boardX || 0;
         const boardZ = n.userData.boardZ || 0;
         const p = (boardX || boardZ)
           ? ghostCellPos(boardX, boardZ, n.userData.gx, n.userData.gz)
           : tilePos(n.userData.gx, n.userData.gz);
-        // raycaster already skipped hidden meshes; if it's here it's a
-        // legitimate target. The old opacityAtWorldPosition check killed
-        // clicks on revealed ghost cells outside the visible window.
-        if (!n.visible) continue;
-        return {
+        best = {
+          dist,
           x: n.userData.gx,
           z: n.userData.gz,
           boardX,
           boardZ,
           worldX: p.x,
           worldZ: p.z,
-          localX: h.point.x - p.x,
-          localZ: h.point.z - p.z,
+          localX: pickPoint.x - p.x,
+          localZ: pickPoint.z - p.z,
         };
       }
+    });
+
+    if (best) {
+      return best;
     }
     return null;
   }
