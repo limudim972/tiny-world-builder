@@ -148,23 +148,24 @@
 
   .controls {
     position: fixed;
-    top: 50%;
-    left: 18px;
+    bottom: 92px;
+    left: 50%;
     right: auto;
-    transform: translateY(-50%);
+    transform: translateX(-50%);
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    gap: 2px;
-    width: 44px;
-    max-height: min(720px, calc(100vh - 188px));
-    padding: 6px 5px;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: min(760px, calc(100vw - 32px));
+    padding: 10px;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: visible;
     scrollbar-width: none;
-    background: rgba(255, 255, 255, 0.58);
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.58);
+    border-radius: 18px;
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.85) inset,
       0 -1px 0 rgba(120, 130, 150, 0.10) inset,
@@ -174,6 +175,7 @@
     -webkit-backdrop-filter: none;
     z-index: 12;
   }
+  .controls[hidden] { display: none; }
   .controls::-webkit-scrollbar { display: none; }
   .btn {
     background: transparent;
@@ -680,6 +682,16 @@
   .toolbar .tool.icon-only > kbd {
     display: none !important;
   }
+  .toolbar .tool.toolbar-menu-btn {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 12px;
+  }
+  .toolbar .tool.toolbar-menu-btn .tool-icon svg {
+    width: 20px;
+    height: 20px;
+  }
   .toolbar .tool:has(.swatch.eraser) .swatch {
     width: 22px;
     height: 22px;
@@ -1106,12 +1118,48 @@
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
-  .minimap-card canvas {
-    display: block;
-    width: 168px; height: 168px;
+  .stacked-map {
+    display: grid;
+    width: 168px;
+    height: 168px;
     border-radius: 6px;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
+    overflow: hidden;
+    border: 1px solid rgba(42, 39, 34, 0.24);
+    user-select: none;
+    touch-action: none;
+  }
+  .stacked-map-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font: 700 15px/1 'Courier New', monospace;
+    color: #2f2a20;
+    border-right: 1px solid rgba(42, 39, 34, 0.18);
+    border-bottom: 1px solid rgba(42, 39, 34, 0.18);
+    box-sizing: border-box;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.50), rgba(255,255,255,0.16));
+  }
+  .stacked-map-cell.is-edge-right { border-right: none; }
+  .stacked-map-cell.is-edge-bottom { border-bottom: none; }
+  .stacked-map-cell[data-floors='1'] { color: rgba(47, 42, 32, 0.70); }
+  .stacked-map-cell[data-floors='2'] { color: #2f4d1d; }
+  .stacked-map-cell[data-floors='3'] { color: #5a4616; }
+  .stacked-map-cell[data-floors='4'] { color: #6a2d12; }
+  .stacked-map-cell[data-floors='5'] { color: #4c1d13; }
+  .stacked-map-cell[data-floors='6'] { color: #341b29; }
+  .stacked-map-cell[data-floors='7'],
+  .stacked-map-cell[data-floors='8'] { color: #1f1f1f; }
+  .stacked-map-cell .stacked-map-number {
+    transform: translateY(-0.02em);
+  }
+  .stacked-map-cell.is-focused {
+    box-shadow: inset 0 0 0 2px rgba(42, 39, 34, 0.75);
+    position: relative;
+    z-index: 1;
+  }
+  .stacked-map-cell.is-empty .stacked-map-number {
+    opacity: 0.35;
   }
   .minimap-foot {
     display: flex; justify-content: space-between;
@@ -1960,7 +2008,7 @@
       top: 12px;
       right: 12px;
     }
-    .minimap-card canvas {
+    .stacked-map {
       width: 118px;
       height: 118px;
     }
@@ -2046,7 +2094,7 @@
   <!-- Minimap (top-down repaint of the home grid) -->
   <div class="minimap-wrap" id="minimap-wrap">
     <div class="minimap-card">
-      <canvas id="minimap-canvas" width="240" height="240"></canvas>
+      <div id="minimap-canvas" class="stacked-map" role="grid" aria-label="Stacked map showing floor counts"></div>
       <div class="minimap-foot">
         <span id="minimap-size">3×3</span>
         <span id="minimap-fps" data-tooltip="Frames per second">60 fps</span>
@@ -2167,7 +2215,7 @@
     </button>
   </div>
 
-  <div class="controls">
+  <div class="controls" id="controls-menu" hidden>
     <button class="btn icon" id="home" data-tooltip="Center on your grid" aria-label="Center on your home grid">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2h-4v-7H9v7H5a2 2 0 0 1-2-2z"/></svg>
     </button>
@@ -6057,6 +6105,20 @@
     bar.innerHTML = '';
     thumbScenes.forEach(t => { try { t.scene.traverse(o => safeDisposeGeometry(o.geometry)); } catch(_) {} });
     thumbScenes.clear();
+    const menuBtn = document.createElement('button');
+    menuBtn.className = 'tool icon-only toolbar-menu-btn';
+    menuBtn.id = 'controls-toggle';
+    menuBtn.type = 'button';
+    menuBtn.setAttribute('data-tooltip', 'More controls');
+    menuBtn.setAttribute('aria-label', 'Show or hide top controls');
+    menuBtn.setAttribute('aria-expanded', 'false');
+    menuBtn.innerHTML = '<span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></span><span>Menu</span>';
+    menuBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      toggleControlsMenu();
+    });
+    bar.appendChild(menuBtn);
+
     const cottage = TOOLS.find(t => t.id === 'house');
     if (cottage) bar.appendChild(buildToolButton(cottage));
 
@@ -6076,6 +6138,18 @@
     document.querySelectorAll('.tool').forEach(b => {
       b.classList.toggle('active', b.dataset.id === selectedTool.id);
     });
+  }
+
+  function toggleControlsMenu(open) {
+    const controlsMenu = document.getElementById('controls-menu');
+    const controlsToggle = document.getElementById('controls-toggle');
+    if (!controlsMenu) return;
+    const nextOpen = typeof open === 'boolean' ? open : controlsMenu.hidden;
+    controlsMenu.hidden = !nextOpen;
+    if (controlsToggle) {
+      controlsToggle.classList.toggle('active', nextOpen);
+      controlsToggle.setAttribute('aria-expanded', String(nextOpen));
+    }
   }
 
   function selectTool(t) {
@@ -9885,87 +9959,47 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     return { x: gx - GRID_W / 2, z: gz - GRID_D / 2 };
   }
   function redrawMinimap() {
-    const canvas = document.getElementById('minimap-canvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const map = document.getElementById('minimap-canvas');
+    if (!map) return;
     const N = minimapViewCellCount();
-    const W = canvas.width, H = canvas.height;
-    const cw = W / N, ch = H / N;
     const centerGx = Math.floor(target.x + GRID_W / 2);
     const centerGz = Math.floor(target.z + GRID_D / 2);
     const startGx = centerGx - Math.floor(N / 2);
     const startGz = centerGz - Math.floor(N / 2);
-    minimapState = { startGx, startGz, cells: N, width: W, height: H };
+    minimapState = { startGx, startGz, cells: N, width: map.clientWidth || 168, height: map.clientHeight || 168 };
     const sizeEl = document.getElementById('minimap-size');
     if (sizeEl) sizeEl.textContent = minimapSizeLabel();
-    ctx.clearRect(0, 0, W, H);
-    // Terrain pass.
-    for (let x = 0; x < N; x++) {
-      for (let z = 0; z < N; z++) {
+    map.style.gridTemplateColumns = `repeat(${N}, minmax(0, 1fr))`;
+    map.style.gridTemplateRows = `repeat(${N}, minmax(0, 1fr))`;
+    map.textContent = '';
+    const fragment = document.createDocumentFragment();
+    for (let z = 0; z < N; z++) {
+      for (let x = 0; x < N; x++) {
         const gx = startGx + x;
         const gz = startGz + z;
-        if (!minimapShouldDrawCell(gx, gz)) continue;
-        const cell = minimapGlobalCell(gx, gz);
+        const cell = minimapShouldDrawCell(gx, gz) ? minimapGlobalCell(gx, gz) : null;
         const terrain = (cell && cell.terrain) || 'grass';
-        let colorHex = minimapTerrainHex(terrain);
-        // Tint by terrainFloors so hills/mountains read as raised.
-        const tf = cell ? (cell.terrainFloors || 1) : 1;
-        if (tf > 1 && terrain !== 'water' && terrain !== 'lava') {
-          const shade = Math.min(0.45, (tf - 1) * 0.08);
-          colorHex = minimapMixHex(colorHex, 0x000000, shade);
-        }
-        ctx.fillStyle = minimapHexToCss(minimapThemeHex(colorHex));
-        ctx.fillRect(x * cw, z * ch, cw + 0.5, ch + 0.5);
+        const terrainFloors = cell ? (cell.terrainFloors || 1) : 1;
+        const objectFloors = cell ? (cell.floors || 1) : 1;
+        const floors = Math.max(1, terrainFloors, objectFloors);
+        const baseHex = minimapTerrainHex(terrain);
+        const tintedHex = minimapThemeHex(baseHex);
+        const shade = floors > 1 ? Math.min(0.45, (floors - 1) * 0.10) : 0;
+        const bgHex = shade > 0 ? minimapMixHex(tintedHex, 0x000000, shade) : tintedHex;
+        const cellEl = document.createElement('div');
+        cellEl.className = 'stacked-map-cell';
+        if (x === N - 1) cellEl.classList.add('is-edge-right');
+        if (z === N - 1) cellEl.classList.add('is-edge-bottom');
+        if (gx === Math.floor(target.x + GRID_W / 2) && gz === Math.floor(target.z + GRID_D / 2)) cellEl.classList.add('is-focused');
+        if (!cell) cellEl.classList.add('is-empty');
+        if (cell && cell.kind) cellEl.classList.add('is-populated');
+        cellEl.dataset.floors = String(floors);
+        cellEl.style.background = `linear-gradient(180deg, ${minimapHexToCss(minimapMixHex(bgHex, 0xffffff, 0.26))}, ${minimapHexToCss(bgHex)})`;
+        cellEl.innerHTML = `<span class="stacked-map-number">${floors}</span>`;
+        fragment.appendChild(cellEl);
       }
     }
-    // Kind silhouettes.
-    for (let x = 0; x < N; x++) {
-      for (let z = 0; z < N; z++) {
-        const gx = startGx + x;
-        const gz = startGz + z;
-        if (!minimapShouldDrawCell(gx, gz)) continue;
-        const cell = minimapGlobalCell(gx, gz);
-        if (!cell || !cell.kind) continue;
-        drawMinimapProp(ctx, cell.kind, x * cw + cw / 2, z * ch + ch / 2, Math.min(cw, ch));
-      }
-    }
-    // Home-board outline plus current camera target. The map can pan across
-    // preview boards, so this keeps orientation obvious when the 2D window
-    // drifts away from the saved home grid.
-    ctx.save();
-    ctx.strokeStyle = 'rgba(255,255,255,0.70)';
-    ctx.lineWidth = Math.max(1, W * 0.006);
-    ctx.strokeRect((0 - startGx) * cw, (0 - startGz) * ch, GRID_W * cw, GRID_D * ch);
-    const tx = (target.x + GRID_W / 2 - startGx) * cw;
-    const tz = (target.z + GRID_D / 2 - startGz) * ch;
-    ctx.strokeStyle = 'rgba(42,39,34,0.60)';
-    ctx.lineWidth = Math.max(1, W * 0.004);
-    ctx.beginPath();
-    ctx.arc(tx, tz, Math.max(4, Math.min(cw, ch) * 0.28), 0, Math.PI * 2);
-    ctx.moveTo(tx - Math.max(5, cw * 0.45), tz);
-    ctx.lineTo(tx + Math.max(5, cw * 0.45), tz);
-    ctx.moveTo(tx, tz - Math.max(5, ch * 0.45));
-    ctx.lineTo(tx, tz + Math.max(5, ch * 0.45));
-    ctx.stroke();
-    ctx.restore();
-  }
-  function drawMinimapProp(ctx, kind, cx, cy, size) {
-    const s = size;
-    ctx.lineWidth = Math.max(0.4, s * 0.04);
-    if (kind === 'house') {
-      ctx.fillStyle = minimapColor('roofBlue', '#3a72c8');
-      ctx.beginPath();
-      ctx.moveTo(cx - s * 0.32, cy + s * 0.28);
-      ctx.lineTo(cx - s * 0.32, cy - s * 0.04);
-      ctx.lineTo(cx,            cy - s * 0.34);
-      ctx.lineTo(cx + s * 0.32, cy - s * 0.04);
-      ctx.lineTo(cx + s * 0.32, cy + s * 0.28);
-      ctx.closePath();
-      ctx.fill();
-    } else {
-      ctx.fillStyle = minimapThemeCss('#3a3a3a');
-      ctx.fillRect(cx - s * 0.20, cy - s * 0.20, s * 0.40, s * 0.40);
-    }
+    map.appendChild(fragment);
   }
 
   (function wireMinimap() {
@@ -10064,7 +10098,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     applyStoredMinimapPos();
 
     // -- map panning --
-    // Dragging the canvas pans the world/camera target. Drag the card chrome
+    // Dragging the stacked map pans the world/camera target. Drag the card chrome
     // or footer if you want to move the minimap widget itself.
     let mapPan = null;
     function panWorldFromMinimapEvent(e) {
@@ -10141,6 +10175,8 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
   // order-independent. Time/weather changes are CSS-only (tod-* / weather-*
   // body classes drive #tod-tint). Dev mode delegates to toggleStatsOverlay.
   (function wireTopbarPopups() {
+    const controlsMenu = document.getElementById('controls-menu');
+    const controlsToggle = document.getElementById('controls-toggle');
     const viewBtn = document.getElementById('view-modes');
     const viewPopup = document.getElementById('view-popup');
     const timeBtn = document.getElementById('time-weather');
@@ -10148,6 +10184,11 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     const devBtn = document.getElementById('dev-mode');
 
     function closeAllPopups() {
+      if (controlsMenu) controlsMenu.hidden = true;
+      if (controlsToggle) {
+        controlsToggle.classList.remove('active');
+        controlsToggle.setAttribute('aria-expanded', 'false');
+      }
       if (viewPopup) viewPopup.hidden = true;
       if (timePopup) timePopup.hidden = true;
     }
@@ -10156,6 +10197,10 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
       const wasOpen = !el.hidden;
       closeAllPopups();
       el.hidden = wasOpen;
+    }
+
+    if (controlsMenu) {
+      controlsMenu.addEventListener('click', e => e.stopPropagation());
     }
 
     // -- view modes --
