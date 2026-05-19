@@ -5398,6 +5398,7 @@
     raycaster.setFromCamera(ndc, camera);
 
     let best = null;
+    let blockedByGhostBoard = false;
     worldGroup.updateWorldMatrix(true, true);
 
     worldGroup.traverse(obj => {
@@ -5412,6 +5413,10 @@
         if (best && dist >= best.dist) return;
         const boardX = n.userData.boardX || 0;
         const boardZ = n.userData.boardZ || 0;
+        if (boardX || boardZ) {
+          blockedByGhostBoard = true;
+          return;
+        }
         const p = (boardX || boardZ)
           ? ghostCellPos(boardX, boardZ, n.userData.gx, n.userData.gz)
           : tilePos(n.userData.gx, n.userData.gz);
@@ -5429,6 +5434,7 @@
       }
     });
 
+    if (blockedByGhostBoard) return null;
     if (best) {
       return best;
     }
@@ -5884,7 +5890,7 @@
   let pinchPrevMid = null;
   function updateHoverAt(x, y) {
     const cell = pickTile(x, y);
-    if (cell) {
+    if (cell && !(cell.boardX || cell.boardZ)) {
       hoverMesh.position.set(cell.worldX, hoverHeightForCell(cell), cell.worldZ);
       hoverMesh.visible = true;
       currentHover = cell;
