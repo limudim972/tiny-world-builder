@@ -2189,13 +2189,6 @@
     <button class="btn icon" id="reset" data-tooltip="Reset world" aria-label="Reset world">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
     </button>
-    <button class="btn icon" id="export" data-tooltip="Export JSON" aria-label="Export world as JSON">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
-    </button>
-    <button class="btn icon" id="import" data-tooltip="Import JSON" aria-label="Import world from JSON">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>
-    </button>
-    <input type="file" id="import-file" accept=".json,application/json" hidden />
     <button class="btn icon" id="clear" data-tooltip="Clear to grass" aria-label="Clear world to grass">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
     </button>
@@ -6487,63 +6480,6 @@
   const perspBtn = document.getElementById('persp');
   perspBtn.addEventListener('click', togglePerspective);
 
-  // Export current world to a downloadable JSON file. Same schema as the
-  // localStorage save, so an exported file can be re-imported on any
-  // machine and re-rendered through whatever the current rules are.
-  document.getElementById('export').addEventListener('click', () => {
-    const cells = [];
-    for (let x = 0; x < GRID_W; x++) {
-      if (!world[x]) continue;
-      for (let z = 0; z < GRID_D; z++) {
-        const c = world[x][z];
-        if (c) {
-          const entry = serializeCell(x, z, c);
-          if (entry) cells.push(entry);
-        }
-      }
-    }
-    // Also export cells outside the home board
-    for (let x = -GRID_W; x < GRID_W * 2; x++) {
-      if (x >= 0 && x < GRID_W) continue;
-      if (!world[x]) continue;
-      for (let z = -GRID_D; z < GRID_D * 2; z++) {
-        const c = world[x][z];
-        if (c) {
-          const entry = serializeCell(x, z, c);
-          if (entry) cells.push(entry);
-        }
-      }
-    }
-    const data = { v: STORAGE_VERSION, gridSize: boardSizeKey(), gridWidth: GRID_W, gridDepth: GRID_D, cells, cameraMode, toolId: selectedTool && selectedTool.id };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url  = URL.createObjectURL(blob);
-    const ts   = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'tinyworld-' + ts + '.json';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 0);
-  });
-
-  // Import a previously-exported JSON file. Validation lives in applyState.
-  const importFile = document.getElementById('import-file');
-  document.getElementById('import').addEventListener('click', () => importFile.click());
-  importFile.addEventListener('change', async (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      if (!applyState(data)) throw new Error('schema check failed');
-    } catch (err) {
-      console.error('Import failed:', err);
-      alert('Could not import that file — not a valid Tiny World JSON.');
-    }
-    e.target.value = '';
-  });
-
   function togglePerspective() {
     const next = cameraMode === 'ortho' ? 'soft' : (cameraMode === 'soft' ? 'perspective' : 'ortho');
     setCameraMode(next);
@@ -8798,9 +8734,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
 
   // -------- world schema (canonical) --------
   // Embedded copy of world.schema.json. Used as the validation contract
-  // for generated worlds. The schema also defines the import format accepted
-  // by applyState — exporting writes tuples for compactness, but applyState
-  // accepts the object form too (so procedural input drops in unchanged).
+  // for generated worlds and state restoration.
   const WORLD_SCHEMA = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://tinyworld.local/world.schema.json",
@@ -9312,8 +9246,9 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
   }
 
   // Apply a parsed state object to the world. Used by both localStorage
-  // restore and JSON file import. Accepts schema v1/v2 cells where `floors`
-  // was overloaded, v3 cells with separate terrainFloors, and v4 fence sides.
+  // restore and procedural generation. Accepts schema v1/v2 cells where
+  // `floors` was overloaded, v3 cells with separate terrainFloors, and v4
+  // fence sides.
   function applyState(data) {
     if (!data || !Array.isArray(data.cells)) return false;
     data = normalizeWorldCells(data);
@@ -10675,8 +10610,6 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
       items.push({ group: 'Scene', label: 'Toggle developer overlay', hint: 'FPS / draws / tris', kbd: '`', run: topBtnAction('dev-mode') });
       items.push({ group: 'World', label: 'Reset world', hint: 'back to the starter scene', run: topBtnAction('reset') });
       items.push({ group: 'World', label: 'Clear to grass', hint: 'wipe to empty grass', run: topBtnAction('clear') });
-      items.push({ group: 'World', label: 'Export world as JSON', run: topBtnAction('export') });
-      items.push({ group: 'World', label: 'Import world from JSON', run: topBtnAction('import') });
       items.push({ group: 'World', label: 'Generate procedurally (offline)', hint: 'seed + biomes, offline', run: () => {
         try {
           const seed = randomSeed();
