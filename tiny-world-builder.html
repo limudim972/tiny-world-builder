@@ -5309,12 +5309,12 @@
   }
 
   function ghostToolSignature(tool) {
-    if (!tool || tool.erase || tool.auto) return null;
+    if (!tool || tool.auto) return null;
     return tool.id + '|' + (tool.kind || tool.terrain || '');
   }
 
   function buildGhostMesh(tool) {
-    if (!tool || tool.erase || tool.auto) return null;
+    if (!tool || tool.auto) return null;
     const kind = tool.kind;
     let mesh = null;
     if (kind === 'house') {
@@ -5477,11 +5477,14 @@
     { id: 'snow',   label: 'Snow',   terrain: 'snow',  color: '#f2f5fa' },
     { id: 'plane',  label: 'Plane',  kind: 'plane', color: '#d8a24a' },
     { id: 'house',  label: 'Cottage', kind: 'house', color: '#3a72c8', shortcut: '5' },
-    { id: 'erase',  label: 'Erase',  erase: true, color: 'transparent', eraser: true, shortcut: 'e' },
   ];
 
   const DEFAULT_TOOL = TOOLS.find(t => t.id === 'house');
   let selectedTool = DEFAULT_TOOL;
+
+  function returnToCottageMode() {
+    if (selectedTool !== DEFAULT_TOOL) selectTool(DEFAULT_TOOL);
+  }
 
   // -------- toolbar 3D thumbnails --------
   // Each tool button gets a mini 3D render of its object/terrain via a
@@ -5683,11 +5686,12 @@
   }
 
   function buildToolButton(t, opts) {
+    const momentary = !!(opts && opts.momentary);
     const btn = document.createElement('button');
     btn.className = 'tool' + ((opts && opts.flyout) ? ' flyout-tool' : '') + (t.eraser ? ' icon-only' : '');
-    btn.dataset.id = t.id;
     btn.type = 'button';
-    const toolTip = t.label + (t.shortcut ? ' (' + t.shortcut.toUpperCase() + ')' : '');
+    if (!momentary) btn.dataset.id = t.id;
+    const toolTip = (opts && opts.tooltip) || (t.label + (t.shortcut ? ' (' + t.shortcut.toUpperCase() + ')' : ''));
     btn.title = toolTip;
     btn.setAttribute('data-tooltip', toolTip);
 
@@ -5728,6 +5732,10 @@
     if (!(opts && opts.noClick)) {
       btn.addEventListener('click', e => {
         e.stopPropagation();
+        if (momentary) {
+          if (typeof opts.onClick === 'function') opts.onClick();
+          return;
+        }
         selectTool(t);
         if (t.kind === 'plane') startBannerRun('עולם קטן');
       });
@@ -5740,7 +5748,7 @@
         if (e.pointerType === 'mouse') stopThumbHover(t.id);
       });
     }
-    if (t === selectedTool) btn.classList.add('active');
+    if (!momentary && t === selectedTool) btn.classList.add('active');
     return btn;
   }
 
@@ -5763,17 +5771,33 @@
     });
     bar.appendChild(menuBtn);
 
-    const cottage = TOOLS.find(t => t.id === 'house');
-    if (cottage) bar.appendChild(buildToolButton(cottage));
     const plane = TOOLS.find(t => t.id === 'plane');
-    if (plane) bar.appendChild(buildToolButton(plane));
+    if (plane) {
+      bar.appendChild(buildToolButton(plane, {
+        momentary: true,
+        tooltip: 'Run banner',
+        onClick: () => {
+          startBannerRun('עולם קטן');
+          returnToCottageMode();
+        },
+      }));
+    }
 
     const divider = document.createElement('div');
     divider.className = 'toolbar-divider';
     bar.appendChild(divider);
 
-    const erase = TOOLS.find(t => t.id === 'erase');
-    if (erase) bar.appendChild(buildToolButton(erase));
+    bar.appendChild(buildToolButton({
+      id: 'delete',
+      label: 'Clear',
+      eraser: true,
+      color: 'transparent',
+      shortcut: 'e',
+    }, {
+      momentary: true,
+      tooltip: 'Clear hovered cell to grass (E)',
+      onClick: clearHoveredCellToGrass,
+    }));
 
     const audioPanel = document.getElementById('audio-panel');
     if (audioPanel) bar.appendChild(audioPanel);
@@ -5782,6 +5806,7 @@
 
   function updateToolActiveStates() {
     document.querySelectorAll('.tool').forEach(b => {
+      if (!b.dataset.id) return;
       b.classList.toggle('active', b.dataset.id === selectedTool.id);
     });
   }
@@ -5801,7 +5826,7 @@
   function selectTool(t) {
     selectedTool = t;
     updateToolActiveStates();
-    hoverMesh.material = t.erase ? M.hoverErase : M.hover;
+    hoverMesh.material = M.hover;
     // Rebuild the ghost preview for the new tool — reset any
     // user-applied rotation/offset so they don't bleed across tools.
     ensureGhostPreview();
@@ -5865,6 +5890,42 @@
     }
   }
 
+  function clearHoveredCellToGrass() {
+    const cell = currentHover;
+    if (!cell) {
+      returnToCottageMode();
+      return;
+    }
+    clearPendingHouseClick();
+    const hasGhostBoard = cell.boardX || cell.boardZ;
+    const x = hasGhostBoard ? globalXForBoardCell(cell.boardX || 0, cell.x) : cell.x;
+    const z = hasGhostBoard ? globalZForBoardCell(cell.boardZ || 0, cell.z) : cell.z;
+    if (typeof playSfx === 'function') playSfx('whoosh');
+    if (hasGhostBoard) {
+      removeGhostCellMesh(cell.boardX, cell.boardZ, cell.x, cell.z);
+    }
+    setCell(x, z, {
+      terrain: 'grass',
+      terrainFloors: 1,
+      kind: null,
+      floors: 1,
+      buildingType: null,
+      rotationY: 0,
+      offsetX: 0,
+      offsetZ: 0,
+      animate: false,
+      impactDust: false,
+      forceTile: true,
+      userEdited: true,
+    });
+    const entry = cellMeshes[x + ',' + z];
+    if (entry) {
+      if (entry.tile)   { entry.tile.userData.revealed = true;   setElementOpacity(entry.tile, 1, true); }
+      if (entry.object) { entry.object.userData.revealed = true; setElementOpacity(entry.object, 1, true); }
+    }
+    returnToCottageMode();
+  }
+
   // Read the current ghost rotation/offset to attach to a fresh setCell.
   // Resets the live ghost transform so the next placement starts clean.
   function consumeGhostTransform() {
@@ -5882,11 +5943,6 @@
     // Ensure world row exists
     if (!world[x]) world[x] = [];
     const cell = world[x][z] || { terrain: 'grass', terrainFloors: 1, kind: null, floors: 1, buildingType: null };
-    if (selectedTool.erase) {
-      if (cell.kind) setCell(x, z, { terrain: cell.terrain, terrainFloors: terrainLevelForCell(cell), kind: null, floors: 1 });
-      else if (cell.terrain !== 'grass') setCell(x, z, { terrain: 'grass', terrainFloors: terrainLevelForCell(cell), kind: null, floors: 1 });
-      return;
-    }
     if (selectedTool.kind === 'house') {
       const floors = cell.kind === 'house' ? Math.min((cell.floors || 1) + 1, MAX_FLOORS) : 1;
       const gtf = consumeGhostTransform();
@@ -5903,6 +5959,7 @@
     }
     if (selectedTool.kind === 'plane') {
       startBannerRun('עולם קטן');
+      returnToCottageMode();
       return;
     }
     if (selectedTool.terrain) {
@@ -6010,6 +6067,7 @@
     }
     if (selectedTool.kind === 'plane' && worldCell.kind === 'plane') {
       startBannerRun('עולם קטן');
+      returnToCottageMode();
       return;
     }
     applyToolToCell(cell);
@@ -6245,6 +6303,11 @@
     const shortcutTool = TOOLS.find(x => !x.hidden && x.shortcut && x.shortcut.toLowerCase() === k);
     if (shortcutTool) {
       selectTool(shortcutTool);
+      return;
+    }
+    if (k === 'e') {
+      e.preventDefault();
+      clearHoveredCellToGrass();
       return;
     }
     if (k === 'c') doClear();
@@ -7072,7 +7135,6 @@
 
   function playSfxForTool(tool) {
     if (!tool || tool.auto) return;
-    if (tool.erase) { playSfx('whoosh'); return; }
     if (tool.kind === 'house') { playSfx('knock'); return; }
     if (tool.kind === 'plane') { playSfx('rustle'); return; }
     if (tool.kind || tool.terrain) { playSfx('rustle'); return; }
@@ -9126,7 +9188,6 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
           gridDepth: GRID_D,
           cells: snapshotCells(),
           cameraMode,
-          toolId: selectedTool && selectedTool.id,
         }));
       } catch (_) {}
     }, 200);
@@ -9295,10 +9356,6 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
 
     if (data.cameraMode && typeof setCameraMode === 'function') {
       try { setCameraMode(data.cameraMode); } catch (_) {}
-    }
-    if (data.toolId) {
-      const tool = TOOLS.find(t => t.id === data.toolId);
-      if (tool) selectTool(tool);
     }
     saveState();
     return true;
@@ -10339,6 +10396,9 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
       items.push({ group: 'סצנה', label: 'הצגת שכבת מפתח', hint: 'FPS / draws / tris', kbd: '`', run: topBtnAction('dev-mode') });
       items.push({ group: 'עולם', label: 'איפוס העולם', hint: 'חזרה לסצנת הפתיחה', run: topBtnAction('reset') });
       items.push({ group: 'עולם', label: 'ניקוי לדשא', hint: 'מחיקה לדשא ריק', run: topBtnAction('clear') });
+      items.push({ group: 'עולם', label: 'ניקוי תא בסמן', hint: 'מחזיר את התא שמתחת לסמן לדשא', kbd: 'E', run: () => {
+        if (typeof clearHoveredCellToGrass === 'function') clearHoveredCellToGrass();
+      } });
       items.push({ group: 'עולם', label: 'יצירה פרוצדורלית (לא מקוון)', hint: 'seed + biomes, offline', run: () => {
         try {
           const seed = randomSeed();
