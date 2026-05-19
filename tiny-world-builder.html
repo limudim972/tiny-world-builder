@@ -1049,13 +1049,7 @@
     overflow: hidden;
     border: 1px solid rgba(42, 39, 34, 0.24);
     background: rgba(255, 255, 255, 0.65);
-    background-image:
-      linear-gradient(to right, transparent calc(100% - 1px), rgba(42, 39, 34, 0.18) calc(100% - 1px)),
-      linear-gradient(to bottom, transparent calc(100% - 1px), rgba(42, 39, 34, 0.18) calc(100% - 1px));
-    background-size:
-      calc(100% / var(--minimap-cols, 1)) 100%,
-      100% calc(100% / var(--minimap-rows, 1));
-    background-repeat: repeat;
+    place-content: center;
     direction: ltr;
     user-select: none;
     touch-action: none;
@@ -9782,16 +9776,15 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     const size = minimapViewCellCounts();
     const W = Math.max(1, size.width);
     const D = Math.max(1, size.depth);
+    const cellSize = Math.max(1, Math.floor(Math.min(map.clientWidth / W, map.clientHeight / D)));
     const centerGx = Math.floor(target.x + GRID_W / 2);
     const centerGz = Math.floor(target.z + GRID_D / 2);
     const startGx = centerGx - Math.floor(W / 2);
     const startGz = centerGz - Math.floor(D / 2);
     const sizeEl = document.getElementById('minimap-size');
     if (sizeEl) sizeEl.textContent = minimapSizeLabel();
-    map.style.setProperty('--minimap-cols', W);
-    map.style.setProperty('--minimap-rows', D);
-    map.style.gridTemplateColumns = `repeat(${W}, minmax(0, 1fr))`;
-    map.style.gridTemplateRows = `repeat(${D}, minmax(0, 1fr))`;
+    map.style.gridTemplateColumns = `repeat(${W}, ${cellSize}px)`;
+    map.style.gridTemplateRows = `repeat(${D}, ${cellSize}px)`;
     map.textContent = '';
     const fragment = document.createDocumentFragment();
     for (let z = 0; z < D; z++) {
