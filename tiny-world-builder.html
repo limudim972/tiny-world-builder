@@ -265,65 +265,11 @@
       padding: 6px 8px;
     }
   }
-  .audio-row {
-    display: grid;
-    grid-template-columns: 26px 1fr;
+  #audio-panel {
+    display: flex;
+    flex-direction: row;
     align-items: center;
-    gap: 8px;
-  }
-  .audio-row .audio-label {
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-  }
-  .audio-row input[type="range"] {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 100%;
-    height: 14px;
-    background: transparent;
-    cursor: pointer;
-    outline: none;
-  }
-  .audio-row input[type="range"]::-webkit-slider-runnable-track {
-    height: 4px;
-    border-radius: 999px;
-    background: rgba(120, 130, 150, 0.18);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset;
-  }
-  .audio-row input[type="range"]::-moz-range-track {
-    height: 4px;
-    border-radius: 999px;
-    background: rgba(120, 130, 150, 0.18);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset;
-  }
-  .audio-row input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 18px;
-    height: 14px;
-    margin-top: -5px;
-    border-radius: 5px;
-    background: rgba(255, 255, 255, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.95) inset,
-      0 1px 2px rgba(20, 30, 50, 0.18);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    cursor: pointer;
-  }
-  .audio-row input[type="range"]::-moz-range-thumb {
-    width: 18px;
-    height: 14px;
-    border-radius: 5px;
-    background: rgba(255, 255, 255, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.95) inset,
-      0 1px 2px rgba(20, 30, 50, 0.18);
-    cursor: pointer;
+    gap: 6px;
   }
   .audio-mute {
     width: 26px;
@@ -1958,20 +1904,14 @@
   </div>
 
   <div id="audio-panel" class="audio-panel" role="group" aria-label="בקרת צליל">
-    <div class="audio-row">
-      <button type="button" class="audio-mute" id="audio-music-mute" data-tooltip="השתקת מוזיקה" aria-label="השתקת מוזיקה">
-        <svg class="ic-on" viewBox="0 0 24 24"><path d="M9 18V6l11-3v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="15" r="3"/></svg>
-        <svg class="ic-off" viewBox="0 0 24 24"><path d="M9 18V6l11-3v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="15" r="3"/><path d="M3 3l18 18"/></svg>
-      </button>
-      <input type="range" id="audio-music-vol" min="0" max="100" step="1" aria-label="עוצמת מוזיקה" />
-    </div>
-    <div class="audio-row">
-      <button type="button" class="audio-mute" id="audio-sfx-mute" data-tooltip="השתקת אפקטים" aria-label="השתקת אפקטים">
-        <svg class="ic-on" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-        <svg class="ic-off" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6"/><path d="M16 9l6 6"/></svg>
-      </button>
-      <input type="range" id="audio-sfx-vol" min="0" max="100" step="1" aria-label="עוצמת אפקטים" />
-    </div>
+    <button type="button" class="audio-mute" id="audio-music-mute" data-tooltip="השתקת מוזיקה" aria-label="השתקת מוזיקה">
+      <svg class="ic-on" viewBox="0 0 24 24"><path d="M9 18V6l11-3v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="15" r="3"/></svg>
+      <svg class="ic-off" viewBox="0 0 24 24"><path d="M9 18V6l11-3v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="15" r="3"/><path d="M3 3l18 18"/></svg>
+    </button>
+    <button type="button" class="audio-mute" id="audio-sfx-mute" data-tooltip="השתקת אפקטים" aria-label="השתקת אפקטים">
+      <svg class="ic-on" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+      <svg class="ic-off" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6"/><path d="M16 9l6 6"/></svg>
+    </button>
   </div>
 
   <div class="controls" id="controls-menu" hidden>
@@ -7204,38 +7144,17 @@
     applyAudioState();
   }
 
-  // Audio panel wiring — sliders + mute toggles. Permanent bottom-right panel.
+  // Audio panel wiring — mute toggles only. Permanent bottom-right panel.
   (function setupAudioPanel() {
-    const musicVol = document.getElementById('audio-music-vol');
-    const sfxVol   = document.getElementById('audio-sfx-vol');
     const musicMute = document.getElementById('audio-music-mute');
     const sfxMute   = document.getElementById('audio-sfx-mute');
-    if (!musicVol || !sfxVol || !musicMute || !sfxMute) return;
+    if (!musicMute || !sfxMute) return;
 
     function syncMuteUi() {
       musicMute.classList.toggle('muted', audioMusicMuted);
       sfxMute.classList.toggle('muted', audioSfxMuted);
     }
-    function syncValues() {
-      musicVol.value = Math.round(audioMusicVolume * 100);
-      sfxVol.value   = Math.round(audioSfxVolume   * 100);
-      syncMuteUi();
-    }
-    syncValues();
-
-    musicVol.addEventListener('input', () => {
-      setMusicVolume(parseFloat(musicVol.value) / 100);
-      if (audioMusicVolume > 0 && audioMusicMuted) { setMusicMuted(false); syncMuteUi(); }
-    });
-    sfxVol.addEventListener('input', () => {
-      setSfxVolume(parseFloat(sfxVol.value) / 100);
-      if (audioSfxVolume > 0 && audioSfxMuted) { setSfxMuted(false); syncMuteUi(); }
-    });
-    // Brief audible preview on SFX slider release so the user can hear the
-    // new level without having to place a tile.
-    sfxVol.addEventListener('change', () => {
-      if (!audioSfxMuted) playSfx('rustle');
-    });
+    syncMuteUi();
 
     musicMute.addEventListener('click', () => {
       setMusicMuted(!audioMusicMuted);
