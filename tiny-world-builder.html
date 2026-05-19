@@ -5071,10 +5071,14 @@
     if (kind === 'house' && isUnderpassTerrain(cell.terrain)) {
       mesh = wrapHouseForUnderpass(mesh, cell.terrain);
     }
+    const autoRot = (kind === 'house' && (cell.buildingType === 'cottage' || cell.buildingType == null))
+      ? cottageFacingForCell(x, z)
+      : null;
     const userRot     = (cell.rotationY || 0);
     const userOffsetX = (cell.offsetX   || 0);
     const userOffsetZ = (cell.offsetZ   || 0);
-    if (userRot) mesh.rotation.y += userRot;
+    if (autoRot !== null) mesh.rotation.y += autoRot;
+    else if (userRot) mesh.rotation.y += userRot;
     const objectY = TOP_H + terrainRiseAt(x, z) + (kind === 'plane' ? 0.35 : 0);
     mesh.position.set(posX + userOffsetX, objectY, posZ + userOffsetZ);
     if (setGridUserData) {
@@ -5119,7 +5123,7 @@
     // whenever the kind changes so a fresh placement starts at the
     // default orientation.
     const kindIsNew = (prev.kind || null) !== nextKind;
-    const autoRotationY = (nextKind === 'house' && newBType === 'cottage' && rotationY === undefined)
+    const autoRotationY = (nextKind === 'house' && (newBType === 'cottage' || newBType == null) && rotationY === undefined)
       ? cottageFacingForCell(x, z)
       : 0;
     const newRotationY = (rotationY !== undefined) ? rotationY : (autoRotationY || (kindIsNew ? 0 : (prev.rotationY || 0)));
@@ -5980,15 +5984,19 @@
     if (selectedTool.kind === 'house') {
       const floors = cell.kind === 'house' ? Math.min((cell.floors || 1) + 1, MAX_FLOORS) : 1;
       const gtf = consumeGhostTransform();
-      setCell(x, z, {
+      const nextCell = {
         terrain: selectedTool.terrainOverride || cell.terrain,
         terrainFloors: terrainLevelForCell(cell),
         kind: 'house',
         floors,
-        rotationY: gtf.rotationY,
-        offsetX: gtf.offsetX,
-        offsetZ: gtf.offsetZ,
-      });
+        buildingType: 'cottage',
+      };
+      if (gtf.rotationY || gtf.offsetX || gtf.offsetZ) {
+        nextCell.rotationY = gtf.rotationY;
+        nextCell.offsetX = gtf.offsetX;
+        nextCell.offsetZ = gtf.offsetZ;
+      }
+      setCell(x, z, nextCell);
       return;
     }
     if (selectedTool.kind === 'plane') {
