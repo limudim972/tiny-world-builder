@@ -13,6 +13,7 @@ Use separate terrain and object layers:
 Expected behavior:
 
 - Re-clicking the same object kind increases `floors` up to `MAX_FLOORS`.
+- Hover/click on a house roof should resolve to the house's anchor cell, even when the roof overlaps neighboring tiles.
 - Terrain tools on empty terrain cells should stack height using `terrainFloors`.
 - Raised terrain should lift the tile top and any object on that cell via `terrainRiseAt`.
 - Terrain height changes must rebuild the visible tile mesh immediately, even when terrain/kind did not change.

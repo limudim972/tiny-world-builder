@@ -5024,26 +5024,22 @@
       } else if (cluster.kind === 'linear') {
         mesh = makeStretchedHouse(cluster.length, cluster.orientation, floors);
         // Position at cluster CENTRE (not the anchor cell), so the visible house
-        // spans the run cleanly. Skip gx/gz so pickTile falls through to whichever
-        // tile is actually under the cursor.
+        // spans the run cleanly while still resolving picks back to the anchor.
         const a = tilePos(cluster.anchorX, cluster.anchorZ);
         posX = a.x; posZ = a.z;
         if (cluster.orientation === 'x') posX += (cluster.length - 1) * TILE / 2;
         else                              posZ += (cluster.length - 1) * TILE / 2;
-        setGridUserData = false;
       } else if (cluster.kind === 'composite') {
         mesh = buildCompositeHouse(cluster.topology, floors);
         // Position at cluster bounding-box centre so wings fall in place.
         const t = cluster.topology;
         posX = cellWorldX((t.bbox.xMin + t.bbox.xMax) / 2);
         posZ = cellWorldZ((t.bbox.zMin + t.bbox.zMax) / 2);
-        setGridUserData = false;
       } else if (cluster.kind === 'square') {
         mesh = buildSquareHouse(floors);
         // Centre the 2x2 mesh between the four cells.
         posX = cellWorldX(cluster.anchorX + 0.5);
         posZ = cellWorldZ(cluster.anchorZ + 0.5);
-        setGridUserData = false;
       }
     } else return;
 
@@ -5393,34 +5389,39 @@
   const pickBox = new THREE.Box3();
 
   function pickTile(clientX, clientY) {
-    ndc.x = (clientX / window.innerWidth) * 2 - 1;
-    ndc.y = -(clientY / window.innerHeight) * 2 + 1;
+    const rect = renderer.domElement.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return null;
+    ndc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    ndc.y = -((clientY - rect.top) / rect.height) * 2 + 1;
     raycaster.setFromCamera(ndc, camera);
 
-    let best = null;
-    let blockedByGhostBoard = false;
+    let bestHouse = null;
+    let bestTile = null;
+    let closestGhostDist = null;
     worldGroup.updateWorldMatrix(true, true);
+    const seenRoots = new Set();
 
     worldGroup.traverse(obj => {
-      if (!obj.isMesh || !obj.visible) return;
+      if (!obj.visible) return;
       let n = obj;
       while (n && n.userData && n.userData.gx === undefined) n = n.parent;
       if (!n || !n.userData || n.userData.gx === undefined) return;
-      if (n.userData.fadeRole === 'tile' || n.userData.fadeRole === 'object' || n.userData.kind === 'house' || n.userData.boardX !== undefined) {
-        pickBox.setFromObject(obj);
+      if (seenRoots.has(n)) return;
+      seenRoots.add(n);
+      if (n.userData.fadeRole === 'tile' || n.userData.fadeRole === 'object' || n.userData.boardX !== undefined) {
+        pickBox.setFromObject(n);
         if (!raycaster.ray.intersectBox(pickBox, pickPoint)) return;
         const dist = raycaster.ray.origin.distanceTo(pickPoint);
-        if (best && dist >= best.dist) return;
         const boardX = n.userData.boardX || 0;
         const boardZ = n.userData.boardZ || 0;
         if (boardX || boardZ) {
-          blockedByGhostBoard = true;
+          if (closestGhostDist === null || dist < closestGhostDist) closestGhostDist = dist;
           return;
         }
         const p = (boardX || boardZ)
           ? ghostCellPos(boardX, boardZ, n.userData.gx, n.userData.gz)
           : tilePos(n.userData.gx, n.userData.gz);
-        best = {
+        const hit = {
           dist,
           x: n.userData.gx,
           z: n.userData.gz,
@@ -5431,14 +5432,17 @@
           localX: pickPoint.x - p.x,
           localZ: pickPoint.z - p.z,
         };
+        if (n.userData.kind === 'house') {
+          if (!bestHouse || dist < bestHouse.dist) bestHouse = hit;
+        } else if (!bestTile || dist < bestTile.dist) {
+          bestTile = hit;
+        }
       }
     });
 
-    if (blockedByGhostBoard) return null;
-    if (best) {
-      return best;
-    }
-    return null;
+    const bestHome = bestHouse || bestTile || null;
+    if (closestGhostDist !== null && (!bestHome || closestGhostDist <= bestHome.dist)) return null;
+    return bestHome;
   }
 
   function hoverHeightForCell(cell) {
@@ -5888,6 +5892,7 @@
   const activePointers = new Map(); // pointerId -> {x, y, type}
   let pinchPrevDist = 0;
   let pinchPrevMid = null;
+  let pendingHouseClick = null;
   function updateHoverAt(x, y) {
     const cell = pickTile(x, y);
     if (cell && !(cell.boardX || cell.boardZ)) {
@@ -5899,6 +5904,62 @@
       currentHover = null;
     }
     updateGhostPlacement();
+  }
+
+  function clearPendingHouseClick() {
+    if (pendingHouseClick && pendingHouseClick.timer) clearTimeout(pendingHouseClick.timer);
+    pendingHouseClick = null;
+  }
+
+  function worldCellForHover(cell) {
+    if (!cell) return null;
+    if (typeof getWorldCell === 'function' && cell.x !== undefined && cell.z !== undefined) {
+      return getWorldCell(cell.x, cell.z) || cell;
+    }
+    return cell;
+  }
+
+  function queueHouseClick(cell) {
+    clearPendingHouseClick();
+    pendingHouseClick = {
+      x: cell.x,
+      z: cell.z,
+      timer: setTimeout(() => {
+        pendingHouseClick = null;
+        applyToolToCell({ x: cell.x, z: cell.z, boardX: cell.boardX, boardZ: cell.boardZ });
+      }, 650),
+    };
+  }
+
+  function removeHouseFloor(cell) {
+    const worldCell = worldCellForHover(cell);
+    clearPendingHouseClick();
+    const nextFloors = Math.max(1, (worldCell.floors || 1) - 1);
+    if (nextFloors === (worldCell.floors || 1)) return;
+    setCell(cell.x, cell.z, {
+      terrain: worldCell.terrain,
+      terrainFloors: terrainLevelForCell(worldCell),
+      kind: 'house',
+      floors: nextFloors,
+      buildingType: worldCell.buildingType || null,
+      rotationY: worldCell.rotationY || 0,
+      offsetX: worldCell.offsetX || 0,
+      offsetZ: worldCell.offsetZ || 0,
+    });
+  }
+
+  function handleMouseClick(cell) {
+    if (!cell) return;
+    const worldCell = worldCellForHover(cell);
+    if (selectedTool.kind === 'house' && worldCell.kind === 'house') {
+      if (pendingHouseClick && pendingHouseClick.x === cell.x && pendingHouseClick.z === cell.z) {
+        removeHouseFloor(cell);
+      } else {
+        queueHouseClick(cell);
+      }
+      return;
+    }
+    applyToolToCell(cell);
   }
 
   renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
@@ -6009,7 +6070,7 @@
       return;
     }
 
-    if (pointerDown && !didDrag && currentHover && dragMode !== 'pan') {
+    if (pointerDown && !didDrag && currentHover && dragMode !== 'pan' && e.pointerType !== 'mouse') {
       applyToolToCell(currentHover);
     }
     if (activePointers.size === 0) {
@@ -6022,6 +6083,12 @@
         currentHover = null;
       }
     }
+  });
+
+  renderer.domElement.addEventListener('click', e => {
+    if (e.pointerType && e.pointerType !== 'mouse') return;
+    if (!currentHover || didDrag || dragMode === 'pan') return;
+    handleMouseClick(currentHover);
   });
 
   renderer.domElement.addEventListener('pointercancel', e => {
