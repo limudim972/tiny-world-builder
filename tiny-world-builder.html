@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8" />
@@ -445,6 +445,14 @@
   }
   .toolbar .audio-row input[type="range"] {
     height: 14px;
+  }
+  .toolbar .rain-100-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 16px;
+    padding: 3px 3px 2px;
+    margin-left: 2px;
+    flex-shrink: 0;
   }
   .tool {
     width: 52px;
@@ -5754,6 +5762,22 @@
     });
     bar.appendChild(menuBtn);
 
+    const rainBtn = document.createElement('button');
+    rainBtn.className = 'tool icon-only rain-100-btn';
+    rainBtn.id = 'rain-100';
+    rainBtn.type = 'button';
+    rainBtn.setAttribute('data-tooltip', 'גשם 100%');
+    rainBtn.setAttribute('aria-label', 'גשם 100%');
+    rainBtn.innerHTML = '<span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 18a4 4 0 0 1 0-8 5 5 0 0 1 9.6-1.5A3.5 3.5 0 1 1 18 18z"/><path d="M8 19v2"/><path d="M12 19v2"/><path d="M16 19v2"/></svg></span><span>גשם 100%</span>';
+    rainBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (typeof window.setRain100Mode === 'function') window.setRain100Mode(!(typeof window.isRain100Mode === 'function' ? window.isRain100Mode() : false));
+      paintPills();
+      paintReadout();
+    });
+    bar.appendChild(rainBtn);
+    rain100Btn = rainBtn;
+
     const plane = TOOLS.find(t => t.id === 'plane');
     if (plane) {
       bar.appendChild(buildToolButton(plane, {
@@ -10002,6 +10026,8 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     const TOD_LS = 'tinyworld:tod.v1';
     const SEASON_LS = 'tinyworld:season.v1';
     const WEATHER_LS = 'tinyworld:weather.v1';
+    const RAIN_100_LS = 'tinyworld:rain-100.v1';
+    let rain100Btn = null;
     function todClassFromMinutes(min) {
       if (min < 360 || min >= 1260) return 'tod-night'; // 21:00 - 06:00
       if (min < 480) return 'tod-dawn';                  // 06:00 - 08:00
@@ -10037,6 +10063,41 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
       applyLights();
       if (typeof requestMinimapRepaint === 'function') requestMinimapRepaint();
     }
+    function syncRain100Button() {
+      if (rain100Btn) rain100Btn.classList.toggle('on', rain100);
+    }
+    function setRain100Mode(on) {
+      const nextOn = !!on;
+      if (nextOn === rain100) {
+        syncRain100Button();
+        return;
+      }
+      if (nextOn) {
+        rain100Snapshot = {
+          weather: weather,
+          intensity: weatherIntensity,
+          splashes: weatherSplashIntensity,
+        };
+        weather = 'rain';
+        if (typeof setWeatherIntensity === 'function') setWeatherIntensity(1);
+        if (typeof setWeatherSplashIntensity === 'function') setWeatherSplashIntensity(0);
+        applyWeather('rain');
+      } else {
+        const prev = rain100Snapshot || { weather: 'clear', intensity: 0.25, splashes: 1.5 };
+        weather = prev.weather;
+        if (typeof setWeatherIntensity === 'function') setWeatherIntensity(prev.intensity);
+        if (typeof setWeatherSplashIntensity === 'function') setWeatherSplashIntensity(prev.splashes);
+        applyWeather(weather);
+        rain100Snapshot = null;
+      }
+      rain100 = nextOn;
+      window.rain100 = rain100;
+      syncRain100Button();
+      try { localStorage.setItem(RAIN_100_LS, rain100 ? '1' : '0'); } catch (_) {}
+    }
+    window.setRain100Mode = setRain100Mode;
+    window.syncRain100Button = syncRain100Button;
+    window.isRain100Mode = () => rain100;
 
     // Capture light defaults the first time we run so we can modulate
     // around them without losing the baseline. Then every time a tod /
@@ -10177,6 +10238,8 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     let todMinutes = 720;
     let season = 'summer';
     let weather = 'clear';
+    let rain100 = false;
+    let rain100Snapshot = null;
     try {
       const t = parseInt(localStorage.getItem(TOD_LS), 10);
       if (Number.isFinite(t)) todMinutes = Math.max(0, Math.min(1439, t));
@@ -10188,6 +10251,11 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     applyTod(todMinutes);
     applySeason(season);
     applyWeather(weather);
+    let storedRain100 = false;
+    try { storedRain100 = localStorage.getItem(RAIN_100_LS) === '1'; } catch (_) {}
+    rain100 = false;
+    window.rain100 = rain100;
+    setRain100Mode(storedRain100);
 
     if (timeBtn && timePopup) {
       const range = document.getElementById('time-range');
@@ -10214,6 +10282,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
         if (intensityReadout) intensityReadout.textContent = Math.round(weatherIntensity * 100) + '%';
         if (splashesRange) splashesRange.value = String(Math.round(weatherSplashIntensity * 100));
         if (splashesReadout) splashesReadout.textContent = Math.round(weatherSplashIntensity * 100) + '%';
+        syncRain100Button();
       }
       paintPills(); paintReadout();
 
@@ -10263,6 +10332,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
           paintPills();
           paintReadout();
           try { localStorage.setItem(WEATHER_LS, weather); } catch (_) {}
+          if (rain100) setRain100Mode(true);
         });
       }
       if (intensityRange) {
@@ -10553,6 +10623,14 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
 
 
 
