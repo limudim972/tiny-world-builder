@@ -3350,6 +3350,41 @@
       return g;
     },
 
+    // Recessed perimeter groove that reads as a floor break on stacked cottages.
+    floorBand(width, depth, y) {
+      const g = new THREE.Group();
+      const grooveH = 0.05;
+      const grooveD = 0.035;
+      const outerW = width + 0.02;
+      const outerD = depth + 0.02;
+      const innerW = Math.max(0.05, width - 0.01);
+      const innerD = Math.max(0.05, depth - 0.01);
+      const shape = new THREE.Shape();
+      shape.moveTo(-outerW / 2, -outerD / 2);
+      shape.lineTo( outerW / 2, -outerD / 2);
+      shape.lineTo( outerW / 2,  outerD / 2);
+      shape.lineTo(-outerW / 2,  outerD / 2);
+      shape.lineTo(-outerW / 2, -outerD / 2);
+      const hole = new THREE.Path();
+      hole.moveTo(-innerW / 2, -innerD / 2);
+      hole.lineTo( innerW / 2, -innerD / 2);
+      hole.lineTo( innerW / 2,  innerD / 2);
+      hole.lineTo(-innerW / 2,  innerD / 2);
+      hole.lineTo(-innerW / 2, -innerD / 2);
+      shape.holes.push(hole);
+      const geo = new THREE.ExtrudeGeometry(shape, {
+        depth: grooveH,
+        bevelEnabled: false,
+        curveSegments: 1,
+      });
+      geo.rotateX(-Math.PI / 2);
+      const groove = new THREE.Mesh(geo, M.wallCream);
+      groove.position.y = y;
+      g.add(groove);
+
+      return g;
+    },
+
     // Door + arches + knob. orientation:
     //   'gable' — door faces +z, outer face at z=0 of the part's local frame.
     //   'side'  — door faces +x, outer face at x=0.
@@ -3461,30 +3496,43 @@
   // roof-style options may still be passed by callers but are intentionally
   // ignored so every footprint reads consistently.
   function buildHouse(cells, orientation = 'z', floors = 1, opts = {}) {
-    void opts;
     const g = new THREE.Group();
     const length = cells.length;
     // Solo cottage keeps its original slimmer depth. Clusters fill the cells.
     const WALL_D = (length === 1) ? 0.7 : length * TILE - 0.18;
     const halfW = H.WALL_W / 2;
     const halfD = WALL_D / 2;
-    const wallHTotal = H.WALL_H * floors;
-    const roofLift   = (floors - 1) * H.WALL_H;
+    const floorGap = floors > 1 ? 0.05 : 0;
+    const floorStep = H.WALL_H + floorGap;
+    const wallHTotal = H.WALL_H * floors + floorGap * Math.max(0, floors - 1);
+    const roofLift   = (floors - 1) * floorStep;
+    const showFloorBands = floors > 1;
 
-    // Walls — stretched in Y for upper floors. roundedBox extrudes from y=0
-    // upward, so no y-shift is needed: bottom sits at ground, top at wallHTotal.
-    const walls = new THREE.Mesh(roundedBox(H.WALL_W, wallHTotal, WALL_D, 0.04), M.wallCream);
-    g.add(walls);
+    // Walls are stacked per floor with a tiny gap between levels so the
+    // seam reads as a real notch around the whole building, not a painted trim.
+    for (let f = 0; f < floors; f++) {
+      const walls = new THREE.Mesh(roundedBox(H.WALL_W, H.WALL_H, WALL_D, 0.04), M.wallCream);
+      walls.position.y = f * floorStep;
+      g.add(walls);
+    }
 
     const roof = Parts.flatRoof(H.WALL_W, WALL_D);
     roof.position.y = roofLift;
     g.add(roof);
 
+    if (showFloorBands) {
+      for (let f = 1; f < floors; f++) {
+        const yBand = f * floorStep - floorGap / 2;
+        const band = Parts.floorBand(H.WALL_W, WALL_D, yBand);
+        g.add(band);
+      }
+    }
+
     // Per-floor windows for any floor above the ground floor — small windows on
     // both long sides AND on both gable faces (so tall houses don't have blank
     // gable walls).
     for (let f = 1; f < floors; f++) {
-      const yOff = f * H.WALL_H;
+      const yOff = f * floorStep;
       for (let i = 0; i < length; i++) {
         const cellZ = -((length - 1) / 2) + i;
         const wR = Parts.window('side', 'small');
@@ -3555,8 +3603,8 @@
     return g;
   }
 
-  function makeHouse(floors = 1) {
-    return buildHouse(linearHousePlan(1), 'z', floors);
+  function makeHouse(floors = 1, buildingType = null) {
+    return buildHouse(linearHousePlan(1), 'z', floors, { buildingType });
   }
 
   function isUnderpassTerrain(terrain) {
@@ -4960,7 +5008,7 @@
       const cluster = findHouseCluster(x, z);
       if (!cluster.isAnchor) return;          // non-anchor cluster cells render nothing
       if (cluster.kind === 'solo') {
-        mesh = makeHouse(floors);
+        mesh = makeHouse(floors, cell.buildingType || null);
       } else if (cluster.kind === 'linear') {
         mesh = makeStretchedHouse(cluster.length, cluster.orientation, floors);
         // Position at cluster CENTRE (not the anchor cell), so the visible house
