@@ -5717,7 +5717,8 @@
         momentary: true,
         tooltip: 'Run banner',
         onClick: () => {
-          startBannerRun('עולם קטן');
+          if (typeof zoomToMaxView === 'function') zoomToMaxView();
+          startBannerRun(BANNER_MESSAGES[Math.floor(Math.random() * BANNER_MESSAGES.length)]);
           returnToCottageMode();
         },
       }));
@@ -5726,6 +5727,9 @@
     const divider = document.createElement('div');
     divider.className = 'toolbar-divider';
     bar.appendChild(divider);
+
+    const audioPanel = document.getElementById('audio-panel');
+    if (audioPanel) bar.appendChild(audioPanel);
 
     bar.appendChild(buildToolButton({
       id: 'delete',
@@ -5738,9 +5742,6 @@
       tooltip: 'Clear all cells to grass (E)',
       onClick: doClear,
     }));
-
-    const audioPanel = document.getElementById('audio-panel');
-    if (audioPanel) bar.appendChild(audioPanel);
     updateToolActiveStates();
   }
 
@@ -6676,6 +6677,12 @@
     };
     homeTween = { start, end, t: 0, dur: 0.55 };
     if (typeof playSfx === 'function') playSfx('whoosh');
+  }
+  function zoomToMaxView() {
+    markCameraMoving();
+    viewSize = 22;
+    onResize();
+    if (typeof requestMinimapRepaint === 'function') requestMinimapRepaint();
   }
   function tickHomeTween(dt) {
     if (!homeTween) return;
@@ -7948,15 +7955,16 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
   const FLIGHT_REFUEL_MAX = 14.0;
   const FLIGHT_BANNER_CHANCE = 0.32;
   const BANNER_MESSAGES = [
-    'עולם קטן',
-    'עולם קטן',
-    'עולם קטן',
-    'עולם קטן',
-    'עולם קטן',
-    'עולם קטן',
-    'עולם קטן',
-    'עולם קטן',
+    'כל הכבוד',
+    'תמשיכו ככה',
+    'אתם אלופים',
+    'עוד קצת קדימה',
+    'איזה יופי',
+    'ממשיכים לטוס',
+    'כמעט שם',
+    'הכל אפשרי',
   ];
+  const FLIGHT_BANNER_DIR = -1;
   let activeSeason = 'summer';
 
   const cropDusterState = {
@@ -7982,37 +7990,81 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
   // sits at local x=0 and the banner extends backward to x=-LEN.
   const BANNER_LEN = 5.4;
   const BANNER_HEIGHT = 0.55;
+  let bannerGeo = null;
   let bannerMesh = null;
   let bannerCanvas = null;
+  let bannerCanvasBack = null;
   let bannerTexture = null;
+  let bannerTextureBack = null;
+  let bannerFrontMesh = null;
+  let bannerBackMesh = null;
   let bannerWire = null;
+  function paintBannerText(canvas, text, mirrored, fontSize) {
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    ctx.save();
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#000000';
+    ctx.font = 'bold ' + fontSize + 'px ui-sans-serif, "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.direction = 'rtl';
+    if (mirrored) {
+      ctx.translate(W, 0);
+      ctx.scale(-1, 1);
+    }
+    ctx.fillText(text, W / 2, H / 2 + 4);
+    ctx.restore();
+  }
   function ensureBanner() {
     if (bannerMesh) return;
     bannerCanvas = document.createElement('canvas');
     bannerCanvas.width = 2048;
     bannerCanvas.height = 224;
+    bannerCanvasBack = document.createElement('canvas');
+    bannerCanvasBack.width = 2048;
+    bannerCanvasBack.height = 224;
     bannerTexture = new THREE.CanvasTexture(bannerCanvas);
     bannerTexture.encoding = THREE.sRGBEncoding;
     bannerTexture.anisotropy = (renderer.capabilities.getMaxAnisotropy
       ? Math.min(8, renderer.capabilities.getMaxAnisotropy())
       : 1);
-    const geo = new THREE.PlaneGeometry(BANNER_LEN, BANNER_HEIGHT, 36, 4);
+    bannerTextureBack = new THREE.CanvasTexture(bannerCanvasBack);
+    bannerTextureBack.encoding = THREE.sRGBEncoding;
+    bannerTextureBack.anisotropy = bannerTexture.anisotropy;
+    bannerGeo = new THREE.PlaneGeometry(BANNER_LEN, BANNER_HEIGHT, 36, 4);
     // Shift so the leading edge sits at local x=0 and the banner extends
     // along -X. Combined with rotation.y = path yaw, the banner trails
     // straight back from the plane regardless of heading.
-    geo.translate(-BANNER_LEN / 2, 0, 0);
+    bannerGeo.translate(-BANNER_LEN / 2, 0, 0);
     const mat = new THREE.MeshBasicMaterial({
       map: bannerTexture,
       transparent: true,
-      side: THREE.DoubleSide,
+      side: THREE.FrontSide,
       depthWrite: false,
     });
-    bannerMesh = new THREE.Mesh(geo, mat);
+    const matBack = new THREE.MeshBasicMaterial({
+      map: bannerTextureBack,
+      transparent: true,
+      side: THREE.FrontSide,
+      depthWrite: false,
+    });
+    bannerMesh = new THREE.Group();
     bannerMesh.visible = false;
     bannerMesh.castShadow = false;
     bannerMesh.receiveShadow = false;
     bannerMesh.renderOrder = 1;
-    bannerMesh.userData.basePositions = geo.attributes.position.array.slice();
+    bannerMesh.userData.basePositions = bannerGeo.attributes.position.array.slice();
+    bannerFrontMesh = new THREE.Mesh(bannerGeo, mat);
+    bannerFrontMesh.position.z = 0.001;
+    bannerFrontMesh.renderOrder = 1;
+    bannerBackMesh = new THREE.Mesh(bannerGeo, matBack);
+    bannerBackMesh.position.z = -0.001;
+    bannerBackMesh.rotation.y = Math.PI;
+    bannerBackMesh.renderOrder = 1;
+    bannerMesh.add(bannerFrontMesh);
+    bannerMesh.add(bannerBackMesh);
     scene.add(bannerMesh);
 
     // Tow wire: a thin line from the plane's tail to the leading edge of
@@ -8029,20 +8081,14 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
   }
   function setBannerText(text) {
     ensureBanner();
-    const ctx = bannerCanvas.getContext('2d');
-    const W = bannerCanvas.width, H = bannerCanvas.height;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#000000';
-    ctx.font = 'bold 150px ui-sans-serif, "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, W / 2, H / 2 + 4);
+    paintBannerText(bannerCanvas, text, false, 150);
+    paintBannerText(bannerCanvasBack, text, true, 150);
     bannerTexture.needsUpdate = true;
+    bannerTextureBack.needsUpdate = true;
   }
   function updateBannerFlap(time) {
-    if (!bannerMesh) return;
-    const pos = bannerMesh.geometry.attributes.position;
+    if (!bannerGeo) return;
+    const pos = bannerGeo.attributes.position;
     const base = bannerMesh.userData.basePositions;
     const arr = pos.array;
     for (let i = 0; i < pos.count; i++) {
@@ -8097,28 +8143,42 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     const canvas = document.createElement('canvas');
     canvas.width = 512;
     canvas.height = 128;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#000000';
-    ctx.font = 'bold 46px ui-sans-serif, "Helvetica Neue", Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 2);
+    const canvasBack = document.createElement('canvas');
+    canvasBack.width = 512;
+    canvasBack.height = 128;
+    paintBannerText(canvas, text, false, 46);
+    paintBannerText(canvasBack, text, true, 46);
     const texture = new THREE.CanvasTexture(canvas);
     texture.encoding = THREE.sRGBEncoding;
     texture.needsUpdate = true;
+    const textureBack = new THREE.CanvasTexture(canvasBack);
+    textureBack.encoding = THREE.sRGBEncoding;
+    textureBack.needsUpdate = true;
     const mat = new THREE.MeshBasicMaterial({
       map: texture,
       transparent: true,
-      side: THREE.DoubleSide,
+      side: THREE.FrontSide,
       depthWrite: false,
     });
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 0.42), mat);
-    mesh.position.set(-0.2, 0.18, -0.12);
-    mesh.rotation.y = Math.PI;
-    mesh.userData.__bannerTexture = texture;
-    return mesh;
+    const matBack = new THREE.MeshBasicMaterial({
+      map: textureBack,
+      transparent: true,
+      side: THREE.FrontSide,
+      depthWrite: false,
+    });
+    const group = new THREE.Group();
+    const geo = new THREE.PlaneGeometry(1.7, 0.42);
+    const front = new THREE.Mesh(geo, mat);
+    const back = new THREE.Mesh(geo, matBack);
+    front.position.set(-0.2, 0.18, -0.119);
+    back.position.set(-0.2, 0.18, -0.121);
+    back.rotation.y = Math.PI;
+    group.add(front);
+    group.add(back);
+    group.rotation.y = Math.PI;
+    group.userData.__bannerTexture = texture;
+    group.userData.__bannerTextureBack = textureBack;
+    return group;
   }
 
   function makePlane(withBanner, opts) {
@@ -8321,7 +8381,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
   // High flyover used for banner runs (and as a fallback when there are no
   // crops to dust). Always crosses the world centred on the camera.
   function planFlyoverCurve(altBoost) {
-    const dir = Math.random() < 0.5 ? -1 : 1;
+    const dir = FLIGHT_BANNER_DIR;
     const baseAlt = Math.max(renderCloudHeight + 0.15, FLIGHT_CRUISE_ALT) + (altBoost || 0);
     const z = target.z + (Math.random() - 0.5) * 4;
     const near = Math.max(4.5, FLIGHT_OFFSCREEN_DIST * 0.2);
