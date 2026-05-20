@@ -2757,6 +2757,13 @@
   sun.target.position.copy(target);
   sun.target.updateMatrixWorld();
 
+  // Very soft opposite-side fill so shadowed faces keep a bit of shape.
+  // This helps mesh seams read on both lit and unlit sides.
+  const bounceFill = new THREE.DirectionalLight(0xfff3e4, 0.16);
+  bounceFill.position.set(-6, 5, -5);
+  bounceFill.castShadow = false;
+  scene.add(bounceFill);
+
   // Keep the sun glued to the camera target so shadows are always
   // rendered around what the user is looking at. Declared as a `var`
   // assignment (hoisted to `undefined`) so updateCamera() — which may
@@ -2786,6 +2793,7 @@
     // should preserve colour and shadow detail.
     hemi.intensity = 0.05 + renderLighting * 0.10;
     sun.intensity = 0.70 + renderLighting * 0.42;
+    bounceFill.intensity = 0.08 + renderLighting * 0.08;
     // Keep ambient minimal so cast shadows stay visible at every lighting
     // setting. Shadowed sides still get fill from hemi.
     ambient.intensity = 0.025 + renderLighting * 0.035;
