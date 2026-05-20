@@ -46,3 +46,4 @@ Validation:
 - Objects should sit on raised terrain when rendered.
 - Houses placed on `path` or `water` must preserve that terrain and render on an underpass/stilt base; do not coerce those tiles back to grass.
 - Same-terrain repeat placement should be visible before refresh/reload.
+- When a house changes floor count or a neighboring house is added/removed, rerender nearby houses so 2-floor external stairs and the upper door disappear on blocked faces and the wall falls back to the normal windowed side.
