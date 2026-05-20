@@ -3508,6 +3508,7 @@
 
   const SECOND_FLOOR_STAIR_SHIFT = 0.17;
   const WALL_RECESS = 0.015;
+  const SOLO_COTTAGE_SIDE = 0.95 * TILE;
 
   // Assemble a house from a cell plan. orientation: 'z' (long-axis along z, no
 // rotation) or 'x' (long-axis along x, geometry rotated +π/2 around Y).
@@ -3523,9 +3524,10 @@
     const isSoloCottage = length === 1;
     const suppressExternalStairs = opts.suppressExternalStairs === true;
     // Solo cottage uses a square footprint. Clusters still fill their cells.
-    const WALL_D = (length === 1) ? H.WALL_W : length * TILE;
+    const WALL_W = isSoloCottage ? SOLO_COTTAGE_SIDE : H.WALL_W;
+    const WALL_D = isSoloCottage ? SOLO_COTTAGE_SIDE : length * TILE;
     const WALL_H = (length === 1) ? H.WALL_W : H.WALL_H;
-    const halfW = H.WALL_W / 2;
+    const halfW = WALL_W / 2;
     const halfD = WALL_D / 2;
     const floorHeights = isSoloCottage
       ? Array.from({ length: Math.max(0, floors - 1) }, () => H.WALL_W).concat(Math.max(0.1, H.WALL_W - 0.08))
@@ -3542,14 +3544,14 @@
     // Walls are stacked per floor with no decorative seam between levels.
     for (let f = 0; f < floors; f++) {
       const floorH = floorHeights[f] || H.WALL_H;
-      const walls = new THREE.Mesh(roundedBox(H.WALL_W, floorH, WALL_D, 0.04), M.wallCream);
+      const walls = new THREE.Mesh(roundedBox(WALL_W, floorH, WALL_D, 0.04), M.wallCream);
       walls.position.y = floorTops[f] || 0;
       g.add(walls);
     }
 
     const addRoof = opts.addRoof !== false;
     if (addRoof) {
-      const roof = Parts.flatRoof(H.WALL_W, WALL_D, roofLift);
+      const roof = Parts.flatRoof(WALL_W, WALL_D, roofLift);
       g.add(roof);
     }
 
@@ -3682,8 +3684,8 @@
 
       // Match old multi-floor cottage upper windows: small windows on both side
       // faces and both gable faces for each floor above the ground floor.
-      const halfW = H.WALL_W / 2;
-      const halfD = H.WALL_W / 2;
+      const halfW = SOLO_COTTAGE_SIDE / 2;
+      const halfD = SOLO_COTTAGE_SIDE / 2;
       let floorBaseY = 0;
       for (let f = 0; f < floors; f++) {
         const h = levelHeights[f] || H.WALL_W;
