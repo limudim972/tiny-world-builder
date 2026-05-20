@@ -3574,7 +3574,8 @@
       for (let i = 0; i < length; i++) {
         const cellZ = -((length - 1) / 2) + i;
         const wR = Parts.window('side', 'small');
-        wR.position.set( halfW + 0.005, yMid + yOff, cellZ); g.add(wR);
+        const sideOffset = (floors === 2 && i === Math.floor(length / 2)) ? 0.18 : 0.005;
+        wR.position.set( halfW + 0.005, yMid + yOff, cellZ + sideOffset); g.add(wR);
         const wL = Parts.window('side', 'small');
         wL.position.set(-halfW - 0.005, yMid + yOff, cellZ);
         wL.rotation.y = Math.PI;
@@ -3701,7 +3702,8 @@
         if (f > 0) {
           const yMid = floorBaseY + (h / 2);
           const wR = Parts.window('side', 'small');
-          wR.position.set(halfW + 0.005, yMid, 0);
+          const doorSideWindowZ = (floors === 2) ? 0.18 : 0;
+          wR.position.set(halfW + 0.005, yMid, doorSideWindowZ);
           stacked.add(wR);
           const wL = Parts.window('side', 'small');
           wL.position.set(-halfW - 0.005, yMid, 0);
