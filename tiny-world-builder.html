@@ -355,10 +355,51 @@
     height: 44px;
     display: flex;
     align-items: center;
+    gap: 8px;
     padding: 0 0 0 12px;
     margin-left: 8px;
     border-left: 1px solid rgba(120, 130, 150, 0.18);
     flex: 0 0 auto;
+  }
+  .toolbar-home-grid-slot {
+    min-width: 0;
+  }
+  .toolbar-home-grid-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .toolbar-home-grid-select {
+    appearance: none;
+    -webkit-appearance: none;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--ink);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.58));
+    border: 1px solid rgba(120, 130, 150, 0.18);
+    border-radius: 12px;
+    padding: 8px 30px 8px 10px;
+    min-width: 88px;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.88) inset,
+      0 1px 2px rgba(20, 30, 50, 0.04);
+    cursor: pointer;
+  }
+  .toolbar-home-grid-select:hover {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.68));
+  }
+  .toolbar-home-grid-select:focus {
+    outline: none;
+    border-color: rgba(111, 180, 66, 0.45);
+    box-shadow:
+      0 0 0 2px rgba(111, 180, 66, 0.14),
+      0 1px 0 rgba(255, 255, 255, 0.88) inset,
+      0 1px 2px rgba(20, 30, 50, 0.04);
   }
   .toolbar .brand-title-btn {
     position: relative;
@@ -1749,6 +1790,15 @@
       padding-left: 8px;
       margin-left: 5px;
     }
+    .toolbar-home-grid-label {
+      display: none;
+    }
+    .toolbar-home-grid-select {
+      min-width: 74px;
+      padding-right: 24px;
+      padding-left: 9px;
+      font-size: 11px;
+    }
     .toolbar .brand-title-btn {
       height: 38px;
       font-size: 12px;
@@ -2033,19 +2083,6 @@
               <input id="render-visible-size" type="range" min="2" max="6" step="1" />
               <output id="render-visible-size-value"></output>
             </div>
-            <label>גודל לוח הבית
-              <select id="render-home-grid">
-                <option value="2x2">2 × 2</option>
-                <option value="2x3">2 × 3</option>
-                <option value="2x4">2 × 4</option>
-                <option value="3x2">3 × 2</option>
-                <option value="3x3">3 × 3</option>
-                <option value="3x4">3 × 4</option>
-                <option value="4x2">4 × 2</option>
-                <option value="4x3">4 × 3</option>
-                <option value="4x4">4 × 4</option>
-              </select>
-            </label>
             <div class="range-row">
               <span>שקיפות התצוגה המקדימה</span>
               <input id="render-ghost-opacity" type="range" min="5" max="100" step="1" />
@@ -2172,6 +2209,12 @@
 
   function boardSizeLabel(width = GRID_W, depth = GRID_D) {
     return width + '×' + depth;
+  }
+
+  let toolbarHomeGridEl = null;
+
+  function syncToolbarHomeGridControl() {
+    if (toolbarHomeGridEl) toolbarHomeGridEl.value = boardSizeKey();
   }
 
   function normalizeBoardSize(value) {
@@ -5900,6 +5943,35 @@
     return btn;
   }
 
+  function buildHomeGridToolbarControl() {
+    const wrap = document.createElement('label');
+    wrap.className = 'toolbar-world-slot toolbar-home-grid-slot';
+    wrap.setAttribute('data-tooltip', 'גודל לוח הבית');
+    wrap.setAttribute('aria-label', 'גודל לוח הבית');
+
+    const title = document.createElement('span');
+    title.className = 'toolbar-home-grid-label';
+    title.textContent = 'גודל הבית';
+    wrap.appendChild(title);
+
+    const select = document.createElement('select');
+    select.className = 'toolbar-home-grid-select';
+    select.setAttribute('aria-label', 'גודל לוח הבית');
+    for (const opt of HOME_GRID_OPTIONS) {
+      const option = document.createElement('option');
+      option.value = opt.key;
+      option.textContent = boardSizeLabel(opt.width, opt.depth);
+      select.appendChild(option);
+    }
+    select.value = boardSizeKey();
+    select.addEventListener('change', () => {
+      setHomeGridSize(select.value);
+    });
+    wrap.appendChild(select);
+    toolbarHomeGridEl = select;
+    return wrap;
+  }
+
   function buildToolbar() {
     const bar = document.getElementById('toolbar');
     bar.innerHTML = '';
@@ -5918,6 +5990,7 @@
       toggleControlsMenu();
     });
     bar.appendChild(menuBtn);
+    bar.appendChild(buildHomeGridToolbarControl());
 
     const rainBtn = document.createElement('button');
     rainBtn.className = 'tool icon-only rain-100-btn';
@@ -6785,6 +6858,7 @@
     hasUserPanned = false;
     applyAutoPreviewSettingsForGrid({ explored: hasUserPanned, deferEnsure: true });
     try { localStorage.setItem('tinyworld:home-grid', boardSizeKey()); } catch (_) {}
+    syncToolbarHomeGridControl();
     updateUnsavedCopyForGrid();
     if (typeof buildHomeBorder === 'function') buildHomeBorder();
 
@@ -7050,7 +7124,6 @@
     const resolutionEl = document.getElementById('render-resolution');
     const distanceEl = document.getElementById('render-distance');
     const visibleSizeEl = document.getElementById('render-visible-size');
-    const homeGridEl = document.getElementById('render-home-grid');
     const brightnessEl = document.getElementById('render-brightness');
     const lightingEl = document.getElementById('render-lighting');
     const saturationEl = document.getElementById('render-saturation');
@@ -7094,7 +7167,7 @@
       visibleSizeEl.min = String(GRID);
       visibleSizeEl.max = String(Math.round(HOME_GRID_MAX * 1.5));
       visibleSizeEl.value = String(renderVisibleSize);
-      if (homeGridEl) homeGridEl.value = boardSizeKey();
+      syncToolbarHomeGridControl();
       brightnessEl.value = String(Math.round(renderBrightness * 100));
       lightingEl.value = String(Math.round(renderLighting * 100));
       saturationEl.value = String(Math.round(renderSaturation * 100));
@@ -7201,13 +7274,6 @@
       if (!el) continue;
       el.addEventListener('input', applyFromControls);
       el.addEventListener('change', applyFromControls);
-    }
-    // Home grid size — a separate listener because it triggers a full
-    // re-render rather than uniforms/material tweaks.
-    if (homeGridEl) {
-      homeGridEl.addEventListener('change', () => {
-        setHomeGridSize(homeGridEl.value);
-      });
     }
     resetBtn.addEventListener('click', () => {
       setShadowQuality('balanced');
