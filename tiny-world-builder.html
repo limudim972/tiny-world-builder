@@ -3570,6 +3570,7 @@
     // Solo cottages get three ground-floor windows on floor 1, but taller
     // versions keep the older two-window ground-floor layout.
     if (isSoloCottage && addGroundDecor) {
+      const suppressEastGroundWindow = opts.suppressEastGroundWindow === true;
       const sideY = windowYForFloor(0);
       const dx = halfW + 0.005;
       const dz = halfD + 0.005;
@@ -3579,7 +3580,7 @@
       winW.rotation.y = Math.PI;
       g.add(winW);
 
-      if (floors === 1) {
+      if (floors === 1 && !suppressEastGroundWindow) {
         const winE = Parts.window('side');
         winE.position.set(dx, sideY, 0);
         g.add(winE);
@@ -3627,6 +3628,7 @@
           buildingType: 'cottage',
           addRoof: f === floors - 1,
           addGroundDecor: f === 0,
+          suppressEastGroundWindow: floors === 2 && f === 0,
         });
         const box = new THREE.Box3().setFromObject(level);
         const h = Math.max(0.1, box.max.y - box.min.y);
@@ -3661,6 +3663,20 @@
           stacked.add(wGB);
         }
         floorBaseY += h;
+      }
+
+      // Preserve legacy 2-floor cottage treatment: exterior stairs and an
+      // upper +x side door when the building is exactly two floors.
+      if (floors === 2) {
+        const baseH = levelHeights[0] || H.WALL_W;
+        const stairsBottomZ = halfD - SECOND_FLOOR_STAIR_SHIFT;
+        const stairsTopZ = stairsBottomZ - 5 * 0.10;
+        const stairs = Parts.externalStairs(baseH);
+        stairs.position.set(halfW + 0.13, 0, stairsBottomZ);
+        stacked.add(stairs);
+        const upd = Parts.upperDoor();
+        upd.position.set(halfW + 0.005, baseH + 0.05, stairsTopZ);
+        stacked.add(upd);
       }
 
       stacked.userData = { kind: 'house' };
