@@ -3729,6 +3729,9 @@
     }
     return buildHouse(linearHousePlan(1), 'z', floors, {
       buildingType,
+      addRoof: opts.addRoof !== false,
+      addGroundDecor: opts.addGroundDecor !== false,
+      suppressEastGroundWindow: opts.suppressEastGroundWindow === true,
       suppressExternalStairs: opts.suppressExternalStairs === true,
     });
   }
@@ -5492,7 +5495,11 @@
     const kind = tool.kind;
     let mesh = null;
     if (kind === 'house') {
-      mesh = makeHouse(1);
+      mesh = makeHouse(1, null, {
+        addRoof: false,
+        addGroundDecor: false,
+        suppressExternalStairs: true,
+      });
     } else if (tool.terrain) {
       // For pure terrain tools, show a thin coloured swatch hovering
       // just above the tile so the user can still see what they'd paint.
