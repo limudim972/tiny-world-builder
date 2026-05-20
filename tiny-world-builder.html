@@ -3347,7 +3347,12 @@
     // Flat roof slab shared by every house footprint.
     flatRoof(width, depth, baseWallH = H.WALL_H) {
       const g = new THREE.Group();
-      const slab = new THREE.Mesh(new THREE.BoxGeometry(width, 0.03, depth), M.manorRoof);
+      // Slight inset keeps the rounded edge visible when neighbouring roofs
+      // sit flush side-by-side.
+      const inset = 0.04;
+      const roofW = Math.max(0.12, width - inset);
+      const roofD = Math.max(0.12, depth - inset);
+      const slab = new THREE.Mesh(roundedBox(roofW, 0.03, roofD, 0.035), M.manorRoof);
       slab.position.y = baseWallH + 0.015;
       g.add(slab);
       return g;
@@ -3494,8 +3499,11 @@
       g.add(walls);
     }
 
-    const roof = Parts.flatRoof(H.WALL_W, WALL_D, roofLift);
-    g.add(roof);
+    const addRoof = opts.addRoof !== false;
+    if (addRoof) {
+      const roof = Parts.flatRoof(H.WALL_W, WALL_D, roofLift);
+      g.add(roof);
+    }
 
     // Per-floor windows for any floor above the ground floor — small windows on
     // both long sides AND on both gable faces (so tall houses don't have blank
@@ -3521,36 +3529,39 @@
       g.add(wGB);
     }
 
+    const addGroundDecor = opts.addGroundDecor !== false;
     // Per-cell ground-floor decorations (door, window, step) — same as before.
-    for (let i = 0; i < length; i++) {
-      const cell = cells[i];
-      const cellZ = -((length - 1) / 2) + i;
+    if (addGroundDecor) {
+      for (let i = 0; i < length; i++) {
+        const cell = cells[i];
+        const cellZ = -((length - 1) / 2) + i;
 
-      if (cell.face === 'gable') {
-        const door = Parts.door('gable');
-        door.position.set(-0.12, 0, halfD + 0.01); g.add(door);
-        const win = Parts.window('gable');
-        win.position.set(0.2, windowYForFloor(0), halfD + 0.01); g.add(win);
-        const step = Parts.step('gable');
-        step.position.set(-0.12, 0.03, halfD + 0.08); g.add(step);
-      } else if (cell.face === 'side') {
-        const dx = halfW + 0.005;
-        const door = Parts.door('side');
-        door.position.set(dx, 0, cellZ - 0.1); g.add(door);
-        const win = Parts.window('side');
-        win.position.set(dx, windowYForFloor(0), cellZ + 0.18); g.add(win);
-        const step = Parts.step('side');
-        step.position.set(dx + 0.06, 0.03, cellZ - 0.1); g.add(step);
-        const bwin = Parts.window('side', 'small');
-        bwin.position.set(-halfW - 0.005, windowYForFloor(0), cellZ);
-        bwin.rotation.y = Math.PI;
-        g.add(bwin);
+        if (cell.face === 'gable') {
+          const door = Parts.door('gable');
+          door.position.set(-0.12, 0, halfD + 0.01); g.add(door);
+          const win = Parts.window('gable');
+          win.position.set(0.2, windowYForFloor(0), halfD + 0.01); g.add(win);
+          const step = Parts.step('gable');
+          step.position.set(-0.12, 0.03, halfD + 0.08); g.add(step);
+        } else if (cell.face === 'side') {
+          const dx = halfW + 0.005;
+          const door = Parts.door('side');
+          door.position.set(dx, 0, cellZ - 0.1); g.add(door);
+          const win = Parts.window('side');
+          win.position.set(dx, windowYForFloor(0), cellZ + 0.18); g.add(win);
+          const step = Parts.step('side');
+          step.position.set(dx + 0.06, 0.03, cellZ - 0.1); g.add(step);
+          const bwin = Parts.window('side', 'small');
+          bwin.position.set(-halfW - 0.005, windowYForFloor(0), cellZ);
+          bwin.rotation.y = Math.PI;
+          g.add(bwin);
+        }
       }
     }
 
     // Solo cottages get three ground-floor windows on floor 1, but taller
     // versions keep the older two-window ground-floor layout.
-    if (isSoloCottage) {
+    if (isSoloCottage && addGroundDecor) {
       const sideY = windowYForFloor(0);
       const dx = halfW + 0.005;
       const dz = halfD + 0.005;
@@ -3597,6 +3608,58 @@
   }
 
   function makeHouse(floors = 1, buildingType = null) {
+    // Cottage floors are stacked as repeated single-floor modules so each
+    // extra level is literally another cottage floor object.
+    if ((buildingType === 'cottage' || buildingType == null) && floors > 1) {
+      const stacked = new THREE.Group();
+      const levelHeights = [];
+      let y = 0;
+      for (let f = 0; f < floors; f++) {
+        const level = buildHouse(linearHousePlan(1), 'z', 1, {
+          buildingType: 'cottage',
+          addRoof: f === floors - 1,
+          addGroundDecor: f === 0,
+        });
+        const box = new THREE.Box3().setFromObject(level);
+        const h = Math.max(0.1, box.max.y - box.min.y);
+        levelHeights.push(h);
+        level.position.y = y;
+        y += h;
+        stacked.add(level);
+      }
+
+      // Match old multi-floor cottage upper windows: small windows on both side
+      // faces and both gable faces for each floor above the ground floor.
+      const halfW = H.WALL_W / 2;
+      const halfD = H.WALL_W / 2;
+      let floorBaseY = 0;
+      for (let f = 0; f < floors; f++) {
+        const h = levelHeights[f] || H.WALL_W;
+        if (f > 0) {
+          const yMid = floorBaseY + (h / 2);
+          const wR = Parts.window('side', 'small');
+          wR.position.set(halfW + 0.005, yMid, 0);
+          stacked.add(wR);
+          const wL = Parts.window('side', 'small');
+          wL.position.set(-halfW - 0.005, yMid, 0);
+          wL.rotation.y = Math.PI;
+          stacked.add(wL);
+          const wGF = Parts.window('gable', 'small');
+          wGF.position.set(0, yMid, halfD + 0.005);
+          stacked.add(wGF);
+          const wGB = Parts.window('gable', 'small');
+          wGB.position.set(0, yMid, -halfD - 0.005);
+          wGB.rotation.y = Math.PI;
+          stacked.add(wGB);
+        }
+        floorBaseY += h;
+      }
+
+      stacked.userData = { kind: 'house' };
+      castReceive(stacked);
+      disableShadows(stacked);
+      return stacked;
+    }
     return buildHouse(linearHousePlan(1), 'z', floors, { buildingType });
   }
 
