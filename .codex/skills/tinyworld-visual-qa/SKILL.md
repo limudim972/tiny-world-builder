@@ -12,6 +12,9 @@ Checks:
 - Console has no app errors.
 - Toolbar shortcuts still work: `0`, `1`-`9`, letter tools, `E`.
 - Left-click places only on the editable home board.
+- Blank home-board cells should still hover/click at shallow camera angles;
+  if a perspective tweak lands near the horizon, confirm the picker still
+  resolves an empty tile instead of dropping hover.
 - Right-drag and Space+drag pan smoothly.
 - Dragging/clicking the minimap canvas pans the camera target while dragging the minimap chrome/footer still moves the widget.
 - Minimap colours should track live scene materials plus time/weather theme tint, not a stale fixed palette.

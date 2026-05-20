@@ -3411,19 +3411,19 @@
     door(orientation) {
       const g = new THREE.Group();
       if (orientation === 'gable') {
-        const door = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.48, 0.04), M.door);
-        door.position.set(0, 0.24, 0); g.add(door);
-        const aL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.48, 0.04), M.woodTrim); aL.position.set(-0.10, 0.24, 0.01); g.add(aL);
-        const aR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.48, 0.04), M.woodTrim); aR.position.set( 0.10, 0.24, 0.01); g.add(aR);
-        const aT = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.04, 0.04), M.woodTrim); aT.position.set(0,     0.50, 0.01); g.add(aT);
+        const door = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.48, 0.001), M.door);
+        door.position.set(0, 0.24, 0.015); g.add(door);
+        const aL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.48, 0.001), M.woodTrim); aL.position.set(-0.10, 0.24, 0.015); g.add(aL);
+        const aR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.48, 0.001), M.woodTrim); aR.position.set( 0.10, 0.24, 0.015); g.add(aR);
+        const aT = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.04, 0.001), M.woodTrim); aT.position.set(0,     0.50, 0.015); g.add(aT);
         const knob = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), M.knob);
-        knob.position.set(0.08, 0.24, 0.03); g.add(knob);
+        knob.position.set(0.08, 0.24, 0.02); g.add(knob);
       } else {
-        const door = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.48, 0.2), M.door);
-        door.position.set(0, 0.24, 0); g.add(door);
-        const aL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.48, 0.04), M.woodTrim); aL.position.set(0.01, 0.24, -0.10); g.add(aL);
-        const aR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.48, 0.04), M.woodTrim); aR.position.set(0.01, 0.24,  0.10); g.add(aR);
-        const aT = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.24), M.woodTrim); aT.position.set(0.01, 0.50,  0   ); g.add(aT);
+        const door = new THREE.Mesh(new THREE.BoxGeometry(0.001, 0.48, 0.2), M.door);
+        door.position.set(0.015, 0.24, 0); g.add(door);
+        const aL = new THREE.Mesh(new THREE.BoxGeometry(0.001, 0.48, 0.04), M.woodTrim); aL.position.set(0.015, 0.24, -0.10); g.add(aL);
+        const aR = new THREE.Mesh(new THREE.BoxGeometry(0.001, 0.48, 0.04), M.woodTrim); aR.position.set(0.015, 0.24,  0.10); g.add(aR);
+        const aT = new THREE.Mesh(new THREE.BoxGeometry(0.001, 0.04, 0.24), M.woodTrim); aT.position.set(0.015, 0.50,  0   ); g.add(aT);
         const knob = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), M.knob);
         knob.position.set(0.03, 0.24, 0.05); g.add(knob);
       }
@@ -3438,15 +3438,15 @@
       const f = size === 'small' ? 0.20 : 0.24; // frame
       const p = size === 'small' ? 0.14 : 0.17; // glass / cross length
       if (orientation === 'gable') {
-        const wf = new THREE.Mesh(new THREE.BoxGeometry(f, f, 0.04),       M.woodTrim); wf.position.set(0, 0, 0);     g.add(wf);
-        const wg = new THREE.Mesh(new THREE.BoxGeometry(p, p, 0.04),       M.windowB);  wg.position.set(0, 0, 0.015); g.add(wg);
-        const cH = new THREE.Mesh(new THREE.BoxGeometry(p, 0.012, 0.04),   M.woodTrim); cH.position.set(0, 0, 0.025); g.add(cH);
-        const cV = new THREE.Mesh(new THREE.BoxGeometry(0.012, p, 0.04),   M.woodTrim); cV.position.set(0, 0, 0.025); g.add(cV);
+        const wf = new THREE.Mesh(new THREE.BoxGeometry(f, f, 0.001),       M.woodTrim); wf.position.set(0, 0, 0.015);     g.add(wf);
+        const wg = new THREE.Mesh(new THREE.BoxGeometry(p, p, 0.001),       M.windowB);  wg.position.set(0, 0, 0.02); g.add(wg);
+        const cH = new THREE.Mesh(new THREE.BoxGeometry(p, 0.012, 0.001),   M.woodTrim); cH.position.set(0, 0, 0.025); g.add(cH);
+        const cV = new THREE.Mesh(new THREE.BoxGeometry(0.012, p, 0.001),   M.woodTrim); cV.position.set(0, 0, 0.025); g.add(cV);
       } else {
-        const wf = new THREE.Mesh(new THREE.BoxGeometry(0.04, f, f),       M.woodTrim); wf.position.set(0,     0, 0); g.add(wf);
-        const wg = new THREE.Mesh(new THREE.BoxGeometry(0.04, p, p),       M.windowB);  wg.position.set(0.015, 0, 0); g.add(wg);
-        const cH = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.012, p),   M.woodTrim); cH.position.set(0.025, 0, 0); g.add(cH);
-        const cV = new THREE.Mesh(new THREE.BoxGeometry(0.04, p, 0.012),   M.woodTrim); cV.position.set(0.025, 0, 0); g.add(cV);
+        const wf = new THREE.Mesh(new THREE.BoxGeometry(0.001, f, f),       M.woodTrim); wf.position.set(0.015,     0, 0); g.add(wf);
+        const wg = new THREE.Mesh(new THREE.BoxGeometry(0.001, p, p),       M.windowB);  wg.position.set(0.02, 0, 0); g.add(wg);
+        const cH = new THREE.Mesh(new THREE.BoxGeometry(0.001, 0.012, p),   M.woodTrim); cH.position.set(0.025, 0, 0); g.add(cH);
+        const cV = new THREE.Mesh(new THREE.BoxGeometry(0.001, p, 0.012),   M.woodTrim); cV.position.set(0.025, 0, 0); g.add(cV);
       }
       return g;
     },
@@ -3483,11 +3483,11 @@
     // door but smaller, intended to sit on a +x face.
     upperDoor() {
       const g = new THREE.Group();
-      const door = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.42, 0.18), M.door);
-      door.position.set(0, 0.21, 0); g.add(door);
-      const aL = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.42, 0.04), M.woodTrim); aL.position.set(0.01, 0.21, -0.09); g.add(aL);
-      const aR = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.42, 0.04), M.woodTrim); aR.position.set(0.01, 0.21,  0.09); g.add(aR);
-      const aT = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.22), M.woodTrim); aT.position.set(0.01, 0.44, 0   ); g.add(aT);
+      const door = new THREE.Mesh(new THREE.BoxGeometry(0.001, 0.42, 0.18), M.door);
+      door.position.set(0.015, 0.21, 0); g.add(door);
+      const aL = new THREE.Mesh(new THREE.BoxGeometry(0.001, 0.42, 0.04), M.woodTrim); aL.position.set(0.015, 0.21, -0.09); g.add(aL);
+      const aR = new THREE.Mesh(new THREE.BoxGeometry(0.001, 0.42, 0.04), M.woodTrim); aR.position.set(0.015, 0.21,  0.09); g.add(aR);
+      const aT = new THREE.Mesh(new THREE.BoxGeometry(0.001, 0.04, 0.22), M.woodTrim); aT.position.set(0.015, 0.44, 0   ); g.add(aT);
       const knob = new THREE.Mesh(new THREE.SphereGeometry(0.020, 8, 8), M.knob);
       knob.position.set(0.03, 0.21, 0.05); g.add(knob);
       return g;
@@ -3506,6 +3506,7 @@
   }
 
   const SECOND_FLOOR_STAIR_SHIFT = 0.17;
+  const WALL_RECESS = 0.015;
 
   // Assemble a house from a cell plan. orientation: 'z' (long-axis along z, no
 // rotation) or 'x' (long-axis along x, geometry rotated +π/2 around Y).
@@ -5564,6 +5565,29 @@
   const ndc = new THREE.Vector2();
   const pickPoint = new THREE.Vector3();
   const pickBox = new THREE.Box3();
+  const pickPlaneNormal = new THREE.Vector3(0, 1, 0);
+  const pickPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const TILE_PICK_HALF = TILE * 0.5;
+
+  function pickSurfaceCell(cell, worldX, worldZ, x, z, boardX = 0, boardZ = 0) {
+    if (!cell) return null;
+    const topY = TOP_H + terrainRiseForLevel(tileLevelForCell(cell));
+    pickPlane.set(pickPlaneNormal, -topY);
+    if (!raycaster.ray.intersectPlane(pickPlane, pickPoint)) return null;
+    if (Math.abs(pickPoint.x - worldX) > TILE_PICK_HALF || Math.abs(pickPoint.z - worldZ) > TILE_PICK_HALF) return null;
+    const dist = raycaster.ray.origin.distanceTo(pickPoint);
+    return {
+      dist,
+      x,
+      z,
+      boardX,
+      boardZ,
+      worldX,
+      worldZ,
+      localX: pickPoint.x - worldX,
+      localZ: pickPoint.z - worldZ,
+    };
+  }
 
   function pickTile(clientX, clientY) {
     const rect = renderer.domElement.getBoundingClientRect();
@@ -5585,37 +5609,61 @@
       if (!n || !n.userData || n.userData.gx === undefined) return;
       if (seenRoots.has(n)) return;
       seenRoots.add(n);
-      if (n.userData.fadeRole === 'tile' || n.userData.fadeRole === 'object' || n.userData.boardX !== undefined) {
-        pickBox.setFromObject(n);
-        if (!raycaster.ray.intersectBox(pickBox, pickPoint)) return;
-        const dist = raycaster.ray.origin.distanceTo(pickPoint);
-        const boardX = n.userData.boardX || 0;
-        const boardZ = n.userData.boardZ || 0;
-        if (boardX || boardZ) {
-          if (closestGhostDist === null || dist < closestGhostDist) closestGhostDist = dist;
-          return;
-        }
-        const p = (boardX || boardZ)
-          ? ghostCellPos(boardX, boardZ, n.userData.gx, n.userData.gz)
-          : tilePos(n.userData.gx, n.userData.gz);
-        const hit = {
-          dist,
-          x: n.userData.gx,
-          z: n.userData.gz,
-          boardX,
-          boardZ,
-          worldX: p.x,
-          worldZ: p.z,
-          localX: pickPoint.x - p.x,
-          localZ: pickPoint.z - p.z,
-        };
-        if (n.userData.kind === 'house') {
-          if (!bestHouse || dist < bestHouse.dist) bestHouse = hit;
-        } else if (!bestTile || dist < bestTile.dist) {
-          bestTile = hit;
-        }
+      if (n.userData.fadeRole !== 'object') return;
+      pickBox.setFromObject(n);
+      if (!raycaster.ray.intersectBox(pickBox, pickPoint)) return;
+      const dist = raycaster.ray.origin.distanceTo(pickPoint);
+      const boardX = n.userData.boardX || 0;
+      const boardZ = n.userData.boardZ || 0;
+      if (boardX || boardZ) {
+        return;
+      }
+      const p = tilePos(n.userData.gx, n.userData.gz);
+      const hit = {
+        dist,
+        x: n.userData.gx,
+        z: n.userData.gz,
+        boardX,
+        boardZ,
+        worldX: p.x,
+        worldZ: p.z,
+        localX: pickPoint.x - p.x,
+        localZ: pickPoint.z - p.z,
+      };
+      if (n.userData.kind === 'house') {
+        if (!bestHouse || dist < bestHouse.dist) bestHouse = hit;
+      } else if (!bestTile || dist < bestTile.dist) {
+        bestTile = hit;
       }
     });
+
+    for (const key in cellMeshes) {
+      const entry = cellMeshes[key];
+      if (!entry || !entry.tile || !entry.tile.visible) continue;
+      const tile = entry.tile;
+      if (tile.userData && (tile.userData.boardX !== undefined || tile.userData.boardZ !== undefined)) continue;
+      const cell = getWorldCell(tile.userData.gx, tile.userData.gz);
+      const hit = pickSurfaceCell(cell, tile.position.x, tile.position.z, tile.userData.gx, tile.userData.gz);
+      if (!hit) continue;
+      if (!bestTile || hit.dist < bestTile.dist) bestTile = hit;
+    }
+
+    for (const board of ghostBoards.values()) {
+      if (!board.visible) continue;
+      const boardX = board.userData.boardX || 0;
+      const boardZ = board.userData.boardZ || 0;
+      const cells = ghostBoardCells.get(ghostBoardKey(boardX, boardZ));
+      if (!cells) continue;
+      for (const child of board.children) {
+        if (!child.visible || !child.userData || child.userData.fadeRole !== 'tile') continue;
+        const x = child.userData.gx;
+        const z = child.userData.gz;
+        const cell = cells[x] && cells[x][z];
+        const hit = pickSurfaceCell(cell, child.position.x, child.position.z, x, z, boardX, boardZ);
+        if (!hit) continue;
+        if (closestGhostDist === null || hit.dist < closestGhostDist) closestGhostDist = hit.dist;
+      }
+    }
 
     const bestHome = bestHouse || bestTile || null;
     if (closestGhostDist !== null && (!bestHome || closestGhostDist <= bestHome.dist)) return null;
