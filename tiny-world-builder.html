@@ -2896,13 +2896,14 @@
   // Lambert (not Standard): non-PBR diffuse only, much more direct color response.
   // Stylized low-poly looks better with flat shading than physical energy conservation.
   const M = {
-    grass:     new THREE.MeshLambertMaterial({ color: 0xb0d949 }),
+    grass:     new THREE.MeshLambertMaterial({ color: 0x6f9830 }),
     grassEdge: new THREE.MeshLambertMaterial({ color: 0x95c138 }),
     dirt:      new THREE.MeshLambertMaterial({ color: 0x7d4519 }),
     dirtRich:  new THREE.MeshLambertMaterial({ color: 0x462b15 }),
-    path:      new THREE.MeshLambertMaterial({ color: 0xf2d29c }),
-    pathTrim:  new THREE.MeshLambertMaterial({ color: 0xd9b780 }),
-    pathScuff: new THREE.MeshLambertMaterial({ color: 0xc9aa70 }),
+    path:      new THREE.MeshLambertMaterial({ color: 0xd3b37d }),
+    pathTrim:  new THREE.MeshLambertMaterial({ color: 0xbd9a63 }),
+    pathScuff: new THREE.MeshLambertMaterial({ color: 0xaa8c55 }),
+    tileSeam:  new THREE.MeshLambertMaterial({ color: 0x5d4a35, transparent: true, opacity: 0.52 }),
     water:     new THREE.MeshLambertMaterial({ color: 0x3a8fcc }),
     waterDk:   new THREE.MeshLambertMaterial({ color: 0x2f77ad }),
     waterFoam: new THREE.MeshLambertMaterial({ color: 0xbbe9ff, transparent: true, opacity: 0.74 }),
@@ -2914,13 +2915,13 @@
     rockMoss:  new THREE.MeshLambertMaterial({ color: 0x6f8a3a }),
 
     // New terrains (stone / lava / sand / snow).
-    stone:     new THREE.MeshLambertMaterial({ color: 0x8f8a82 }),
+    stone:     new THREE.MeshLambertMaterial({ color: 0x7a766e }),
     stoneDk:   new THREE.MeshLambertMaterial({ color: 0x5e5a52 }),
     lava:      new THREE.MeshLambertMaterial({ color: 0xe7592b, emissive: 0xb02410, emissiveIntensity: 0.8 }),
     lavaCrust: new THREE.MeshLambertMaterial({ color: 0x3a201a }),
-    sand:      new THREE.MeshLambertMaterial({ color: 0xe6cc7c }),
+    sand:      new THREE.MeshLambertMaterial({ color: 0xc9b067 }),
     sandDk:    new THREE.MeshLambertMaterial({ color: 0xc6a64b }),
-    snow:      new THREE.MeshLambertMaterial({ color: 0xf2f5fa }),
+    snow:      new THREE.MeshLambertMaterial({ color: 0xd9dee7 }),
     snowDk:    new THREE.MeshLambertMaterial({ color: 0xc9d1dc }),
     bridgeWood:  new THREE.MeshLambertMaterial({ color: 0x8b5a32 }),
     bridgeWoodD: new THREE.MeshLambertMaterial({ color: 0x5f3a20 }),
@@ -3176,9 +3177,15 @@
     if (terrain === 'sand')  topMat = M.sand;
     if (terrain === 'snow')  topMat = M.snow;
 
-    const top = new THREE.Mesh(roundedSlab(TILE * 0.98, TOP_H, 0.06), topMat);
+    const top = new THREE.Mesh(roundedSlab(TILE * 0.98, TOP_H, 0.10), topMat);
     top.position.y = rise;
     g.add(top);
+
+    // Global seam accent so neighboring tiles separate more clearly.
+    for (const dir of ['n', 's', 'e', 'w']) {
+      g.add(edgeBand(dir, 0.84, 0.010, topY + 0.004, M.tileSeam));
+    }
+
 
     // Tiny deterministic grass flecks. They stay put when a neighbour rerender
     // refreshes shore/path bands, so tiles no longer visually "shuffle".
