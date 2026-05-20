@@ -363,12 +363,20 @@
   }
   .toolbar-home-grid-slot {
     min-width: 0;
+    height: auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding-top: 6px;
+    padding-bottom: 6px;
   }
   .toolbar-home-grid-label {
     font-size: 11px;
     font-weight: 700;
     color: var(--muted);
     white-space: nowrap;
+    text-align: center;
   }
   .toolbar-home-grid-select {
     appearance: none;
@@ -382,7 +390,7 @@
       linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.58));
     border: 1px solid rgba(120, 130, 150, 0.18);
     border-radius: 12px;
-    padding: 8px 30px 8px 10px;
+    padding: 7px 30px 7px 10px;
     min-width: 88px;
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.88) inset,
@@ -5949,11 +5957,6 @@
     wrap.setAttribute('data-tooltip', 'גודל לוח הבית');
     wrap.setAttribute('aria-label', 'גודל לוח הבית');
 
-    const title = document.createElement('span');
-    title.className = 'toolbar-home-grid-label';
-    title.textContent = 'גודל בסיס';
-    wrap.appendChild(title);
-
     const select = document.createElement('select');
     select.className = 'toolbar-home-grid-select';
     select.setAttribute('aria-label', 'גודל לוח הבית');
@@ -5968,6 +5971,11 @@
       setHomeGridSize(select.value);
     });
     wrap.appendChild(select);
+
+    const title = document.createElement('span');
+    title.className = 'toolbar-home-grid-label';
+    title.textContent = 'גודל בסיס';
+    wrap.appendChild(title);
     toolbarHomeGridEl = select;
     return wrap;
   }
