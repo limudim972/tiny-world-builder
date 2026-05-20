@@ -3510,26 +3510,33 @@
     const halfW = H.WALL_W / 2;
     const halfD = WALL_D / 2;
     const floorGap = floors > 1 ? 0.05 : 0;
-    const floorStep = WALL_H + floorGap;
-    const wallHTotal = WALL_H * floors + floorGap * Math.max(0, floors - 1);
-    const roofLift   = (floors - 1) * floorStep;
+    const floorHeights = isSoloCottage
+      ? Array.from({ length: Math.max(0, floors - 1) }, () => H.WALL_W).concat(Math.max(0.1, H.WALL_W - 0.08))
+      : Array.from({ length: floors }, () => H.WALL_H);
+    const floorTops = [];
+    let roofLift = 0;
+    for (let i = 0; i < floorHeights.length; i++) {
+      floorTops.push(roofLift);
+      roofLift += floorHeights[i] + (i < floorHeights.length - 1 ? floorGap : 0);
+    }
+    const wallHTotal = roofLift;
     const showFloorBands = floors > 1;
 
     // Walls are stacked per floor with a tiny gap between levels so the
     // seam reads as a real notch around the whole building, not a painted trim.
     for (let f = 0; f < floors; f++) {
-      const walls = new THREE.Mesh(roundedBox(H.WALL_W, WALL_H, WALL_D, 0.04), M.wallCream);
-      walls.position.y = f * floorStep;
+      const floorH = floorHeights[f] || H.WALL_H;
+      const walls = new THREE.Mesh(roundedBox(H.WALL_W, floorH, WALL_D, 0.04), M.wallCream);
+      walls.position.y = floorTops[f] || 0;
       g.add(walls);
     }
 
-    const roof = Parts.flatRoof(H.WALL_W, WALL_D);
-    roof.position.y = roofLift;
+    const roof = Parts.flatRoof(H.WALL_W, WALL_D, roofLift);
     g.add(roof);
 
     if (showFloorBands) {
       for (let f = 1; f < floors; f++) {
-        const yBand = f * floorStep - floorGap / 2;
+        const yBand = floorTops[f] - floorGap / 2;
         const band = Parts.floorBand(H.WALL_W, WALL_D, yBand);
         g.add(band);
       }
@@ -3539,7 +3546,7 @@
     // both long sides AND on both gable faces (so tall houses don't have blank
     // gable walls).
     for (let f = 1; f < floors; f++) {
-      const yOff = f * floorStep;
+      const yOff = floorTops[f] || 0;
       for (let i = 0; i < length; i++) {
         const cellZ = -((length - 1) / 2) + i;
         const wR = Parts.window('side', 'small');
