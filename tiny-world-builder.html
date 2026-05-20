@@ -1114,8 +1114,8 @@
     justify-content: center;
     font: 400 15px/1 'Courier New', monospace;
     color: #2f2a20;
-    border-right: 1px solid rgba(42, 39, 34, 0.18);
-    border-bottom: 1px solid rgba(42, 39, 34, 0.18);
+    border-right: 1px solid rgba(42, 39, 34, 0.34);
+    border-bottom: 1px solid rgba(42, 39, 34, 0.34);
     box-sizing: border-box;
     background: transparent;
   }
@@ -1124,13 +1124,6 @@
   .stacked-map-cell .stacked-map-number {
     font-size: calc(var(--minimap-cell-size, 56px) * 0.5);
     transform: translateY(-0.02em);
-  }
-  .minimap-foot {
-    display: flex; justify-content: space-between;
-    margin-top: 6px;
-    font-size: 10.5px;
-    color: var(--muted);
-    font-variant-numeric: tabular-nums;
   }
   /* --- Topbar popups (view / time / weather) --- */
   .topbar-popup {
@@ -1867,10 +1860,6 @@
   <div class="minimap-wrap" id="minimap-wrap">
     <div class="minimap-card">
       <div id="minimap-canvas" class="stacked-map" role="grid" aria-label="Stacked map showing floor counts"></div>
-      <div class="minimap-foot">
-        <span id="minimap-size">3×3</span>
-        <span id="minimap-fps" data-tooltip="פריימים לשנייה">60 fps</span>
-      </div>
     </div>
   </div>
 
