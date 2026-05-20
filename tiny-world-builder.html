@@ -3347,44 +3347,9 @@
     // Flat roof slab shared by every house footprint.
     flatRoof(width, depth, baseWallH = H.WALL_H) {
       const g = new THREE.Group();
-      const slab = new THREE.Mesh(new THREE.BoxGeometry(width, 0.08, depth), M.manorRoof);
-      slab.position.y = baseWallH + 0.04;
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(width, 0.03, depth), M.manorRoof);
+      slab.position.y = baseWallH + 0.015;
       g.add(slab);
-      return g;
-    },
-
-    // Recessed perimeter groove that reads as a floor break on stacked cottages.
-    floorBand(width, depth, y) {
-      const g = new THREE.Group();
-      const grooveH = 0.05;
-      const grooveD = 0.035;
-      const outerW = width + 0.02;
-      const outerD = depth + 0.02;
-      const innerW = Math.max(0.05, width - 0.01);
-      const innerD = Math.max(0.05, depth - 0.01);
-      const shape = new THREE.Shape();
-      shape.moveTo(-outerW / 2, -outerD / 2);
-      shape.lineTo( outerW / 2, -outerD / 2);
-      shape.lineTo( outerW / 2,  outerD / 2);
-      shape.lineTo(-outerW / 2,  outerD / 2);
-      shape.lineTo(-outerW / 2, -outerD / 2);
-      const hole = new THREE.Path();
-      hole.moveTo(-innerW / 2, -innerD / 2);
-      hole.lineTo( innerW / 2, -innerD / 2);
-      hole.lineTo( innerW / 2,  innerD / 2);
-      hole.lineTo(-innerW / 2,  innerD / 2);
-      hole.lineTo(-innerW / 2, -innerD / 2);
-      shape.holes.push(hole);
-      const geo = new THREE.ExtrudeGeometry(shape, {
-        depth: grooveH,
-        bevelEnabled: false,
-        curveSegments: 1,
-      });
-      geo.rotateX(-Math.PI / 2);
-      const groove = new THREE.Mesh(geo, M.wallCream);
-      groove.position.y = y;
-      g.add(groove);
-
       return g;
     },
 
@@ -3509,7 +3474,6 @@
     const WALL_H = (length === 1) ? H.WALL_W : H.WALL_H;
     const halfW = H.WALL_W / 2;
     const halfD = WALL_D / 2;
-    const floorGap = floors > 1 ? 0.05 : 0;
     const floorHeights = isSoloCottage
       ? Array.from({ length: Math.max(0, floors - 1) }, () => H.WALL_W).concat(Math.max(0.1, H.WALL_W - 0.08))
       : Array.from({ length: floors }, () => H.WALL_H);
@@ -3517,14 +3481,12 @@
     let roofLift = 0;
     for (let i = 0; i < floorHeights.length; i++) {
       floorTops.push(roofLift);
-      roofLift += floorHeights[i] + (i < floorHeights.length - 1 ? floorGap : 0);
+      roofLift += floorHeights[i];
     }
     const wallHTotal = roofLift;
-    const showFloorBands = floors > 1;
     const windowYForFloor = (f) => (floorTops[f] || 0) + ((floorHeights[f] || H.WALL_H) / 2);
 
-    // Walls are stacked per floor with a tiny gap between levels so the
-    // seam reads as a real notch around the whole building, not a painted trim.
+    // Walls are stacked per floor with no decorative seam between levels.
     for (let f = 0; f < floors; f++) {
       const floorH = floorHeights[f] || H.WALL_H;
       const walls = new THREE.Mesh(roundedBox(H.WALL_W, floorH, WALL_D, 0.04), M.wallCream);
@@ -3534,14 +3496,6 @@
 
     const roof = Parts.flatRoof(H.WALL_W, WALL_D, roofLift);
     g.add(roof);
-
-    if (showFloorBands) {
-      for (let f = 1; f < floors; f++) {
-        const yBand = floorTops[f] - floorGap / 2;
-        const band = Parts.floorBand(H.WALL_W, WALL_D, yBand);
-        g.add(band);
-      }
-    }
 
     // Per-floor windows for any floor above the ground floor — small windows on
     // both long sides AND on both gable faces (so tall houses don't have blank
