@@ -6337,7 +6337,7 @@
       const mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
       if (pinchPrevDist > 0 && dist > 0) {
         const ratio = pinchPrevDist / dist;
-        viewSize = Math.max(4, Math.min(22, viewSize * ratio));
+        viewSize = Math.max(1, Math.min(25, viewSize * ratio));
         onResize();
       }
       if (pinchPrevMid) {
@@ -6438,7 +6438,7 @@
   renderer.domElement.addEventListener('wheel', e => {
     e.preventDefault();
     markCameraMoving();
-    viewSize = Math.max(4, Math.min(22, viewSize + e.deltaY * 0.005));
+    viewSize = Math.max(1, Math.min(25, viewSize + e.deltaY * 0.005));
     onResize();
   }, { passive: false });
 
@@ -6961,7 +6961,7 @@
   }
   function zoomToMaxView() {
     markCameraMoving();
-    viewSize = 22;
+    viewSize = 25;
     onResize();
     if (typeof requestMinimapRepaint === 'function') requestMinimapRepaint();
   }
