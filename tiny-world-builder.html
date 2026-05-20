@@ -3215,6 +3215,7 @@
 
     const top = new THREE.Mesh(roundedSlab(TILE * 0.98, TOP_H, 0.06), topMat);
     top.position.y = rise;
+    top.userData.pickRole = 'grass';
     g.add(top);
 
     // Tiny deterministic grass flecks. They stay put when a neighbour rerender
@@ -5565,16 +5566,23 @@
   const ndc = new THREE.Vector2();
   const pickPoint = new THREE.Vector3();
   const pickBox = new THREE.Box3();
-  const pickPlaneNormal = new THREE.Vector3(0, 1, 0);
-  const pickPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-  const TILE_PICK_HALF = TILE * 0.5;
+  const TILE_PICK_PAD = 0.01;
 
-  function pickSurfaceCell(cell, worldX, worldZ, x, z, boardX = 0, boardZ = 0) {
+  function getTilePickMesh(tile) {
+    if (!tile || !tile.children) return null;
+    for (const child of tile.children) {
+      if (child && child.userData && child.userData.pickRole === 'grass') return child;
+    }
+    return tile.children[0] || null;
+  }
+
+  function pickSurfaceCell(tile, cell, worldX, worldZ, x, z, boardX = 0, boardZ = 0) {
     if (!cell) return null;
-    const topY = TOP_H + terrainRiseForLevel(tileLevelForCell(cell));
-    pickPlane.set(pickPlaneNormal, -topY);
-    if (!raycaster.ray.intersectPlane(pickPlane, pickPoint)) return null;
-    if (Math.abs(pickPoint.x - worldX) > TILE_PICK_HALF || Math.abs(pickPoint.z - worldZ) > TILE_PICK_HALF) return null;
+    const pickMesh = getTilePickMesh(tile);
+    if (!pickMesh) return null;
+    pickBox.setFromObject(pickMesh);
+    pickBox.expandByScalar(TILE_PICK_PAD);
+    if (!raycaster.ray.intersectBox(pickBox, pickPoint)) return null;
     const dist = raycaster.ray.origin.distanceTo(pickPoint);
     return {
       dist,
@@ -5643,7 +5651,7 @@
       const tile = entry.tile;
       if (tile.userData && (tile.userData.boardX !== undefined || tile.userData.boardZ !== undefined)) continue;
       const cell = getWorldCell(tile.userData.gx, tile.userData.gz);
-      const hit = pickSurfaceCell(cell, tile.position.x, tile.position.z, tile.userData.gx, tile.userData.gz);
+      const hit = pickSurfaceCell(tile, cell, tile.position.x, tile.position.z, tile.userData.gx, tile.userData.gz);
       if (!hit) continue;
       if (!bestTile || hit.dist < bestTile.dist) bestTile = hit;
     }
@@ -5659,7 +5667,7 @@
         const x = child.userData.gx;
         const z = child.userData.gz;
         const cell = cells[x] && cells[x][z];
-        const hit = pickSurfaceCell(cell, child.position.x, child.position.z, x, z, boardX, boardZ);
+        const hit = pickSurfaceCell(child, cell, child.position.x, child.position.z, x, z, boardX, boardZ);
         if (!hit) continue;
         if (closestGhostDist === null || hit.dist < closestGhostDist) closestGhostDist = hit.dist;
       }
