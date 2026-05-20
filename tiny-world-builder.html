@@ -3261,7 +3261,7 @@
   // so adding new shapes (L-cluster, square, etc.) only needs new plans.
 
   const H = {
-    WALL_W: 0.82,        // short-axis wall width
+    WALL_W: 1,        // short-axis wall width
     WALL_H: 0.55,        // wall height to eaves
     PEAK_Y: 0.87,        // ridge apex
     T:      0.06,        // roof slab thickness
@@ -3505,7 +3505,7 @@
     const length = cells.length;
     const isSoloCottage = length === 1;
     // Solo cottage uses a square footprint. Clusters still fill their cells.
-    const WALL_D = (length === 1) ? H.WALL_W : length * TILE - 0.18;
+    const WALL_D = (length === 1) ? H.WALL_W : length * TILE;
     const WALL_H = (length === 1) ? H.WALL_W : H.WALL_H;
     const halfW = H.WALL_W / 2;
     const halfD = WALL_D / 2;
