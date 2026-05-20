@@ -1100,13 +1100,10 @@
   }
   .stacked-map {
     display: grid;
-    width: 168px;
-    height: 168px;
     border-radius: 6px;
     overflow: hidden;
     border: 1px solid rgba(42, 39, 34, 0.24);
     background: rgba(255, 255, 255, 0.65);
-    place-content: center;
     direction: ltr;
     user-select: none;
     touch-action: none;
@@ -10019,7 +10016,10 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     const size = minimapViewCellCounts();
     const W = Math.max(1, size.width);
     const D = Math.max(1, size.depth);
-    const cellSize = Math.max(1, Math.floor(Math.min(map.clientWidth / W, map.clientHeight / D)));
+    const maxMapSize = 168;
+    const cellSize = Math.max(1, Math.floor(maxMapSize / Math.max(W, D)));
+    const mapWidth = cellSize * W;
+    const mapHeight = cellSize * D;
     const centerGx = Math.floor(target.x + GRID_W / 2);
     const centerGz = Math.floor(target.z + GRID_D / 2);
     const startGx = centerGx - Math.floor(W / 2);
@@ -10027,6 +10027,8 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     const sizeEl = document.getElementById('minimap-size');
     if (sizeEl) sizeEl.textContent = minimapSizeLabel();
     map.style.setProperty('--minimap-cell-size', cellSize + 'px');
+    map.style.width = mapWidth + 'px';
+    map.style.height = mapHeight + 'px';
     map.style.gridTemplateColumns = `repeat(${W}, ${cellSize}px)`;
     map.style.gridTemplateRows = `repeat(${D}, ${cellSize}px)`;
     map.textContent = '';
