@@ -3521,6 +3521,7 @@
     }
     const wallHTotal = roofLift;
     const showFloorBands = floors > 1;
+    const windowYForFloor = (f) => (floorTops[f] || 0) + ((floorHeights[f] || H.WALL_H) / 2);
 
     // Walls are stacked per floor with a tiny gap between levels so the
     // seam reads as a real notch around the whole building, not a painted trim.
@@ -3547,20 +3548,21 @@
     // gable walls).
     for (let f = 1; f < floors; f++) {
       const yOff = floorTops[f] || 0;
+      const yMid = windowYForFloor(f) - yOff;
       for (let i = 0; i < length; i++) {
         const cellZ = -((length - 1) / 2) + i;
         const wR = Parts.window('side', 'small');
-        wR.position.set( halfW + 0.005, 0.32 + yOff, cellZ); g.add(wR);
+        wR.position.set( halfW + 0.005, yMid + yOff, cellZ); g.add(wR);
         const wL = Parts.window('side', 'small');
-        wL.position.set(-halfW - 0.005, 0.32 + yOff, cellZ);
+        wL.position.set(-halfW - 0.005, yMid + yOff, cellZ);
         wL.rotation.y = Math.PI;
         g.add(wL);
       }
       // Gable-face upper windows at cluster's two ends
       const wGF = Parts.window('gable', 'small');
-      wGF.position.set(0, 0.32 + yOff, halfD + 0.005); g.add(wGF);
+      wGF.position.set(0, yMid + yOff, halfD + 0.005); g.add(wGF);
       const wGB = Parts.window('gable', 'small');
-      wGB.position.set(0, 0.32 + yOff, -halfD - 0.005);
+      wGB.position.set(0, yMid + yOff, -halfD - 0.005);
       wGB.rotation.y = Math.PI;
       g.add(wGB);
     }
@@ -3574,7 +3576,7 @@
         const door = Parts.door('gable');
         door.position.set(-0.12, 0, halfD + 0.01); g.add(door);
         const win = Parts.window('gable');
-        win.position.set(0.2, 0.32, halfD + 0.01); g.add(win);
+        win.position.set(0.2, windowYForFloor(0), halfD + 0.01); g.add(win);
         const step = Parts.step('gable');
         step.position.set(-0.12, 0.03, halfD + 0.08); g.add(step);
       } else if (cell.face === 'side') {
@@ -3582,11 +3584,11 @@
         const door = Parts.door('side');
         door.position.set(dx, 0, cellZ - 0.1); g.add(door);
         const win = Parts.window('side');
-        win.position.set(dx, 0.32, cellZ + 0.18); g.add(win);
+        win.position.set(dx, windowYForFloor(0), cellZ + 0.18); g.add(win);
         const step = Parts.step('side');
         step.position.set(dx + 0.06, 0.03, cellZ - 0.1); g.add(step);
         const bwin = Parts.window('side', 'small');
-        bwin.position.set(-halfW - 0.005, 0.32, cellZ);
+        bwin.position.set(-halfW - 0.005, windowYForFloor(0), cellZ);
         bwin.rotation.y = Math.PI;
         g.add(bwin);
       }
@@ -3595,7 +3597,7 @@
     // Solo cottages get three ground-floor windows on floor 1, but taller
     // versions keep the older two-window ground-floor layout.
     if (isSoloCottage) {
-      const sideY = 0.32;
+      const sideY = windowYForFloor(0);
       const dx = halfW + 0.005;
       const dz = halfD + 0.005;
 
