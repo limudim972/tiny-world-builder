@@ -6882,20 +6882,20 @@
     }
 
     suppressSave = true;
-    // Rebuild every home cell from the surviving world data.
+    // Start the resized home board empty so the new grid size does not
+    // inherit any previous placements from the old dimensions.
     for (let x = 0; x < GRID_W; x++) {
       for (let z = 0; z < GRID_D; z++) {
-        const c = world[x][z];
         setCell(x, z, {
-          terrain: c.terrain || 'grass',
-          terrainFloors: c.terrainFloors || 1,
-          kind: c.kind || null,
-          floors: c.floors || 1,
-          buildingType: c.buildingType || null,
-          fenceSide: c.fenceSide || null,
-          rotationY: c.rotationY || 0,
-          offsetX: c.offsetX || 0,
-          offsetZ: c.offsetZ || 0,
+          terrain: 'grass',
+          terrainFloors: 1,
+          kind: null,
+          floors: 1,
+          buildingType: null,
+          fenceSide: null,
+          rotationY: 0,
+          offsetX: 0,
+          offsetZ: 0,
           animate: false,
           forceTile: true,
         });
