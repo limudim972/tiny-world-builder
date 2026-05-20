@@ -3592,19 +3592,22 @@
       }
     }
 
-    // Solo cottages get windows on every ground-floor face so the 1x1 footprint
-    // reads as a proper little house from all angles.
+    // Solo cottages get three ground-floor windows so the 1x1 footprint reads
+    // as a proper little house from the front and both sides.
     if (isSoloCottage) {
       const sideY = 0.32;
       const dx = halfW + 0.005;
       const dz = halfD + 0.005;
 
- 
 
       const winW = Parts.window('side');
       winW.position.set(-dx, sideY, 0);
       winW.rotation.y = Math.PI;
       g.add(winW);
+
+      const winE = Parts.window('side');
+      winE.position.set(dx, sideY, 0);
+      g.add(winE);
 
       const winN = Parts.window('gable');
       winN.position.set(0, sideY, -dz);
