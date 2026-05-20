@@ -1125,7 +1125,7 @@
   .stacked-map-cell.is-edge-right { border-right: none; }
   .stacked-map-cell.is-edge-bottom { border-bottom: none; }
   .stacked-map-cell .stacked-map-number {
-    font-size: 28px;
+    font-size: calc(var(--minimap-cell-size, 56px) * 0.5);
     transform: translateY(-0.02em);
   }
   .minimap-foot {
@@ -10026,6 +10026,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     const startGz = centerGz - Math.floor(D / 2);
     const sizeEl = document.getElementById('minimap-size');
     if (sizeEl) sizeEl.textContent = minimapSizeLabel();
+    map.style.setProperty('--minimap-cell-size', cellSize + 'px');
     map.style.gridTemplateColumns = `repeat(${W}, ${cellSize}px)`;
     map.style.gridTemplateRows = `repeat(${D}, ${cellSize}px)`;
     map.textContent = '';
