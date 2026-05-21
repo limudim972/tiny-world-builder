@@ -4104,10 +4104,14 @@
     if (reseed || crowdLayer.people.size !== crowdCount) seedCrowdPeople();
   }
 
-  const CROWD_HOUSE_EXCLUSION_PAD = 0.03;
-  const CROWD_HOUSE_RING_WIDTH = 0.34;
-  const CROWD_DOOR_GAP_PAD = 0.08;
-  const CROWD_DOOR_INSET = 0.04;
+  // Keep crowd sprites clear of house walls. The old buffer was tight enough
+  // that tall billboard characters could clip into corners while the feet
+  // still looked outside the wall.
+  const CROWD_HOUSE_CLEARANCE = 0.14;
+  const CROWD_HOUSE_EXCLUSION_PAD = CROWD_HOUSE_CLEARANCE;
+  const CROWD_HOUSE_RING_WIDTH = 0.40;
+  const CROWD_DOOR_GAP_PAD = 0.10;
+  const CROWD_DOOR_INSET = CROWD_HOUSE_CLEARANCE;
   const CROWD_INTERIOR_STOP = 1.32;
   const CROWD_HOUSE_VISIT_DWELL = 30;
   const CROWD_ROUTE_POINT_EPS = 0.012;
