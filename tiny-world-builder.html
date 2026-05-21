@@ -4005,9 +4005,14 @@
   const homeBorderGroup = new THREE.Group();
   homeBorderGroup.name = 'homeBorder';
   scene.add(homeBorderGroup);
+  const homeFrontArrowGroup = new THREE.Group();
+  homeFrontArrowGroup.name = 'homeFrontArrow';
+  scene.add(homeFrontArrowGroup);
   const HOME_BORDER_COLOR = 0x2a1a0e;
   const HOME_BORDER_Y = 0.04;
   const homeBorderStripMat = new THREE.MeshBasicMaterial({ color: HOME_BORDER_COLOR });
+  const HOME_FRONT_ARROW_COLOR = 0x111111;
+  const homeFrontArrowMat = new THREE.MeshLambertMaterial({ color: HOME_FRONT_ARROW_COLOR, emissive: 0x000000, emissiveIntensity: 0 });
   const STRIP_WIDTH = 0.12;       // how thick the line reads on the ground
   const STRIP_Y = 0.03;            // slightly above ground to beat z-fighting
   function addStrip(x, z, len, axis) {
@@ -4018,6 +4023,30 @@
     strip.rotation.x = -Math.PI / 2;
     strip.position.set(x, STRIP_Y, z);
     homeBorderGroup.add(strip);
+  }
+  function addArrowPart(geom, y, rotX, scale = 1) {
+    const part = new THREE.Mesh(geom, homeFrontArrowMat);
+    part.position.y = y;
+    if (rotX) part.rotation.x = rotX;
+    part.scale.setScalar(scale);
+    homeFrontArrowGroup.add(part);
+  }
+  function buildHomeFrontArrow() {
+    while (homeFrontArrowGroup.children.length) {
+      const c = homeFrontArrowGroup.children.pop();
+      if (c.geometry) c.geometry.dispose();
+    }
+    const halfW = GRID_W / 2;
+    const halfD = GRID_D / 2;
+    const arrowX = 0;
+    const arrowZ = halfD + 1.55;
+    const lowY = 0.18;
+    homeFrontArrowGroup.position.set(arrowX, 0, arrowZ);
+    homeFrontArrowGroup.rotation.set(0, Math.PI, 0);
+    addArrowPart(new THREE.CylinderGeometry(0.055, 0.055, 1.36, 6, 1), lowY, Math.PI / 2, 1);
+    addArrowPart(new THREE.ConeGeometry(0.22, 0.62, 7, 1), lowY, Math.PI / 2, 1);
+    homeFrontArrowGroup.children[0].position.z = -0.46;
+    homeFrontArrowGroup.children[1].position.z = 0.47;
   }
   function buildHomeBorder() {
     while (homeBorderGroup.children.length) {
@@ -4030,6 +4059,7 @@
     addStrip(0,  halfD, GRID_W, 'x'); // south
     addStrip(-halfW, 0, GRID_D, 'z'); // west
     addStrip( halfW, 0, GRID_D, 'z'); // east
+    buildHomeFrontArrow();
   }
   buildHomeBorder();
 
