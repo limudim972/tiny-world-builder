@@ -24,8 +24,9 @@ const types = {
 };
 
 function send(res, status, body, headers = {}) {
+  const cacheHeaders = headers['Cache-Control'] ? {} : { 'Cache-Control': 'no-store' };
   res.writeHead(status, {
-    'Cache-Control': 'no-store',
+    ...cacheHeaders,
     ...headers,
   });
   res.end(body);
@@ -56,10 +57,15 @@ const server = http.createServer((req, res) => {
       return;
     }
     const ext = path.extname(file).toLowerCase();
+    const isCacheableAsset =
+      file.includes(`${path.sep}vendor${path.sep}`) ||
+      file.includes(`${path.sep}crowd${path.sep}`) ||
+      file.includes(`${path.sep}models${path.sep}`) ||
+      file.includes(`${path.sep}sounds${path.sep}`);
     res.writeHead(200, {
       'Content-Type': types[ext] || 'application/octet-stream',
       'Content-Length': stat.size,
-      'Cache-Control': 'no-store',
+      'Cache-Control': isCacheableAsset ? 'public, max-age=31536000, immutable' : 'no-store',
     });
     if (req.method === 'HEAD') {
       res.end();
