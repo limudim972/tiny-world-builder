@@ -6847,7 +6847,7 @@
   function buildToolButton(t, opts) {
     const momentary = !!(opts && opts.momentary);
     const btn = document.createElement('button');
-    btn.className = 'tool' + ((opts && opts.flyout) ? ' flyout-tool' : '') + (t.eraser ? ' icon-only' : '');
+    btn.className = 'tool' + ((opts && opts.flyout) ? ' flyout-tool' : '') + (t.eraser || t.kind === 'plane' ? ' icon-only' : '');
     btn.type = 'button';
     if (!momentary) btn.dataset.id = t.id;
     const toolTip = (opts && opts.tooltip) || (t.label + (t.shortcut ? ' (' + t.shortcut.toUpperCase() + ')' : ''));
@@ -6880,13 +6880,15 @@
       setTimeout(() => buildToolThumb(t, canvas), 0);
     }
 
-    const lbl = document.createElement('span');
-    lbl.textContent = t.label;
-    btn.appendChild(lbl);
-    if (t.shortcut) {
-      const k = document.createElement('kbd');
-      k.textContent = t.shortcut.toUpperCase();
-      btn.appendChild(k);
+    if (t.kind !== 'plane') {
+      const lbl = document.createElement('span');
+      lbl.textContent = t.label;
+      btn.appendChild(lbl);
+      if (t.shortcut) {
+        const k = document.createElement('kbd');
+        k.textContent = t.shortcut.toUpperCase();
+        btn.appendChild(k);
+      }
     }
     if (!(opts && opts.noClick)) {
       btn.addEventListener('click', e => {
