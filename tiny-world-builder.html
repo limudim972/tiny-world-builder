@@ -4152,7 +4152,8 @@
   const CROWD_HOUSE_RING_WIDTH = 0.34;
   const CROWD_DOOR_GAP_PAD = 0.08;
   const CROWD_DOOR_INSET = 0.04;
-  const CROWD_INTERIOR_STOP = 0.16;
+  const CROWD_INTERIOR_STOP = 1.32;
+  const CROWD_HOUSE_VISIT_DWELL = 30;
   const CROWD_ROUTE_POINT_EPS = 0.012;
   const CROWD_ROUTE_MAX_POINTS = 36;
   let crowdHouseEnvelopes = [];
@@ -4196,7 +4197,9 @@
   }
 
   function crowdClonePoint(p) {
-    return { x: p.x, z: p.z };
+    const point = { x: p.x, z: p.z };
+    if (Number.isFinite(p.dwell) && p.dwell > 0) point.dwell = p.dwell;
+    return point;
   }
 
   function crowdClamp(v, lo, hi) {
@@ -4353,6 +4356,7 @@
   function crowdAppendPoint(points, point) {
     if (!point) return;
     const p = { x: point.x, z: point.z };
+    if (Number.isFinite(point.dwell) && point.dwell > 0) p.dwell = point.dwell;
     const last = points[points.length - 1];
     if (!last || crowdDist(last, p) > CROWD_ROUTE_POINT_EPS) points.push(p);
   }
@@ -4471,7 +4475,7 @@
     const base = crowdClonePoint(target);
     const envelope = crowdFindEnvelopeForPoint(base, envelopes, 0.001);
     if (!envelope) return crowdClampPointToRect(base, crowdBoardRect());
-    if (crowdPointMatchesDoorWaypoint(base, envelope)) return base;
+    if (crowdPointMatchesDoorWaypoint(base, envelope)) return target.dwell ? Object.assign({ dwell: target.dwell }, base) : base;
     const door = crowdChooseDoorGap(envelope, prev || base, base);
     if (!door) {
       const fallback = crowdProjectToRectBoundary(base, envelope.outer);
@@ -4481,7 +4485,9 @@
       const fallback = crowdProjectToRectBoundary(prev || base, envelope.outer);
       return crowdClampPointToRect({ x: fallback.x, z: fallback.z }, crowdBoardRect());
     }
-    return crowdInteriorStopPoint(envelope, door);
+    const stop = crowdInteriorStopPoint(envelope, door);
+    if (target.dwell) stop.dwell = target.dwell;
+    return stop;
   }
 
   function crowdDetourSegmentForEnvelope(a, b, envelope) {
@@ -4617,7 +4623,10 @@
     for (const envelope of envelopes) {
       for (const gap of crowdDoorGapCandidates(envelope)) {
         if (gap.blocked) continue;
-        targets.push(crowdInteriorStopPoint(envelope, gap));
+        const stop = crowdInteriorStopPoint(envelope, gap);
+        stop.dwell = CROWD_HOUSE_VISIT_DWELL;
+        targets.push(stop);
+        targets.push(crowdDoorPoint(envelope, gap, true));
       }
     }
     return targets;

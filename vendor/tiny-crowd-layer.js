@@ -548,6 +548,7 @@
         sizeMul: opts.sizeMul || (1 + (Math.random() * 2 - 1) * this.config.sizeVar),
         route: Array.isArray(opts.route) ? opts.route.slice() : null,
         routeIndex: 0,
+        routeHold: 0,
         view: opts.view || pickViewFromHeading(opts.heading || 0, null),
         scale: opts.scale || 1,
         radius: opts.radius || this.worldConfig.zoneRadius,
@@ -597,12 +598,17 @@
     }
 
     tickRoute(person, dt) {
+      if (person.routeHold > 0) {
+        person.routeHold = Math.max(0, person.routeHold - dt);
+        return;
+      }
       if (!person.route || person.route.length < 2 || !person.speed || !dt) return;
       const target = person.route[person.routeIndex % person.route.length];
       const dx = target.x - person.x;
       const dz = target.z - person.z;
       const dist = Math.hypot(dx, dz);
       if (dist < 0.035) {
+        if (target && target.dwell > 0) person.routeHold = target.dwell;
         person.routeIndex = (person.routeIndex + 1) % person.route.length;
         return;
       }
@@ -625,6 +631,7 @@
           nextZ = constrained.z;
         }
         if (constrained && constrained.advanceTarget) {
+          if (target && target.dwell > 0) person.routeHold = target.dwell;
           person.routeIndex = (person.routeIndex + 1) % person.route.length;
         }
       }
