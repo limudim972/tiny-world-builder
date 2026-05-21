@@ -418,14 +418,24 @@
       0 1px 0 rgba(255, 255, 255, 0.88) inset,
       0 1px 2px rgba(20, 30, 50, 0.04);
   }
-  .toolbar-zoom-tool {
+  .toolbar-zoom-panel {
     width: 88px;
-    height: 50px;
+    min-height: 50px;
     padding: 5px 4px 4px;
-    gap: 2px;
-    justify-content: flex-start;
+    gap: 1px;
+    display: grid;
+    grid-template-rows: auto auto;
+    justify-items: center;
+    align-items: center;
   }
-  .toolbar-zoom-tool .zoom-label {
+  .toolbar-zoom-panel .zoom-readout {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    line-height: 1;
+  }
+  .toolbar-zoom-panel .zoom-label {
     font-size: 10px;
     font-weight: 700;
     line-height: 1;
@@ -434,7 +444,7 @@
     letter-spacing: 0;
     white-space: nowrap;
   }
-  .toolbar-zoom-tool input[type="range"] {
+  .toolbar-zoom-panel input[type="range"] {
     width: 70px;
     height: 16px;
     padding: 0;
@@ -448,7 +458,7 @@
     -webkit-appearance: auto;
     appearance: auto;
   }
-  .toolbar-zoom-tool output {
+  .toolbar-zoom-panel output {
     font-variant-numeric: tabular-nums;
     text-align: center;
     color: var(--ink);
@@ -2316,7 +2326,7 @@
   function syncToolbarZoomControl() {
     const zoomPercent = viewSizeToZoomPercent(viewSize);
     if (toolbarZoomEl) toolbarZoomEl.value = zoomPercent.toFixed(1);
-    if (toolbarZoomValueEl) toolbarZoomValueEl.textContent = zoomPercent.toFixed(1);
+    if (toolbarZoomValueEl) toolbarZoomValueEl.textContent = Math.round(zoomPercent).toString();
   }
 
   function normalizeBoardSize(value) {
@@ -6932,14 +6942,9 @@
 
   function buildZoomToolbarControl() {
     const tool = document.createElement('div');
-    tool.className = 'tool toolbar-zoom-tool';
+    tool.className = 'toolbar-zoom-panel';
     tool.setAttribute('data-tooltip', 'זום מצלמה');
     tool.setAttribute('aria-label', 'זום מצלמה');
-
-    const label = document.createElement('span');
-    label.className = 'zoom-label';
-    label.textContent = 'Zoom';
-    tool.appendChild(label);
 
     const input = document.createElement('input');
     input.type = 'range';
@@ -6950,10 +6955,17 @@
     input.id = 'crowd-count-live';
     tool.appendChild(input);
 
+    const label = document.createElement('span');
+    label.className = 'zoom-label';
+    label.textContent = 'זום';
     const output = document.createElement('output');
-    output.textContent = viewSizeToZoomPercent(viewSize).toFixed(1);
+    output.textContent = Math.round(viewSizeToZoomPercent(viewSize)).toString();
     output.id = 'crowd-count-live-value';
-    tool.appendChild(output);
+    const readout = document.createElement('span');
+    readout.className = 'zoom-readout';
+    readout.appendChild(label);
+    readout.appendChild(output);
+    tool.appendChild(readout);
 
     input.addEventListener('input', () => {
       viewSize = zoomPercentToViewSize(parseFloat(input.value) || viewSizeToZoomPercent(DEFAULT_VIEW_SIZE));
