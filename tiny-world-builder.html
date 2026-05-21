@@ -2310,7 +2310,7 @@
 
   <script src="vendor/three/three.r128.min.js"></script>
   <script src="vendor/three/GLTFLoader.r128.js"></script>
-  <script src="vendor/tiny-crowd-layer.js?v=5"></script>
+  <script src="vendor/tiny-crowd-layer.js?v=6"></script>
   <script>
   /* =====================================================================
      Tiny World Builder — single-file Three.js scene + tile editor
@@ -4148,14 +4148,596 @@
     if (reseed || crowdLayer.people.size !== crowdCount) seedCrowdPeople();
   }
 
+  const CROWD_HOUSE_EXCLUSION_PAD = 0.03;
+  const CROWD_HOUSE_RING_WIDTH = 0.34;
+  const CROWD_DOOR_GAP_PAD = 0.08;
+  const CROWD_DOOR_INSET = 0.04;
+  const CROWD_INTERIOR_STOP = 0.16;
+  const CROWD_ROUTE_POINT_EPS = 0.012;
+  const CROWD_ROUTE_MAX_POINTS = 36;
+  let crowdHouseEnvelopes = [];
+  let crowdHouseEnvelopeDirty = true;
+
+  function crowdMarkHouseEnvelopeDirty() {
+    crowdHouseEnvelopeDirty = true;
+  }
+
+  function crowdWorldToTileX(worldX) {
+    return worldX + GRID_W / 2 - 0.5;
+  }
+
+  function crowdWorldToTileZ(worldZ) {
+    return worldZ + GRID_D / 2 - 0.5;
+  }
+
+  function crowdBoardRect(pad = 0.02) {
+    return {
+      minX: -0.5 + pad,
+      maxX: GRID_W - 0.5 - pad,
+      minZ: -0.5 + pad,
+      maxZ: GRID_D - 0.5 - pad,
+    };
+  }
+
+  function crowdClampPointToRect(point, rect) {
+    return {
+      x: crowdClamp(point.x, rect.minX, rect.maxX),
+      z: crowdClamp(point.z, rect.minZ, rect.maxZ),
+    };
+  }
+
+  function crowdClipRectToRect(rect, bounds) {
+    return {
+      minX: Math.max(bounds.minX, rect.minX),
+      maxX: Math.min(bounds.maxX, rect.maxX),
+      minZ: Math.max(bounds.minZ, rect.minZ),
+      maxZ: Math.min(bounds.maxZ, rect.maxZ),
+    };
+  }
+
+  function crowdClonePoint(p) {
+    return { x: p.x, z: p.z };
+  }
+
+  function crowdClamp(v, lo, hi) {
+    return v < lo ? lo : (v > hi ? hi : v);
+  }
+
+  function crowdDist(a, b) {
+    const dx = a.x - b.x;
+    const dz = a.z - b.z;
+    return Math.hypot(dx, dz);
+  }
+
+  function crowdPointInsideRect(point, rect, pad = 0) {
+    return (
+      point.x > rect.minX + pad &&
+      point.x < rect.maxX - pad &&
+      point.z > rect.minZ + pad &&
+      point.z < rect.maxZ - pad
+    );
+  }
+
+  function crowdSegmentIntersectsRect(a, b, rect, pad = 0) {
+    const minX = rect.minX + pad;
+    const maxX = rect.maxX - pad;
+    const minZ = rect.minZ + pad;
+    const maxZ = rect.maxZ - pad;
+    if (minX >= maxX || minZ >= maxZ) return false;
+    let t0 = 0;
+    let t1 = 1;
+    const dx = b.x - a.x;
+    const dz = b.z - a.z;
+    const clip = (p, q) => {
+      if (Math.abs(p) < 1e-8) return q >= 0;
+      const r = q / p;
+      if (p < 0) {
+        if (r > t1) return false;
+        if (r > t0) t0 = r;
+      } else {
+        if (r < t0) return false;
+        if (r < t1) t1 = r;
+      }
+      return true;
+    };
+    if (!clip(-dx, a.x - minX)) return false;
+    if (!clip(dx, maxX - a.x)) return false;
+    if (!clip(-dz, a.z - minZ)) return false;
+    if (!clip(dz, maxZ - a.z)) return false;
+    return t1 >= t0;
+  }
+
+  function crowdNearestRectSide(point, rect) {
+    const dN = Math.abs(point.z - rect.minZ);
+    const dS = Math.abs(rect.maxZ - point.z);
+    const dE = Math.abs(rect.maxX - point.x);
+    const dW = Math.abs(point.x - rect.minX);
+    let side = 'n';
+    let best = dN;
+    if (dS < best) { side = 's'; best = dS; }
+    if (dE < best) { side = 'e'; best = dE; }
+    if (dW < best) side = 'w';
+    return side;
+  }
+
+  function crowdProjectToRectBoundary(point, rect) {
+    const minX = rect.minX;
+    const maxX = rect.maxX;
+    const minZ = rect.minZ;
+    const maxZ = rect.maxZ;
+    const cx = crowdClamp(point.x, minX, maxX);
+    const cz = crowdClamp(point.z, minZ, maxZ);
+    let side = null;
+    let x = cx;
+    let z = cz;
+    const inside = crowdPointInsideRect(point, rect, -1e-6);
+    if (inside) {
+      side = crowdNearestRectSide(point, rect);
+    } else {
+      const onW = Math.abs(cx - minX) < 1e-6;
+      const onE = Math.abs(cx - maxX) < 1e-6;
+      const onN = Math.abs(cz - minZ) < 1e-6;
+      const onS = Math.abs(cz - maxZ) < 1e-6;
+      if ((onW || onE) && (onN || onS)) {
+        const dx = Math.abs(point.x - cx);
+        const dz = Math.abs(point.z - cz);
+        side = dx >= dz
+          ? (onW ? 'w' : 'e')
+          : (onN ? 'n' : 's');
+      } else if (onN) side = 'n';
+      else if (onS) side = 's';
+      else if (onW) side = 'w';
+      else if (onE) side = 'e';
+      else side = crowdNearestRectSide({ x: cx, z: cz }, rect);
+    }
+    if (side === 'n') {
+      x = crowdClamp(cx, minX, maxX);
+      z = minZ;
+    } else if (side === 's') {
+      x = crowdClamp(cx, minX, maxX);
+      z = maxZ;
+    } else if (side === 'e') {
+      x = maxX;
+      z = crowdClamp(cz, minZ, maxZ);
+    } else {
+      x = minX;
+      z = crowdClamp(cz, minZ, maxZ);
+    }
+    return { x, z, side };
+  }
+
+  function crowdPerimeterT(point, rect) {
+    const w = rect.maxX - rect.minX;
+    const d = rect.maxZ - rect.minZ;
+    if (point.side === 'n') return point.x - rect.minX;
+    if (point.side === 'e') return w + (point.z - rect.minZ);
+    if (point.side === 's') return w + d + (rect.maxX - point.x);
+    return w + d + w + (rect.maxZ - point.z);
+  }
+
+  function crowdPerimeterPointAt(t, rect) {
+    const w = rect.maxX - rect.minX;
+    const d = rect.maxZ - rect.minZ;
+    const L = 2 * (w + d);
+    let u = t % L;
+    if (u < 0) u += L;
+    if (u <= w) return { x: rect.minX + u, z: rect.minZ };
+    if (u <= w + d) return { x: rect.maxX, z: rect.minZ + (u - w) };
+    if (u <= w + d + w) return { x: rect.maxX - (u - w - d), z: rect.maxZ };
+    return { x: rect.minX, z: rect.maxZ - (u - w - d - w) };
+  }
+
+  function crowdPerimeterPathCW(start, end, rect) {
+    const w = rect.maxX - rect.minX;
+    const d = rect.maxZ - rect.minZ;
+    const L = 2 * (w + d);
+    const s = Object.assign({ t: crowdPerimeterT(start, rect) }, start);
+    const e = Object.assign({ t: crowdPerimeterT(end, rect) }, end);
+    const span = (e.t - s.t + L) % L;
+    const points = [{ x: s.x, z: s.z }];
+    if (span <= 1e-6) {
+      points.push({ x: e.x, z: e.z });
+      return points;
+    }
+    const corners = [w, w + d, w + d + w, L];
+    for (const corner of corners) {
+      const rel = (corner - s.t + L) % L;
+      if (rel > 1e-6 && rel < span - 1e-6) {
+        points.push(crowdPerimeterPointAt(s.t + rel, rect));
+      }
+    }
+    points.push({ x: e.x, z: e.z });
+    return points;
+  }
+
+  function crowdAppendPoint(points, point) {
+    if (!point) return;
+    const p = { x: point.x, z: point.z };
+    const last = points[points.length - 1];
+    if (!last || crowdDist(last, p) > CROWD_ROUTE_POINT_EPS) points.push(p);
+  }
+
+  function crowdPolylineLength(points) {
+    let len = 0;
+    for (let i = 1; i < points.length; i++) len += crowdDist(points[i - 1], points[i]);
+    return len;
+  }
+
+  function crowdPerimeterDetour(a, b, rect, avoidRect = null) {
+    if (avoidRect && !crowdSegmentIntersectsRect(a, b, avoidRect, 0.001)) {
+      return [crowdClonePoint(a), crowdClonePoint(b)];
+    }
+    const start = crowdProjectToRectBoundary(a, rect);
+    const end = crowdProjectToRectBoundary(b, rect);
+    const cwArc = crowdPerimeterPathCW(start, end, rect);
+    const ccwArc = crowdPerimeterPathCW(end, start, rect).slice().reverse();
+    const buildRoute = arc => {
+      const route = [];
+      crowdAppendPoint(route, a);
+      for (const p of arc) crowdAppendPoint(route, p);
+      crowdAppendPoint(route, b);
+      return route;
+    };
+    const cw = buildRoute(cwArc);
+    const ccw = buildRoute(ccwArc);
+    return crowdPolylineLength(cw) <= crowdPolylineLength(ccw) ? cw : ccw;
+  }
+
+  function crowdDoorPoint(envelope, gap, outside) {
+    const offset = outside ? CROWD_DOOR_INSET : -CROWD_DOOR_INSET;
+    let point = null;
+    if (gap.side === 'n') point = { x: (gap.min + gap.max) * 0.5, z: envelope.inner.minZ - offset };
+    else if (gap.side === 's') point = { x: (gap.min + gap.max) * 0.5, z: envelope.inner.maxZ + offset };
+    else if (gap.side === 'e') point = { x: envelope.inner.maxX + offset, z: (gap.min + gap.max) * 0.5 };
+    else point = { x: envelope.inner.minX - offset, z: (gap.min + gap.max) * 0.5 };
+    return crowdClampPointToRect(point, crowdBoardRect());
+  }
+
+  function crowdInteriorStopPoint(envelope, gap) {
+    const centerX = (gap.min + gap.max) * 0.5;
+    const centerZ = (gap.min + gap.max) * 0.5;
+    const insetX = Math.min(CROWD_INTERIOR_STOP, Math.max(0.06, (envelope.inner.maxX - envelope.inner.minX) * 0.35));
+    const insetZ = Math.min(CROWD_INTERIOR_STOP, Math.max(0.06, (envelope.inner.maxZ - envelope.inner.minZ) * 0.35));
+    if (gap.side === 'n') return { x: centerX, z: envelope.inner.minZ + insetZ };
+    if (gap.side === 's') return { x: centerX, z: envelope.inner.maxZ - insetZ };
+    if (gap.side === 'e') return { x: envelope.inner.maxX - insetX, z: centerZ };
+    return { x: envelope.inner.minX + insetX, z: centerZ };
+  }
+
+  function crowdFindEnvelopeForPoint(point, envelopes, pad = 0.001) {
+    if (!point || !Array.isArray(envelopes)) return null;
+    for (const envelope of envelopes) {
+      if (crowdPointInsideRect(point, envelope.inner, pad)) return envelope;
+    }
+    return null;
+  }
+
+  function crowdDoorGapCandidates(envelope) {
+    if (!envelope || !Array.isArray(envelope.doors) || !envelope.doors.length) return [];
+    const open = envelope.doors.filter(gap => !gap.blocked);
+    return open.length ? open : envelope.doors;
+  }
+
+  function crowdPointMatchesDoorWaypoint(point, envelope, eps = 0.07) {
+    if (!envelope || !Array.isArray(envelope.doors)) return false;
+    for (const gap of envelope.doors) {
+      if (crowdDist(point, crowdDoorPoint(envelope, gap, false)) <= eps) return true;
+      if (crowdDist(point, crowdInteriorStopPoint(envelope, gap)) <= eps) return true;
+    }
+    return false;
+  }
+
+  function crowdPointInDoorPortal(point, envelope, gap, pad = 0.04) {
+    if (!point || !envelope || !gap) return false;
+    const outside = crowdDoorPoint(envelope, gap, true);
+    const inside = crowdDoorPoint(envelope, gap, false);
+    if (gap.side === 'n' || gap.side === 's') {
+      return (
+        point.x >= gap.min - pad &&
+        point.x <= gap.max + pad &&
+        point.z >= Math.min(outside.z, inside.z) - pad &&
+        point.z <= Math.max(outside.z, inside.z) + pad
+      );
+    }
+    return (
+      point.z >= gap.min - pad &&
+      point.z <= gap.max + pad &&
+      point.x >= Math.min(outside.x, inside.x) - pad &&
+      point.x <= Math.max(outside.x, inside.x) + pad
+    );
+  }
+
+  function crowdChooseDoorGap(envelope, a, b) {
+    const candidates = crowdDoorGapCandidates(envelope);
+    if (!candidates.length) return null;
+    const mid = {
+      x: (a.x + b.x) * 0.5,
+      z: (a.z + b.z) * 0.5,
+    };
+    let best = candidates[0];
+    let bestDist = Infinity;
+    for (const gap of candidates) {
+      const out = crowdDoorPoint(envelope, gap, true);
+      const d = crowdDist(mid, out);
+      if (d < bestDist) {
+        bestDist = d;
+        best = gap;
+      }
+    }
+    return best;
+  }
+
+  function crowdNormalizeRouteTarget(target, prev, envelopes) {
+    const base = crowdClonePoint(target);
+    const envelope = crowdFindEnvelopeForPoint(base, envelopes, 0.001);
+    if (!envelope) return crowdClampPointToRect(base, crowdBoardRect());
+    if (crowdPointMatchesDoorWaypoint(base, envelope)) return base;
+    const door = crowdChooseDoorGap(envelope, prev || base, base);
+    if (!door) {
+      const fallback = crowdProjectToRectBoundary(base, envelope.outer);
+      return crowdClampPointToRect({ x: fallback.x, z: fallback.z }, crowdBoardRect());
+    }
+    if (door.blocked) {
+      const fallback = crowdProjectToRectBoundary(prev || base, envelope.outer);
+      return crowdClampPointToRect({ x: fallback.x, z: fallback.z }, crowdBoardRect());
+    }
+    return crowdInteriorStopPoint(envelope, door);
+  }
+
+  function crowdDetourSegmentForEnvelope(a, b, envelope) {
+    const aInside = crowdPointInsideRect(a, envelope.inner, 0.001);
+    const bInside = crowdPointInsideRect(b, envelope.inner, 0.001);
+    const cutsWall = crowdSegmentIntersectsRect(a, b, envelope.inner, -0.001);
+    if (!aInside && !bInside && !cutsWall) return [a, b];
+    if (aInside && bInside) return [a, b];
+    const door = crowdChooseDoorGap(envelope, a, b);
+    if (!door) return crowdPerimeterDetour(a, b, envelope.outer);
+    if (
+      ((aInside && !bInside) || (!aInside && bInside)) &&
+      (crowdPointInDoorPortal(a, envelope, door) || crowdPointInDoorPortal(b, envelope, door))
+    ) {
+      return [a, b];
+    }
+    const doorOutside = crowdDoorPoint(envelope, door, true);
+    const doorInside = crowdDoorPoint(envelope, door, false);
+    if (aInside && !bInside) {
+      const tail = crowdPerimeterDetour(doorOutside, b, envelope.outer, envelope.inner);
+      const route = [];
+      crowdAppendPoint(route, a);
+      crowdAppendPoint(route, doorInside);
+      crowdAppendPoint(route, doorOutside);
+      for (let i = 1; i < tail.length; i++) crowdAppendPoint(route, tail[i]);
+      return route;
+    }
+    if (!aInside && bInside) {
+      const head = crowdPerimeterDetour(a, doorOutside, envelope.outer, envelope.inner);
+      const route = [];
+      for (const p of head) crowdAppendPoint(route, p);
+      crowdAppendPoint(route, doorInside);
+      crowdAppendPoint(route, b);
+      return route;
+    }
+    return crowdPerimeterDetour(a, b, envelope.outer);
+  }
+
+  function crowdSegmentNeedsDetour(a, b, envelope) {
+    const aInside = crowdPointInsideRect(a, envelope.inner, 0.001);
+    const bInside = crowdPointInsideRect(b, envelope.inner, 0.001);
+    if (aInside && bInside) return false;
+    return crowdSegmentIntersectsRect(a, b, envelope.inner, -0.001);
+  }
+
+  function crowdBlockingEnvelopeForSegment(a, b, envelopes) {
+    for (const envelope of envelopes) {
+      if (crowdPointInsideRect(a, envelope.inner, 0.001) || crowdPointInsideRect(b, envelope.inner, 0.001)) {
+        if (crowdSegmentNeedsDetour(a, b, envelope)) return envelope;
+      }
+    }
+    let best = null;
+    let bestDist = Infinity;
+    for (const envelope of envelopes) {
+      if (!crowdSegmentNeedsDetour(a, b, envelope)) continue;
+      const edge = crowdProjectToRectBoundary(a, envelope.inner);
+      const d = crowdDist(a, edge);
+      if (d < bestDist) {
+        bestDist = d;
+        best = envelope;
+      }
+    }
+    return best;
+  }
+
+  function crowdConstrainSegment(start, end, envelopes) {
+    const a = crowdClonePoint(start);
+    const b = crowdClonePoint(end);
+    const blocking = crowdBlockingEnvelopeForSegment(a, b, envelopes);
+    if (!blocking) return [a, b];
+    return crowdDetourSegmentForEnvelope(a, b, blocking);
+  }
+
+  function crowdConstrainRoute(seedPoint, route, envelopes) {
+    if (!Array.isArray(route) || !route.length || !envelopes.length) return route;
+    const constrained = [];
+    let prev = crowdClonePoint(seedPoint);
+    for (const target of route) {
+      const normalizedTarget = crowdNormalizeRouteTarget(target, prev, envelopes);
+      const seg = crowdConstrainSegment(prev, normalizedTarget, envelopes);
+      for (let i = 1; i < seg.length; i++) {
+        crowdAppendPoint(constrained, seg[i]);
+        if (constrained.length >= CROWD_ROUTE_MAX_POINTS) break;
+      }
+      prev = seg[seg.length - 1];
+      if (constrained.length >= CROWD_ROUTE_MAX_POINTS) break;
+    }
+    return constrained.length ? constrained : route;
+  }
+
+  function crowdConstrainMoveStep(stepState) {
+    const envelopes = crowdCollectHouseEnvelopes();
+    if (!envelopes.length) return stepState && stepState.to ? stepState.to : null;
+    if (!stepState || !stepState.from || !stepState.target) return stepState && stepState.to ? stepState.to : null;
+    const from = stepState.from;
+    const target = crowdNormalizeRouteTarget(stepState.target, from, envelopes);
+    const path = crowdConstrainSegment(from, target, envelopes);
+    if (!path || path.length < 2) return stepState.to;
+    const waypoint = path[1];
+    const dx = waypoint.x - from.x;
+    const dz = waypoint.z - from.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist < 1e-6) return { x: from.x, z: from.z };
+    const fallbackStep = stepState.to ? crowdDist(from, stepState.to) : 0;
+    const maxStep = Math.max(1e-4, stepState.step || fallbackStep);
+    const travel = Math.min(dist, maxStep);
+    return {
+      x: from.x + (dx / dist) * travel,
+      z: from.z + (dz / dist) * travel,
+    };
+  }
+
+  function crowdProjectSpawnOutsideHouses(point, envelopes) {
+    if (!envelopes.length) return point;
+    let projected = crowdClonePoint(point);
+    const boardRect = crowdBoardRect();
+    for (let pass = 0; pass < 4; pass++) {
+      let moved = false;
+      for (const envelope of envelopes) {
+        if (!crowdPointInsideRect(projected, envelope.inner, 0.001)) continue;
+        const boundary = crowdProjectToRectBoundary(projected, envelope.outer);
+        projected = crowdClampPointToRect({ x: boundary.x, z: boundary.z }, boardRect);
+        moved = true;
+      }
+      if (!moved) break;
+    }
+    return crowdClampPointToRect(projected, boardRect);
+  }
+
+  function crowdCollectHouseVisitTargets(envelopes) {
+    if (!Array.isArray(envelopes) || !envelopes.length) return [];
+    const targets = [];
+    for (const envelope of envelopes) {
+      for (const gap of crowdDoorGapCandidates(envelope)) {
+        if (gap.blocked) continue;
+        targets.push(crowdInteriorStopPoint(envelope, gap));
+      }
+    }
+    return targets;
+  }
+
+  function crowdCollectDoorGaps(houseMesh, innerRect, baseY) {
+    const raw = [];
+    houseMesh.updateWorldMatrix(true, true);
+    houseMesh.traverse(node => {
+      if (!node || !node.isMesh || !node.material) return;
+      const mats = Array.isArray(node.material) ? node.material : [node.material];
+      if (!mats.includes(M.door)) return;
+      const box = new THREE.Box3().setFromObject(node);
+      if (!Number.isFinite(box.min.x) || !Number.isFinite(box.max.x)) return;
+      const centerY = (box.min.y + box.max.y) * 0.5;
+      // Keep movement portals aligned to the true ground-floor entry only.
+      if (centerY - baseY > 0.62) return;
+      const point = {
+        x: crowdWorldToTileX((box.min.x + box.max.x) * 0.5),
+        z: crowdWorldToTileZ((box.min.z + box.max.z) * 0.5),
+      };
+      const sizeX = Math.max(0.04, box.max.x - box.min.x);
+      const sizeZ = Math.max(0.04, box.max.z - box.min.z);
+      const side = crowdNearestRectSide(point, innerRect);
+      if (side === 'n' || side === 's') {
+        const half = sizeX * 0.5 + CROWD_DOOR_GAP_PAD;
+        raw.push({
+          side,
+          min: crowdClamp(point.x - half, innerRect.minX + 0.02, innerRect.maxX - 0.02),
+          max: crowdClamp(point.x + half, innerRect.minX + 0.02, innerRect.maxX - 0.02),
+        });
+      } else {
+        const half = sizeZ * 0.5 + CROWD_DOOR_GAP_PAD;
+        raw.push({
+          side,
+          min: crowdClamp(point.z - half, innerRect.minZ + 0.02, innerRect.maxZ - 0.02),
+          max: crowdClamp(point.z + half, innerRect.minZ + 0.02, innerRect.maxZ - 0.02),
+        });
+      }
+    });
+
+    if (!raw.length) {
+      const cx = (innerRect.minX + innerRect.maxX) * 0.5;
+      const half = Math.min(0.18, (innerRect.maxX - innerRect.minX) * 0.3);
+      raw.push({ side: 's', min: cx - half, max: cx + half });
+    }
+
+    const bySide = { n: [], s: [], e: [], w: [] };
+    for (const gap of raw) {
+      if (gap.max - gap.min < 0.03) continue;
+      bySide[gap.side].push(gap);
+    }
+    const merged = [];
+    for (const side of ['n', 's', 'e', 'w']) {
+      const list = bySide[side].sort((a, b) => a.min - b.min);
+      for (const gap of list) {
+        const prev = merged[merged.length - 1];
+        if (prev && prev.side === side && gap.min <= prev.max + 0.03) {
+          prev.max = Math.max(prev.max, gap.max);
+        } else {
+          merged.push({ side, min: gap.min, max: gap.max });
+        }
+      }
+    }
+    return merged;
+  }
+
+  function crowdCollectHouseEnvelopes() {
+    if (!crowdHouseEnvelopeDirty) return crowdHouseEnvelopes;
+    const envelopes = [];
+    const seen = new Set();
+    const boardRect = crowdBoardRect();
+    for (const key in cellMeshes) {
+      const entry = cellMeshes[key];
+      if (!entry || !entry.object) continue;
+      const mesh = entry.object;
+      if (!mesh.userData || mesh.userData.kind !== 'house') continue;
+      if (seen.has(mesh.uuid)) continue;
+      seen.add(mesh.uuid);
+      const box = new THREE.Box3().setFromObject(mesh);
+      if (!Number.isFinite(box.min.x) || !Number.isFinite(box.max.x)) continue;
+      const rawInner = {
+        minX: crowdWorldToTileX(box.min.x) - CROWD_HOUSE_EXCLUSION_PAD,
+        maxX: crowdWorldToTileX(box.max.x) + CROWD_HOUSE_EXCLUSION_PAD,
+        minZ: crowdWorldToTileZ(box.min.z) - CROWD_HOUSE_EXCLUSION_PAD,
+        maxZ: crowdWorldToTileZ(box.max.z) + CROWD_HOUSE_EXCLUSION_PAD,
+      };
+      const inner = crowdClipRectToRect(rawInner, boardRect);
+      if (inner.maxX - inner.minX < 0.08 || inner.maxZ - inner.minZ < 0.08) continue;
+      const outer = {
+        minX: Math.max(boardRect.minX, inner.minX - CROWD_HOUSE_RING_WIDTH),
+        maxX: Math.min(boardRect.maxX, inner.maxX + CROWD_HOUSE_RING_WIDTH),
+        minZ: Math.max(boardRect.minZ, inner.minZ - CROWD_HOUSE_RING_WIDTH),
+        maxZ: Math.min(boardRect.maxZ, inner.maxZ + CROWD_HOUSE_RING_WIDTH),
+      };
+      const doors = crowdCollectDoorGaps(mesh, rawInner, box.min.y);
+      envelopes.push({ inner, outer, doors });
+    }
+    for (const envelope of envelopes) {
+      for (const gap of envelope.doors) {
+        const outside = crowdDoorPoint(envelope, gap, true);
+        gap.blocked = envelopes.some(other =>
+          other !== envelope &&
+          crowdPointInsideRect(outside, other.inner, 0.001)
+        );
+      }
+    }
+    crowdHouseEnvelopes = envelopes;
+    crowdHouseEnvelopeDirty = false;
+    return crowdHouseEnvelopes;
+  }
+
   function crowdTerrainHeightAt(x, z) {
-    const cellX = Math.max(0, Math.min(GRID - 1, Math.round(x)));
-    const cellZ = Math.max(0, Math.min(GRID - 1, Math.round(z)));
+    const cellX = Math.max(0, Math.min(GRID_W - 1, Math.round(x)));
+    const cellZ = Math.max(0, Math.min(GRID_D - 1, Math.round(z)));
     return TOP_H + terrainRiseAt(cellX, cellZ) + 0.025;
   }
 
   function isCrowdWalkableCell(x, z) {
-    if (x < 0 || x >= GRID || z < 0 || z >= GRID) return false;
+    if (x < 0 || x >= GRID_W || z < 0 || z >= GRID_D) return false;
     const cell = getWorldCell(x, z);
     if (cell.kind === 'bridge') return true;
     return cell.terrain === 'path' && !cell.kind;
@@ -4163,49 +4745,63 @@
 
   function collectCrowdPathCells() {
     const cells = [];
-    for (let x = 0; x < GRID; x++) {
-      for (let z = 0; z < GRID; z++) {
+    for (let x = 0; x < GRID_W; x++) {
+      for (let z = 0; z < GRID_D; z++) {
         if (isCrowdWalkableCell(x, z)) cells.push({ x, z });
       }
     }
     if (cells.length) return cells;
-    for (let x = 0; x < GRID; x++) {
-      for (let z = 0; z < GRID; z++) {
-        cells.push({ x, z });
+    for (let x = 0; x < GRID_W; x++) {
+      for (let z = 0; z < GRID_D; z++) {
+        const cell = getWorldCell(x, z);
+        if (!cell.kind) cells.push({ x, z });
       }
     }
     return cells;
   }
 
-  function crowdRouteAround(seed, pathCells, index) {
+  function crowdRouteAround(seed, pathCells, index, houseEnvelopes) {
     if (crowdMode === 'static') return null;
+    const houseVisits = crowdCollectHouseVisitTargets(houseEnvelopes || []);
     const jitter = cell => ({
       x: cell.x + (Math.random() - 0.5) * 0.22,
       z: cell.z + (Math.random() - 0.5) * 0.22,
     });
+    let route = null;
     if (crowdMode === 'cross') {
       const far = pathCells
         .map(cell => ({ cell, d: Math.abs(cell.x - seed.x) + Math.abs(cell.z - seed.z) }))
         .sort((a, b) => b.d - a.d)
         .slice(0, Math.max(1, Math.floor(pathCells.length * 0.25)));
-      return [jitter(seed), jitter(far[index % far.length].cell)];
-    }
-    if (crowdMode === 'circle') {
-      const cx = (GRID - 1) / 2;
-      const cz = (GRID - 1) / 2;
-      return pathCells
+      route = [jitter(seed), jitter(far[index % far.length].cell)];
+    } else if (crowdMode === 'circle') {
+      const cx = (GRID_W - 1) / 2;
+      const cz = (GRID_D - 1) / 2;
+      route = pathCells
         .slice()
         .sort((a, b) => Math.atan2(a.z - cz, a.x - cx) - Math.atan2(b.z - cz, b.x - cx))
         .filter((_, i) => i % Math.max(1, Math.floor(pathCells.length / 10)) === index % Math.max(1, Math.floor(pathCells.length / 10)))
         .slice(0, 10)
         .map(jitter);
+    } else {
+      const shuffled = pathCells.slice().sort(() => Math.random() - 0.5);
+      route = shuffled.slice(0, Math.min(10, shuffled.length)).map(jitter);
     }
-    const shuffled = pathCells.slice().sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, Math.min(10, shuffled.length)).map(jitter);
+    if (houseVisits.length) {
+      const visit = crowdClonePoint(houseVisits[index % houseVisits.length]);
+      if (!route || !route.length) {
+        route = [visit];
+      } else if (index % 2 === 0) {
+        const slot = Math.min(route.length, Math.max(1, Math.floor(route.length * 0.5)));
+        route.splice(slot, 0, visit);
+      }
+    }
+    return crowdConstrainRoute(seed, route, houseEnvelopes || []);
   }
 
   function seedCrowdPeople() {
     if (!crowdLayer || !crowdLayer.loaded) return;
+    const houseEnvelopes = crowdCollectHouseEnvelopes();
     crowdLayer.clear();
     const pathCells = collectCrowdPathCells();
     const count = Math.min(crowdCount, pathCells.length);
@@ -4213,14 +4809,17 @@
     const characters = ['townie', 'little-girl', 'dad', 'grandfather', 'grandmother'];
     for (let i = 0; i < count; i++) {
       const seed = pathCells[(i * 3) % pathCells.length];
-      const route = crowdRouteAround(seed, pathCells, i);
-      const x = seed.x + (Math.random() - 0.5) * 0.24;
-      const z = seed.z + (Math.random() - 0.5) * 0.24;
+      const rawSpawn = {
+        x: seed.x + (Math.random() - 0.5) * 0.24,
+        z: seed.z + (Math.random() - 0.5) * 0.24,
+      };
+      const spawn = crowdProjectSpawnOutsideHouses(rawSpawn, houseEnvelopes);
+      const route = crowdRouteAround(spawn, pathCells, i, houseEnvelopes);
       const baseSpeed = route ? 0.75 + Math.random() * 0.35 : 0;
       crowdLayer.addPerson({
         id: 'ambient-' + i,
-        x,
-        z,
+        x: spawn.x,
+        z: spawn.z,
         heading: Math.random() * Math.PI * 2,
         character: characters[i % characters.length],
         baseSpeed,
@@ -4241,6 +4840,7 @@
       textureBasePath: 'crowd/',
       tileToWorld: tilePos,
       getTerrainHeight: crowdTerrainHeightAt,
+      moveConstraint: crowdConstrainMoveStep,
       scale: crowdScale,
       config: crowdConfigOverride(),
       worldConfig: crowdWorldConfigOverride(),
@@ -5492,6 +6092,7 @@
     let entry = cellMeshes[key];
     if (!entry) entry = cellMeshes[key] = { tile: null, object: null, extras: [] };
     if (entry.object) {
+      if (entry.object.userData && entry.object.userData.kind === 'house') crowdMarkHouseEnvelopeDirty();
       worldGroup.remove(entry.object);
       disposeGroup(entry.object);
       entry.object = null;
@@ -5579,6 +6180,7 @@
     prepareFadeable(mesh, { opacity: opacityAtWorldPosition(posX, posZ), grayscale: isOutsideHomeGrid(x, z) });
     worldGroup.add(mesh);
     entry.object = mesh;
+    if (kind === 'house') crowdMarkHouseEnvelopeDirty();
     if (animate) animateDrop(mesh, 2.0, 0.5, delay, easeOutBack, impactDust);
   }
 
@@ -5704,6 +6306,7 @@
 
   // -------- initial scene (matches the reference image) --------
   function loadInitialScene() {
+    crowdMarkHouseEnvelopeDirty();
     // Wipe any existing meshes + animation state so a Reset re-plays the drop.
     for (const key in cellMeshes) {
       const e = cellMeshes[key];
@@ -9338,7 +9941,10 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     tickWeather(dt);
     updateClouds(dt);
     updateCropDuster(dt);
-    if (crowdLayer && crowdLayer.loaded) crowdLayer.update(dt, camera);
+    if (crowdLayer && crowdLayer.loaded) {
+      if (crowdHouseEnvelopeDirty) seedCrowdPeople();
+      crowdLayer.update(dt, camera);
+    }
     // Drain the ghost-board build queue in small slices so visible-distance
     // changes and Reset don't lock up the frame.
     if (pendingGhostBoards.length) processGhostBoardQueue(6);

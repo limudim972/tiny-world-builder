@@ -417,6 +417,7 @@
       this.basePath = cleanBasePath(opts.textureBasePath || 'crowd/');
       this.tileToWorld = typeof opts.tileToWorld === 'function' ? opts.tileToWorld : null;
       this.getTerrainHeight = typeof opts.getTerrainHeight === 'function' ? opts.getTerrainHeight : (() => 0);
+      this.moveConstraint = typeof opts.moveConstraint === 'function' ? opts.moveConstraint : null;
       this.scale = opts.scale || 1;
       this.config = mergeConfig(DEFAULT_CONFIG, opts.config);
       this.worldConfig = mergeConfig(DEFAULT_WORLD_CONFIG, opts.worldConfig);
@@ -440,6 +441,10 @@
         person.radius = this.worldConfig.zoneRadius;
         this.placePerson(person);
       });
+    }
+
+    setMoveConstraint(fn) {
+      this.moveConstraint = typeof fn === 'function' ? fn : null;
     }
 
     load(opts = {}) {
@@ -602,9 +607,36 @@
         return;
       }
       const step = Math.min(dist, person.speed * person.speedMul * dt);
-      person.x += (dx / dist) * step;
-      person.z += (dz / dist) * step;
-      person.heading = Math.atan2(dz, dx);
+      const fromX = person.x;
+      const fromZ = person.z;
+      let nextX = fromX + (dx / dist) * step;
+      let nextZ = fromZ + (dz / dist) * step;
+      if (this.moveConstraint) {
+        const constrained = this.moveConstraint({
+          person,
+          from: { x: fromX, z: fromZ },
+          to: { x: nextX, z: nextZ },
+          target: { x: target.x, z: target.z },
+          step,
+          dt,
+        });
+        if (constrained && Number.isFinite(constrained.x) && Number.isFinite(constrained.z)) {
+          nextX = constrained.x;
+          nextZ = constrained.z;
+        }
+        if (constrained && constrained.advanceTarget) {
+          person.routeIndex = (person.routeIndex + 1) % person.route.length;
+        }
+      }
+      person.x = nextX;
+      person.z = nextZ;
+      const movedX = nextX - fromX;
+      const movedZ = nextZ - fromZ;
+      if (movedX * movedX + movedZ * movedZ > 1e-10) {
+        person.heading = Math.atan2(movedZ, movedX);
+      } else {
+        person.heading = Math.atan2(dz, dx);
+      }
     }
 
     tickPhase(person, dt) {
