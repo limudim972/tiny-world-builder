@@ -1098,6 +1098,27 @@
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
+  .minimap-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 8px;
+    padding: 0 2px 2px;
+    font-size: 11px;
+    line-height: 1.2;
+    color: rgba(47, 42, 32, 0.84);
+    letter-spacing: 0.02em;
+    user-select: none;
+  }
+  .minimap-footer .minimap-meta {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .minimap-footer .minimap-meta span {
+    white-space: nowrap;
+  }
   .stacked-map {
     display: grid;
     border-radius: 6px;
@@ -1860,6 +1881,12 @@
   <div class="minimap-wrap" id="minimap-wrap">
     <div class="minimap-card">
       <div id="minimap-canvas" class="stacked-map" role="grid" aria-label="Stacked map showing floor counts"></div>
+      <div class="minimap-footer" aria-label="Camera angle readout">
+        <div class="minimap-meta">
+          <span id="minimap-azimuth">Az 0°</span>
+          <span id="minimap-polar">Pol 0°</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -6425,7 +6452,9 @@
           markCameraMoving();
           // azimuth -= ddx * 0.008;
           azimuth += ddx * 0.008;
-          polar = Math.max(0, Math.min(Math.PI / 2, polar - ddy * 0.006));
+          // Keep a small floor so drag never collapses into a hard
+          // straight-down snap.
+          polar = Math.max(0.00000001, Math.min(Math.PI / 2, polar - ddy * 0.006));
           updateCamera();
         }
         // While dragging on touch, hide the hover marker so it doesn't lag.
@@ -6656,31 +6685,13 @@
   // Expose for the command palette.
   window.__adjustHoverTerrainHeight = adjustHoverTerrainHeight;
 
-  // Stash the user's last orbital polar so toggling out of true top-down
-  // can return to a sensible angled view instead of getting stuck flat.
-  let polarBeforeTopdown = null;
   function setCameraMode(mode) {
     const effective = ['ortho', 'topdown', 'soft', 'perspective', 'fp'].includes(mode) ? mode : 'ortho';
     if (effective !== 'fp' && fp.active) exitFP();
-    // 'topdown' is orthoCam with polar snapped to ~0 (straight down).
-    // Internally we still store cameraMode='ortho' for everything that
-    // branches on it (renderer, ghost-board code, persistence) — the
-    // angle is the only thing that differs.
-    if (effective === 'topdown') {
-      if (cameraMode !== 'ortho' || polar > 0.05) polarBeforeTopdown = polar;
-      polar = 0;
-      cameraMode = 'ortho';
-    } else if (effective === 'ortho') {
-      // Returning to isometric from a true top-down — restore the
-      // previous orbital polar so the user isn't dropped back flat.
-      if (polar < 0.05 && polarBeforeTopdown != null) {
-        polar = polarBeforeTopdown;
-        polarBeforeTopdown = null;
-      }
-      cameraMode = 'ortho';
-    } else {
-      cameraMode = effective;
-    }
+    // Keep "topdown" as a menu state, but don't force a projection or
+    // orbit-angle jump. The menu label remains, but the current camera
+    // continues to drive the view.
+    if (effective !== 'topdown') cameraMode = effective;
     camera = cameraMode === 'ortho' ? orthoCam
            : cameraMode === 'soft'  ? softCam
            : persCam;
@@ -10104,12 +10115,26 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     const canvas = document.getElementById('minimap-canvas');
     const sizeEl = document.getElementById('minimap-size');
     const fpsEl = document.getElementById('minimap-fps');
+    const azimuthEl = document.getElementById('minimap-azimuth');
+    const polarEl = document.getElementById('minimap-polar');
     if (!wrap) return;
     function paintSize() {
       if (!sizeEl) return;
       sizeEl.textContent = minimapSizeLabel();
     }
+    function paintAngles() {
+      if (azimuthEl) {
+        const deg = ((typeof azimuth === 'number' ? azimuth : 0) * 180 / Math.PI) % 360;
+        const normalized = deg < 0 ? deg + 360 : deg;
+        azimuthEl.textContent = `Az ${Math.round(normalized)}°`;
+      }
+      if (polarEl) {
+        const deg = (typeof polar === 'number' ? polar : 0) * 180 / Math.PI;
+        polarEl.textContent = `Pol ${Math.round(deg)}°`;
+      }
+    }
     paintSize();
+    paintAngles();
     // Restore collapsed state.
     try {
       if (localStorage.getItem('tinyworld:minimap.collapsed') === '1') wrap.classList.add('collapsed');
@@ -10219,6 +10244,9 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     }
     // Repaint on grid-size change.
     window.addEventListener('tinyworld:grid-resized', paintSize);
+    window.addEventListener('mousemove', paintAngles, { passive: true });
+    window.addEventListener('pointermove', paintAngles, { passive: true });
+    window.addEventListener('wheel', paintAngles, { passive: true });
     // First paint.
     requestMinimapRepaint();
   })();
