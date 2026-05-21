@@ -8662,6 +8662,7 @@
   // this block runs much later). syncCloudPopulation guards on `clouds`.
   var cloudGroup = new THREE.Group();
   cloudGroup.name = 'clouds';
+  cloudGroup.renderOrder = 20;
   scene.add(cloudGroup);
   var clouds = [];
   var CLOUD_MAX = 18;
@@ -8736,6 +8737,7 @@
       const opacity = bright ? (0.7 + Math.random() * 0.25) : (0.4 + Math.random() * 0.25);
       const mat = cloneCloudMat(bright ? M.cloud : M.cloudShade, opacity);
       const mesh = new THREE.Mesh(new THREE.DodecahedronGeometry(r, 0), mat);
+      mesh.renderOrder = 20;
       mesh.position.set(
         (Math.random() - 0.5) * 3.2,
         Math.random() * 0.9,

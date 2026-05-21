@@ -521,7 +521,7 @@
       const sprite = new this.THREE.Sprite(material);
       sprite.name = `crowd-${id}`;
       sprite.center.set(0.5, 0);
-      sprite.renderOrder = 5;
+      sprite.renderOrder = -5;
       this.group.add(sprite);
 
       const hueLimit = Math.max(1, Math.min(this.config.hues, SHIRT_PALETTE.length));
