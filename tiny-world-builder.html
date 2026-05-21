@@ -5876,6 +5876,10 @@
 
   function updateGhostPlacement() {
     if (!ghostPreview) return;
+    if (didDrag) {
+      ghostPreview.visible = false;
+      return;
+    }
     if (!currentHover) { ghostPreview.visible = false; return; }
     ghostPreview.visible = true;
     const baseY = TOP_H + (terrainRiseAt(currentHover.x, currentHover.z) || 0);
@@ -6599,6 +6603,12 @@
   let pinchPrevMid = null;
   let pendingHouseClick = null;
   function updateHoverAt(x, y) {
+    if (didDrag || dragMode === 'pan' || dragMode === 'pinch') {
+      hoverMesh.visible = false;
+      currentHover = null;
+      updateGhostPlacement();
+      return;
+    }
     const cell = pickTile(x, y);
     if (cell && !(cell.boardX || cell.boardZ)) {
       hoverMesh.position.set(cell.worldX, hoverHeightForCell(cell), cell.worldZ);
