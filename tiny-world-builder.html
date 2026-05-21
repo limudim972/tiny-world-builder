@@ -418,6 +418,42 @@
       0 1px 0 rgba(255, 255, 255, 0.88) inset,
       0 1px 2px rgba(20, 30, 50, 0.04);
   }
+  .toolbar-zoom-tool {
+    width: 88px;
+    height: 50px;
+    padding: 5px 4px 4px;
+    gap: 2px;
+    justify-content: flex-start;
+  }
+  .toolbar-zoom-tool .zoom-label {
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--ink);
+    text-transform: none;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+  .toolbar-zoom-tool input[type="range"] {
+    width: 70px;
+    height: 16px;
+    padding: 0;
+    margin: 0;
+    background: white;
+    border: 0;
+    box-shadow: none;
+    outline: none;
+    cursor: default;
+    -webkit-appearance: auto;
+    appearance: auto;
+  }
+  .toolbar-zoom-tool output {
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    color: var(--ink);
+    font-size: 10px;
+    line-height: 1;
+  }
   .toolbar .brand-title-btn {
     position: relative;
     height: 38px;
@@ -503,6 +539,11 @@
   }
   .toolbar .audio-row input[type="range"] {
     height: 14px;
+  }
+  .toolbar .toolbar-zoom-panel {
+    width: 146px;
+    min-width: 146px;
+    padding: 10px;
   }
   .toolbar .rain-100-btn {
     width: 50px;
@@ -2256,9 +2297,16 @@
   }
 
   let toolbarHomeGridEl = null;
+  let toolbarZoomEl = null;
+  let toolbarZoomValueEl = null;
 
   function syncToolbarHomeGridControl() {
     if (toolbarHomeGridEl) toolbarHomeGridEl.value = boardSizeKey();
+  }
+
+  function syncToolbarZoomControl() {
+    if (toolbarZoomEl) toolbarZoomEl.value = viewSize.toFixed(1);
+    if (toolbarZoomValueEl) toolbarZoomValueEl.textContent = viewSize.toFixed(1);
   }
 
   function normalizeBoardSize(value) {
@@ -6868,6 +6916,46 @@
     return wrap;
   }
 
+  function buildZoomToolbarControl() {
+    const tool = document.createElement('div');
+    tool.className = 'tool toolbar-zoom-tool';
+    tool.setAttribute('data-tooltip', 'זום מצלמה');
+    tool.setAttribute('aria-label', 'זום מצלמה');
+
+    const label = document.createElement('span');
+    label.className = 'zoom-label';
+    label.textContent = 'Zoom';
+    tool.appendChild(label);
+
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.min = '1';
+    input.max = '25';
+    input.step = '0.1';
+    input.value = viewSize.toFixed(1);
+    input.id = 'crowd-count-live';
+    tool.appendChild(input);
+
+    const output = document.createElement('output');
+    output.textContent = viewSize.toFixed(1);
+    output.id = 'crowd-count-live-value';
+    tool.appendChild(output);
+
+    input.addEventListener('input', () => {
+      viewSize = Math.max(1, Math.min(25, parseFloat(input.value) || DEFAULT_VIEW_SIZE));
+      onResize();
+    });
+    input.addEventListener('change', () => {
+      viewSize = Math.max(1, Math.min(25, parseFloat(input.value) || DEFAULT_VIEW_SIZE));
+      onResize();
+    });
+
+    toolbarZoomEl = input;
+    toolbarZoomValueEl = output;
+    syncToolbarZoomControl();
+    return tool;
+  }
+
   function buildToolbar() {
     const bar = document.getElementById('toolbar');
     bar.innerHTML = '';
@@ -6922,7 +7010,7 @@
     const audioPanel = document.getElementById('audio-panel');
     if (audioPanel) bar.appendChild(audioPanel);
 
-    bar.appendChild(buildToolButton({
+    const clearBtn = buildToolButton({
       id: 'delete',
       label: 'Clear',
       eraser: true,
@@ -6932,7 +7020,9 @@
       momentary: true,
       tooltip: 'Clear all cells to grass (E)',
       onClick: doClear,
-    }));
+    });
+    bar.appendChild(clearBtn);
+    bar.insertBefore(buildZoomToolbarControl(), clearBtn);
     updateToolActiveStates();
   }
 
@@ -8102,6 +8192,7 @@
       ghostOpacityValue.textContent = ghostOpacityEl.value + '%';
       floorOpacityValue.textContent = floorOpacityEl.value + '%';
       objectOpacityValue.textContent = objectOpacityEl.value + '%';
+      syncToolbarZoomControl();
       status.textContent = 'DPR ' + renderer.getPixelRatio().toFixed(2) + ' · shadow ' + sun.shadow.mapSize.x + ' · preview ' + renderVisibleDistance + ' / ' + renderVisibleSize + 'x' + renderVisibleSize + ' · crowd ' + crowdCount;
     }
 
@@ -9866,6 +9957,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     persCam.updateProjectionMatrix();
 
     updateCamera();
+    syncToolbarZoomControl();
   }
   window.addEventListener('resize', onResize);
 
