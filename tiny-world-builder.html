@@ -1075,7 +1075,7 @@
     position: fixed;
     /* Default anchor: top-right, under the GitHub button.
        Overridden by JS-set top/left when the user drags it. */
-    top: 72px; right: 24px;
+    top: 132px; right: 24px;
     bottom: auto; left: auto;
     z-index: 30;
     display: flex; align-items: flex-start; gap: 6px;
@@ -1097,27 +1097,6 @@
       0 12px 36px -12px rgba(40, 50, 80, 0.22);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-  }
-  .minimap-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-top: 8px;
-    padding: 0 2px 2px;
-    font-size: 11px;
-    line-height: 1.2;
-    color: rgba(47, 42, 32, 0.84);
-    letter-spacing: 0.02em;
-    user-select: none;
-  }
-  .minimap-footer .minimap-meta {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  .minimap-footer .minimap-meta span {
-    white-space: nowrap;
   }
   .stacked-map {
     display: grid;
@@ -1881,12 +1860,6 @@
   <div class="minimap-wrap" id="minimap-wrap">
     <div class="minimap-card">
       <div id="minimap-canvas" class="stacked-map" role="grid" aria-label="Stacked map showing floor counts"></div>
-      <div class="minimap-footer" aria-label="Camera angle readout">
-        <div class="minimap-meta">
-          <span id="minimap-azimuth">Az 0°</span>
-          <span id="minimap-polar">Pol 0°</span>
-        </div>
-      </div>
     </div>
   </div>
 
