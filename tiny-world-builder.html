@@ -2301,13 +2301,22 @@
   let toolbarZoomEl = null;
   let toolbarZoomValueEl = null;
 
+  function viewSizeToZoomPercent(size) {
+    return Math.max(0, Math.min(100, ((25 - size) / 24) * 100));
+  }
+
+  function zoomPercentToViewSize(percent) {
+    return Math.max(1, Math.min(25, 25 - (percent / 100) * 24));
+  }
+
   function syncToolbarHomeGridControl() {
     if (toolbarHomeGridEl) toolbarHomeGridEl.value = boardSizeKey();
   }
 
   function syncToolbarZoomControl() {
-    if (toolbarZoomEl) toolbarZoomEl.value = viewSize.toFixed(1);
-    if (toolbarZoomValueEl) toolbarZoomValueEl.textContent = viewSize.toFixed(1);
+    const zoomPercent = viewSizeToZoomPercent(viewSize);
+    if (toolbarZoomEl) toolbarZoomEl.value = zoomPercent.toFixed(1);
+    if (toolbarZoomValueEl) toolbarZoomValueEl.textContent = zoomPercent.toFixed(1);
   }
 
   function normalizeBoardSize(value) {
@@ -6934,24 +6943,24 @@
 
     const input = document.createElement('input');
     input.type = 'range';
-    input.min = '1';
-    input.max = '25';
+    input.min = '0';
+    input.max = '100';
     input.step = '0.1';
-    input.value = viewSize.toFixed(1);
+    input.value = viewSizeToZoomPercent(viewSize).toFixed(1);
     input.id = 'crowd-count-live';
     tool.appendChild(input);
 
     const output = document.createElement('output');
-    output.textContent = viewSize.toFixed(1);
+    output.textContent = viewSizeToZoomPercent(viewSize).toFixed(1);
     output.id = 'crowd-count-live-value';
     tool.appendChild(output);
 
     input.addEventListener('input', () => {
-      viewSize = Math.max(1, Math.min(25, parseFloat(input.value) || DEFAULT_VIEW_SIZE));
+      viewSize = zoomPercentToViewSize(parseFloat(input.value) || viewSizeToZoomPercent(DEFAULT_VIEW_SIZE));
       onResize();
     });
     input.addEventListener('change', () => {
-      viewSize = Math.max(1, Math.min(25, parseFloat(input.value) || DEFAULT_VIEW_SIZE));
+      viewSize = zoomPercentToViewSize(parseFloat(input.value) || viewSizeToZoomPercent(DEFAULT_VIEW_SIZE));
       onResize();
     });
 
