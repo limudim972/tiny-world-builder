@@ -257,79 +257,6 @@
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
-  .crowd-panel {
-    position: fixed;
-    top: 96px;
-    right: 14px;
-    z-index: 42;
-    width: 248px;
-    max-height: calc(100vh - 190px);
-    overflow: auto;
-    background: rgba(255, 255, 255, 0.76);
-    border: 1px solid rgba(80, 70, 54, 0.22);
-    border-radius: 16px;
-    box-shadow:
-      0 1px 2px rgba(20, 30, 50, 0.08),
-      0 18px 44px -16px rgba(40, 50, 80, 0.30);
-    padding: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    backdrop-filter: blur(22px) saturate(180%);
-    -webkit-backdrop-filter: blur(22px) saturate(180%);
-  }
-  .crowd-panel h3 {
-    margin: 0;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--ink);
-  }
-  .crowd-panel .crowd-row {
-    display: grid;
-    grid-template-columns: 82px 1fr 44px;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    color: var(--muted);
-  }
-  .crowd-panel .crowd-row input[type="range"] { width: 100%; }
-  .crowd-panel output {
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-    color: var(--ink);
-  }
-  .crowd-panel select {
-    grid-column: 2 / 4;
-    min-width: 0;
-    border: 1px solid rgba(120, 130, 150, 0.24);
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.72);
-    color: var(--ink);
-    font: inherit;
-    padding: 4px 6px;
-  }
-  .crowd-panel .crowd-check {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 11px;
-    color: var(--ink);
-  }
-  .crowd-actions {
-    display: flex;
-    gap: 6px;
-  }
-  .crowd-actions .btn { flex: 1; padding: 7px 8px; font-size: 11px; }
-  @media (max-width: 900px) {
-    .crowd-panel {
-      top: auto;
-      bottom: 220px;
-      right: 8px;
-      width: 210px;
-      max-height: 42vh;
-    }
-  }
   @media (max-width: 800px) {
     .audio-panel {
       bottom: 160px;
@@ -435,6 +362,7 @@
     flex: 0 0 auto;
   }
   .toolbar-home-grid-slot {
+    position: relative;
     min-width: 0;
     height: auto;
     flex-direction: column;
@@ -443,6 +371,16 @@
     gap: 4px;
     padding-top: 6px;
     padding-bottom: 6px;
+  }
+  .toolbar-home-grid-slot::after {
+    content: '';
+    position: absolute;
+    right: 20px;
+    top: 25%;
+    width: 12px;
+    height: 8px;
+    pointer-events: none;
+    background: no-repeat center / 12px 8px url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1.5 2.25L6 6.25L10.5 2.25' stroke='%23968a74' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
   }
   .toolbar-home-grid-label {
     font-size: 11px;
@@ -459,11 +397,10 @@
     font-weight: 700;
     line-height: 1;
     color: var(--ink);
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.58));
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.58));
     border: 1px solid rgba(120, 130, 150, 0.18);
     border-radius: 12px;
-    padding: 7px 30px 7px 10px;
+    padding: 7px 36px 7px 10px;
     min-width: 88px;
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.88) inset,
@@ -471,8 +408,7 @@
     cursor: pointer;
   }
   .toolbar-home-grid-select:hover {
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.68));
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.68));
   }
   .toolbar-home-grid-select:focus {
     outline: none;
@@ -1866,7 +1802,7 @@
     }
     .toolbar-home-grid-select {
       min-width: 74px;
-      padding-right: 24px;
+      padding-right: 30px;
       padding-left: 9px;
       font-size: 11px;
     }
@@ -1933,34 +1869,6 @@
   <div class="minimap-wrap" id="minimap-wrap">
     <div class="minimap-card">
       <div id="minimap-canvas" class="stacked-map" role="grid" aria-label="Stacked map showing floor counts"></div>
-    </div>
-  </div>
-
-  <div class="crowd-panel" id="crowd-panel">
-    <h3>Crowd controls</h3>
-    <label class="crowd-row">Mode
-      <select id="crowd-mode">
-        <option value="wander">Wander path</option>
-        <option value="cross">Cross map</option>
-        <option value="circle">Circle plaza</option>
-        <option value="static">Static idle</option>
-      </select>
-    </label>
-    <label class="crowd-row">People
-      <input id="crowd-count-live" type="range" min="0" max="5" step="1" />
-      <output id="crowd-count-live-value"></output>
-    </label>
-    <label class="crowd-row">Height
-      <input id="crowd-scale-live" type="range" min="25" max="160" step="1" />
-      <output id="crowd-scale-live-value"></output>
-    </label>
-    <label class="crowd-row">Speed
-      <input id="crowd-speed-live" type="range" min="0" max="100" step="1" />
-      <output id="crowd-speed-live-value"></output>
-    </label>
-    <div class="crowd-actions">
-      <button class="btn" id="crowd-reseed-live" type="button">Reseed</button>
-      <button class="btn" id="crowd-debug-live" type="button">Debug</button>
     </div>
   </div>
 
@@ -8119,10 +8027,6 @@
     const crowdLeanEl = document.getElementById('crowd-lean');
     const crowdReseedEl = document.getElementById('crowd-reseed');
     const crowdModeEl = document.getElementById('crowd-mode');
-    const crowdCountLiveEl = document.getElementById('crowd-count-live');
-    const crowdScaleLiveEl = document.getElementById('crowd-scale-live');
-    const crowdSpeedLiveEl = document.getElementById('crowd-speed-live');
-    const crowdReseedLiveEl = document.getElementById('crowd-reseed-live');
     const ghostOpacityEl = document.getElementById('render-ghost-opacity');
     const floorOpacityEl = document.getElementById('render-floor-opacity');
     const objectOpacityEl = document.getElementById('render-object-opacity');
@@ -8174,9 +8078,6 @@
       if (crowdSwayEl) crowdSwayEl.value = String(crowdSway);
       if (crowdLeanEl) crowdLeanEl.value = crowdLean.toFixed(2);
       if (crowdModeEl) crowdModeEl.value = crowdMode;
-      if (crowdCountLiveEl) crowdCountLiveEl.value = String(crowdCount);
-      if (crowdScaleLiveEl) crowdScaleLiveEl.value = String(Math.round(crowdScale * 100));
-      if (crowdSpeedLiveEl) crowdSpeedLiveEl.value = String(Math.round(crowdSpeedMul * 100));
       ghostOpacityEl.value = String(Math.round(renderGhostOpacity * 100));
       floorOpacityEl.value = String(Math.round(renderFloorOpacity * 100));
       objectOpacityEl.value = String(Math.round(renderObjectOpacity * 100));
@@ -8198,9 +8099,6 @@
       if (crowdBobEl) document.getElementById('crowd-bob-value').textContent = crowdBob.toFixed(1);
       if (crowdSwayEl) document.getElementById('crowd-sway-value').textContent = crowdSway.toFixed(1);
       if (crowdLeanEl) document.getElementById('crowd-lean-value').textContent = crowdLean.toFixed(2);
-      if (crowdCountLiveEl) document.getElementById('crowd-count-live-value').textContent = String(crowdCount);
-      if (crowdScaleLiveEl) document.getElementById('crowd-scale-live-value').textContent = Math.round(crowdScale * 100) + '%';
-      if (crowdSpeedLiveEl) document.getElementById('crowd-speed-live-value').textContent = Math.round(crowdSpeedMul * 100) + '%';
       ghostOpacityValue.textContent = ghostOpacityEl.value + '%';
       floorOpacityValue.textContent = floorOpacityEl.value + '%';
       objectOpacityValue.textContent = objectOpacityEl.value + '%';
@@ -8262,13 +8160,6 @@
       syncControls();
     }
 
-    function applyCrowdLiveControls() {
-      if (crowdCountEl && crowdCountLiveEl) crowdCountEl.value = crowdCountLiveEl.value;
-      if (crowdScaleEl && crowdScaleLiveEl) crowdScaleEl.value = crowdScaleLiveEl.value;
-      if (crowdSpeedEl && crowdSpeedLiveEl) crowdSpeedEl.value = crowdSpeedLiveEl.value;
-      applyFromControls();
-    }
-
     // Brightness / saturation / contrast affect the look by way of a CSS
     // filter applied directly to the WebGL canvas. The browser does the math
     // at compositing time, so this keeps the render path single-pass.
@@ -8299,14 +8190,6 @@
       el.addEventListener('input', applyFromControls);
       el.addEventListener('change', applyFromControls);
     }
-    if (crowdCountLiveEl) crowdCountLiveEl.addEventListener('input', applyCrowdLiveControls);
-    if (crowdCountLiveEl) crowdCountLiveEl.addEventListener('change', applyCrowdLiveControls);
-    if (crowdScaleLiveEl) crowdScaleLiveEl.addEventListener('input', applyCrowdLiveControls);
-    if (crowdScaleLiveEl) crowdScaleLiveEl.addEventListener('change', applyCrowdLiveControls);
-    if (crowdSpeedLiveEl) crowdSpeedLiveEl.addEventListener('input', applyCrowdLiveControls);
-    if (crowdSpeedLiveEl) crowdSpeedLiveEl.addEventListener('change', applyCrowdLiveControls);
-    if (crowdReseedEl) crowdReseedEl.addEventListener('click', () => { applyCrowdSettings({ reseed: true }); syncControls(); });
-    if (crowdReseedLiveEl) crowdReseedLiveEl.addEventListener('click', () => { applyCrowdSettings({ reseed: true }); syncControls(); });
     resetBtn.addEventListener('click', () => {
       setShadowQuality('balanced');
       setRenderResolutionScale(1);
