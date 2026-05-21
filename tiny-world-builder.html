@@ -2712,16 +2712,10 @@
 
   function updateCamera() {
     const r = cameraMode === 'ortho' ? 14 : (cameraMode === 'soft' ? viewSize * 5.6 : viewSize * 4.2);
-    const isTopdown = cameraMode === 'ortho' && polar < 0.05;
-    if (isTopdown) {
-      camera.up.set(0, 0, -1);
-      camera.position.set(target.x, target.y + r, target.z);
-    } else {
-      camera.up.set(0, 1, 0);
-      camera.position.x = target.x + r * Math.sin(polar) * Math.cos(azimuth);
-      camera.position.y = target.y + r * Math.cos(polar);
-      camera.position.z = target.z + r * Math.sin(polar) * Math.sin(azimuth);
-    }
+    camera.up.set(0, 1, 0);
+    camera.position.x = target.x + r * Math.sin(polar) * Math.cos(azimuth);
+    camera.position.y = target.y + r * Math.cos(polar);
+    camera.position.z = target.z + r * Math.sin(polar) * Math.sin(azimuth);
     camera.lookAt(target);
     if (typeof updateSunFollow === 'function') updateSunFollow();
   }
