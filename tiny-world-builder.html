@@ -1153,13 +1153,11 @@
   .minimap-wrap.dragging { cursor: grabbing; transition: none; }
   .minimap-wrap.collapsed { transform: translateX(180px); }
   .minimap-card {
-    background: rgba(255, 255, 255, 0.6);
+    background: rgb(27 203 203 / 18%);
     border: 1px solid rgba(255, 255, 255, 0.55);
     border-radius: 18px;
     padding: 8px;
     box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.85) inset,
-      0 -1px 0 rgba(120, 130, 150, 0.10) inset,
       0 1px 2px rgba(20, 30, 50, 0.05),
       0 12px 36px -12px rgba(40, 50, 80, 0.22);
     backdrop-filter: none;
@@ -1191,6 +1189,32 @@
   .stacked-map-cell .stacked-map-number {
     font-size: calc(var(--minimap-cell-size, 56px) * 0.5);
     transform: translateY(-0.02em);
+  }
+  .minimap-footer {
+    display: grid;
+    gap: 4px;
+    margin-top: 8px;
+  }
+  .minimap-footer-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    white-space: nowrap;
+    text-align: center;
+  }
+  .minimap-view-select {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .minimap-footer-angles {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: 0.02em;
   }
   /* --- Topbar popups (view / time / weather) --- */
   .topbar-popup {
@@ -1927,6 +1951,20 @@
   <div class="minimap-wrap" id="minimap-wrap">
     <div class="minimap-card">
       <div id="minimap-canvas" class="stacked-map" role="grid" aria-label="Stacked map showing floor counts"></div>
+      <div class="minimap-footer">
+        <span class="minimap-footer-label">תצוגה</span>
+        <select id="minimap-view-mode" class="toolbar-home-grid-select minimap-view-select" aria-label="תצוגת המיני מפה">
+          <option value="numbers">תרשים מספרים</option>
+          <option value="front">מבט מלפנים</option>
+          <option value="right">מבט מימין</option>
+          <option value="left">מבט משמאל</option>
+          <option value="top">מבט מלמעלה</option>
+        </select>
+        <div class="minimap-footer-angles" aria-label="זוויות מצלמה">
+          <span id="minimap-azimuth">Az 0°</span>
+          <span id="minimap-polar">Pol 0°</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2809,8 +2847,8 @@
   // -------- cameras (orthographic + soft + perspective) --------
   const DEFAULT_VIEW_SIZE = 8.2;
   const DEFAULT_CAMERA_MODE = 'soft';
-  const DEFAULT_AZIMUTH = Math.PI * 0.32;
-  const DEFAULT_POLAR = Math.PI * 0.30;
+  const DEFAULT_AZIMUTH = Math.random() < 0.5 ? (Math.PI * 1.75) : (Math.PI * 0.25); // 315° or 45°
+  const DEFAULT_POLAR = Math.PI * 0.25;    // 45°
   const DEFAULT_TARGET = new THREE.Vector3(0.35, 0, 0.15);
   let viewSize = DEFAULT_VIEW_SIZE;
   let cameraMode = DEFAULT_CAMERA_MODE; // 'ortho' | 'soft' | 'perspective'
@@ -4908,11 +4946,11 @@
     }
     const halfW = GRID_W / 2;
     const halfD = GRID_D / 2;
-    const arrowX = 0;
-    const arrowZ = halfD + 1.55;
+    const arrowX = halfW + 1.55;
+    const arrowZ = 0;
     const lowY = 0.18;
     homeFrontArrowGroup.position.set(arrowX, 0, arrowZ);
-    homeFrontArrowGroup.rotation.set(0, Math.PI, 0);
+    homeFrontArrowGroup.rotation.set(0, -Math.PI / 2, 0);
     addArrowPart(new THREE.CylinderGeometry(0.055, 0.055, 1.36, 6, 1), lowY, Math.PI / 2, 1);
     addArrowPart(new THREE.ConeGeometry(0.22, 0.62, 7, 1), lowY, Math.PI / 2, 1);
     homeFrontArrowGroup.children[0].position.z = -0.46;
@@ -8120,6 +8158,7 @@
           impactDust: false,
           forceTile: true,
         });
+    resetCameraDefaults();
     if (typeof fireWebhook === 'function') fireWebhook('world.clear', {});
   }
 
@@ -11031,6 +11070,9 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
       loadInitialScene();
       resetCameraDefaults();
     }
+    azimuth = DEFAULT_AZIMUTH;
+    polar = DEFAULT_POLAR;
+    if (typeof updateCamera === 'function') updateCamera();
     ensureGhostBoardsAroundTarget();
     initCrowdLayer();
     initWelcomeDialog();
@@ -11042,10 +11084,14 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
   // Repaints the stacked 2D map window from the live world state. The map
   // follows the current camera target, so panning keeps the overview centered
   // on the active area instead of pinning to the saved home grid.
-  // The minimap is intentionally plain: grid lines only, with floor counts
-  // overlaid so stacked cells remain readable without terrain coloring.
+  // The default minimap mode stays plain, with floor counts overlaid so
+  // stacked cells remain readable. The footer select can switch to tinted
+  // and rotated views for the same board.
   // Repainting is throttled: setCell + saveState + applyState all call
   // requestMinimapRepaint(), and the next animation frame consolidates.
+  const MINIMAP_MODE_KEY = 'tinyworld:minimap.mode';
+  const MINIMAP_MODE_OPTIONS = new Set(['numbers', 'front', 'right', 'left', 'top']);
+  let minimapMode = 'numbers';
   let minimapRepaintQueued = false;
   function requestMinimapRepaint() {
     if (minimapRepaintQueued) return;
@@ -11053,6 +11099,88 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     requestAnimationFrame(() => { minimapRepaintQueued = false; redrawMinimap(); });
   }
   window.__requestMinimapRepaint = requestMinimapRepaint;
+  function setMinimapMode(mode) {
+    if (!MINIMAP_MODE_OPTIONS.has(mode)) return;
+    minimapMode = mode;
+    try { localStorage.setItem(MINIMAP_MODE_KEY, mode); } catch (_) {}
+    applyMinimapCameraView(mode);
+    requestMinimapRepaint();
+  }
+  function applyMinimapCameraView(mode) {
+    const degToRad = deg => deg * Math.PI / 180;
+    if (mode === 'top') {
+      if (typeof setCameraMode === 'function') {
+        try { setCameraMode('ortho'); } catch (_) {}
+      }
+      azimuth = degToRad(0);
+      polar = degToRad(0);
+      if (typeof updateCamera === 'function') updateCamera();
+      if (typeof window.__paintMinimapAngles === 'function') window.__paintMinimapAngles();
+      return;
+    }
+    if (typeof setCameraMode === 'function') {
+      try { setCameraMode('soft'); } catch (_) {}
+    }
+    azimuth = mode === 'front' ? degToRad(0)
+           : mode === 'right' ? degToRad(270)
+           : mode === 'left'  ? degToRad(90)
+           : DEFAULT_AZIMUTH;
+    polar = degToRad(90);
+    if (typeof updateCamera === 'function') updateCamera();
+    if (typeof window.__paintMinimapAngles === 'function') window.__paintMinimapAngles();
+  }
+  function minimapModeLabel(mode) {
+    if (mode === 'front') return 'מבט מלפנים';
+    if (mode === 'right') return 'מבט מימין';
+    if (mode === 'left') return 'מבט משמאל';
+    if (mode === 'top') return 'מבט מלמעלה';
+    return 'תרשים מספרים';
+  }
+  function minimapModeConfig(mode, width, depth, startGx, startGz) {
+    const view = {
+      width,
+      depth,
+      mapCell(x, z) {
+        if (mode === 'front') {
+          return minimapGlobalCell(startGx + x, startGz + (depth - 1 - z));
+        }
+        if (mode === 'right') {
+          return minimapGlobalCell(startGx + z, startGz + (depth - 1 - x));
+        }
+        if (mode === 'left') {
+          return minimapGlobalCell(startGx + (width - 1 - z), startGz + x);
+        }
+        return minimapGlobalCell(startGx + x, startGz + z);
+      },
+    };
+    if (mode === 'right' || mode === 'left') {
+      view.width = depth;
+      view.depth = width;
+    }
+    return view;
+  }
+  function minimapCellFill(cell, mode) {
+    if (mode === 'numbers') return 'transparent';
+    if (!cell) return 'rgba(255,255,255,0.18)';
+    const palette = {
+      grass: [145, 190, 95],
+      path: [194, 171, 118],
+      dirt: [168, 123, 82],
+      stone: [154, 160, 169],
+      water: [114, 174, 232],
+      lava: [216, 99, 53],
+      sand: [232, 211, 149],
+      snow: [243, 245, 248],
+    };
+    const base = palette[cell.terrain || 'grass'] || palette.grass;
+    const level = Math.max(0, Math.min(4, (cell.kind ? (cell.floors || 1) : (cell.terrainFloors || 1)) - 1));
+    const lift = 0.12 * level;
+    const alpha = mode === 'top' ? 0.82 : 0.62;
+    const r = Math.round(base[0] + (255 - base[0]) * lift);
+    const g = Math.round(base[1] + (255 - base[1]) * lift);
+    const b = Math.round(base[2] + (255 - base[2]) * lift);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
   function minimapViewCellCounts() {
     return {
       width: GRID_W,
@@ -11072,34 +11200,35 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     const size = minimapViewCellCounts();
     const W = Math.max(1, size.width);
     const D = Math.max(1, size.depth);
-    const maxMapSize = 168;
-    const cellSize = Math.max(1, Math.floor(maxMapSize / Math.max(W, D)));
-    const mapWidth = cellSize * W;
-    const mapHeight = cellSize * D;
     const centerGx = Math.floor(target.x + GRID_W / 2);
     const centerGz = Math.floor(target.z + GRID_D / 2);
     const startGx = centerGx - Math.floor(W / 2);
     const startGz = centerGz - Math.floor(D / 2);
+    const view = minimapModeConfig(minimapMode, W, D, startGx, startGz);
+    const maxMapSize = 168;
+    const cellSize = Math.max(1, Math.floor(maxMapSize / Math.max(view.width, view.depth)));
+    const mapWidth = cellSize * view.width;
+    const mapHeight = cellSize * view.depth;
     const sizeEl = document.getElementById('minimap-size');
     if (sizeEl) sizeEl.textContent = minimapSizeLabel();
+    map.setAttribute('aria-label', `מיני מפה - ${minimapModeLabel(minimapMode)}`);
     map.style.setProperty('--minimap-cell-size', cellSize + 'px');
     map.style.width = mapWidth + 'px';
     map.style.height = mapHeight + 'px';
-    map.style.gridTemplateColumns = `repeat(${W}, ${cellSize}px)`;
-    map.style.gridTemplateRows = `repeat(${D}, ${cellSize}px)`;
+    map.style.gridTemplateColumns = `repeat(${view.width}, ${cellSize}px)`;
+    map.style.gridTemplateRows = `repeat(${view.depth}, ${cellSize}px)`;
     map.textContent = '';
     const fragment = document.createDocumentFragment();
-    for (let z = 0; z < D; z++) {
-      for (let x = 0; x < W; x++) {
-        const gx = startGx + x;
-        const gz = startGz + z;
-        const cell = minimapGlobalCell(gx, gz);
+    for (let z = 0; z < view.depth; z++) {
+      for (let x = 0; x < view.width; x++) {
+        const cell = view.mapCell(x, z);
         const floors = cell ? (cell.kind ? (cell.floors || 1) : (cell.terrainFloors || 1)) : 1;
-        const showFloors = !!cell && !!cell.kind;
+        const showFloors = minimapMode === 'numbers' ? !!cell && !!cell.kind : !!cell && floors > 1;
         const cellEl = document.createElement('div');
         cellEl.className = 'stacked-map-cell';
-        if (x === W - 1) cellEl.classList.add('is-edge-right');
-        if (z === D - 1) cellEl.classList.add('is-edge-bottom');
+        if (x === view.width - 1) cellEl.classList.add('is-edge-right');
+        if (z === view.depth - 1) cellEl.classList.add('is-edge-bottom');
+        cellEl.style.background = minimapCellFill(cell, minimapMode);
         cellEl.innerHTML = showFloors ? `<span class="stacked-map-number">${floors}</span>` : '';
         fragment.appendChild(cellEl);
       }
@@ -11109,12 +11238,24 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
 
   (function wireMinimap() {
     const wrap = document.getElementById('minimap-wrap');
-    const canvas = document.getElementById('minimap-canvas');
+    const modeSelect = document.getElementById('minimap-view-mode');
     const sizeEl = document.getElementById('minimap-size');
     const fpsEl = document.getElementById('minimap-fps');
     const azimuthEl = document.getElementById('minimap-azimuth');
     const polarEl = document.getElementById('minimap-polar');
     if (!wrap) return;
+    let restoredMode = false;
+    try {
+      const storedMode = localStorage.getItem(MINIMAP_MODE_KEY);
+      if (MINIMAP_MODE_OPTIONS.has(storedMode)) {
+        minimapMode = storedMode;
+        restoredMode = true;
+      }
+    } catch (_) {}
+    if (modeSelect) {
+      modeSelect.value = minimapMode;
+      modeSelect.addEventListener('change', () => setMinimapMode(modeSelect.value));
+    }
     function paintSize() {
       if (!sizeEl) return;
       sizeEl.textContent = minimapSizeLabel();
@@ -11130,6 +11271,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
         polarEl.textContent = `Pol ${Math.round(deg)}°`;
       }
     }
+    window.__paintMinimapAngles = paintAngles;
     paintSize();
     paintAngles();
     // Restore collapsed state.
