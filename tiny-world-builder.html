@@ -11082,19 +11082,18 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     }
 
     function renderWelcomeTips() {
+      let cameraTip;
       if (isTouchDevice()) {
-        tips.innerHTML = [
-          '<div class="welcome-tip"><strong> בנייה</stron לחיצה כדי להוסיף, לחיצה כפולה כדי להוריד.</div>',
-          '<div class="welcome-tip"><strong>הזזת המצלמה</strong>גררו לסיבוב לצדדים או למעלה למטה · צביטה להגדלה.</div>',
-          '<div class="welcome-tip"><strong>כלים</strong>השתמשו בסרגל לבחור את גודל הבסיס, להוריד גשם ועוד.</div>',
-        ].join('');
+        cameraTip = '· גררו לסיבוב לצדדים או למעלה למטה.<br>· צביטה להגדלה.';
       } else {
-        tips.innerHTML = [
-          '<div class="welcome-tip"><strong> בנייה</strong> לחיצה כדי להוסיף, לחיצה כפולה כדי להוריד.</div>',
-          '<div class="welcome-tip"><strong>הזזת המצלמה</strong>גררו כדי לסובב · סובבו את גלגל הגלילה של העכבר להגדלה והקטנה.</div>',
-          '<div class="welcome-tip"><strong>כלים</strong>השתמשו בסרגל לבחור את גודל הבסיס, להוריד גשם ועוד.</div>',
-        ].join('');
+        cameraTip = '· גררו כדי לסובב.<br>· סובבו את גלגל הגלילה של העכבר להגדלה והקטנה.';
       }
+      const tipLines = [
+        '<div class="welcome-tip"><strong>בנייה</strong><br>· לחיצה כדי להוסיף.<br>· לחיצה כפולה כדי להוריד.</div>',
+        '<div class="welcome-tip"><strong>הזזת המצלמה</strong><br>' + cameraTip + '</div>',
+        '<div class="welcome-tip"><strong>כלים</strong><br>· השתמשו בסרגל הכלים לבחור את גודל הבסיס.<br>· להוריד גשם ועוד.</div>',
+      ];
+      tips.innerHTML = tipLines.join('');
     }
 
     function closeWelcome(saveChoice) {
