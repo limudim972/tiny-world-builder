@@ -2637,7 +2637,13 @@
   const container = document.getElementById('app');
   const canvasEl = document.createElement('canvas');
   canvasEl.setAttribute('role', 'img');
-  canvasEl.setAttribute('aria-label', 'Interactive 3D tiny world editor. Use toolbar buttons or keyboard shortcuts to choose a tool, click cells to place items, drag to orbit, and press C to clear.');
+  const canvasInputMode = window.matchMedia('(hover: none), (pointer: coarse)').matches ? 'touch' : 'desktop';
+  canvasEl.setAttribute(
+    'aria-label',
+    canvasInputMode === 'touch'
+      ? 'Interactive 3D tiny world editor. Use the toolbar to choose a tool, tap cells to place items, drag with one finger to orbit, and use two fingers to pan or pinch to zoom.'
+      : 'Interactive 3D tiny world editor. Use toolbar buttons or keyboard shortcuts to choose a tool, click cells to place items, drag to orbit, and press C to clear.'
+  );
   const MIN_STAGE_W = 1440;
   const MIN_STAGE_H = 860;
   const STAGE_ASPECT = MIN_STAGE_W / MIN_STAGE_H;
@@ -11062,12 +11068,34 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
   // -------- welcome dialog --------
   function initWelcomeDialog() {
     const modal = document.getElementById('welcome-modal');
+    const tips = modal && modal.querySelector('.welcome-tips');
     const startBtn = document.getElementById('welcome-start');
     const closeBtn = document.getElementById('welcome-close');
     const dontShow = document.getElementById('welcome-dontshow');
-    if (!modal || !startBtn || !closeBtn || !dontShow) return;
+    if (!modal || !tips || !startBtn || !closeBtn || !dontShow) return;
 
     const STORAGE_KEY = 'tinyworld:welcome:dontshow';
+    const touchModeQuery = window.matchMedia('(hover: none), (pointer: coarse)');
+
+    function isTouchDevice() {
+      return !!(touchModeQuery && touchModeQuery.matches);
+    }
+
+    function renderWelcomeTips() {
+      if (isTouchDevice()) {
+        tips.innerHTML = [
+          '<div class="welcome-tip"><strong> בנייה</stron לחיצה כדי להוסיף, לחיצה כפולה כדי להוריד.</div>',
+          '<div class="welcome-tip"><strong>הזזת המצלמה</strong>גררו לסיבוב לצדדים או למעלה למטה · צביטה להגדלה.</div>',
+          '<div class="welcome-tip"><strong>כלים</strong>השתמשו בסרגל לבחור את גודל הבסיס, להוריד גשם ועוד.</div>',
+        ].join('');
+      } else {
+        tips.innerHTML = [
+          '<div class="welcome-tip"><strong> בנייה</strong> לחיצה כדי להוסיף, לחיצה כפולה כדי להוריד.</div>',
+          '<div class="welcome-tip"><strong>הזזת המצלמה</strong>גררו כדי לסובב · סובבו את גלגל הגלילה של העכבר להגדלה והקטנה.</div>',
+          '<div class="welcome-tip"><strong>כלים</strong>השתמשו בסרגל לבחור את גודל הבסיס, להוריד גשם ועוד.</div>',
+        ].join('');
+      }
+    }
 
     function closeWelcome(saveChoice) {
       if (saveChoice) {
@@ -11078,6 +11106,11 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
 
     function shouldShowWelcome() {
       try { return localStorage.getItem(STORAGE_KEY) !== '1'; } catch (_) { return true; }
+    }
+
+    renderWelcomeTips();
+    if (touchModeQuery && typeof touchModeQuery.addEventListener === 'function') {
+      touchModeQuery.addEventListener('change', renderWelcomeTips);
     }
 
     startBtn.addEventListener('click', () => closeWelcome(true));
