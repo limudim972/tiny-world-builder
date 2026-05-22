@@ -1217,6 +1217,21 @@
     width: 100%;
     box-sizing: border-box;
   }
+  .minimap-view-select-wrap {
+    position: relative;
+    width: 100%;
+  }
+  .minimap-view-select-wrap::after {
+    content: '';
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    width: 12px;
+    height: 8px;
+    pointer-events: none;
+    transform: translateY(-50%);
+    background: no-repeat center / 12px 8px url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1.5 2.25L6 6.25L10.5 2.25' stroke='%23968a74' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  }
   .minimap-footer-angles {
     display: flex;
     gap: 10px;
@@ -1972,13 +1987,15 @@
       </div>
       <div id="minimap-canvas" class="stacked-map" role="grid" aria-label="Stacked map showing floor counts"></div>
       <div class="minimap-footer">
-        <select id="minimap-view-mode" class="toolbar-home-grid-select minimap-view-select" aria-label="תצוגת המיני מפה">
-          <option value="numbers">תרשים מספרים</option>
-          <option value="front">מבט מלפנים</option>
-          <option value="right">מבט מימין</option>
-          <option value="left">מבט משמאל</option>
-          <option value="top">מבט מלמעלה</option>
-        </select>
+        <div class="minimap-view-select-wrap">
+          <select id="minimap-view-mode" class="toolbar-home-grid-select minimap-view-select" aria-label="תצוגת המיני מפה">
+            <option value="numbers">תרשים מספרים</option>
+            <option value="front">מבט מלפנים</option>
+            <option value="right">מבט מימין</option>
+            <option value="left">מבט משמאל</option>
+            <option value="top">מבט מלמעלה</option>
+          </select>
+        </div>
       </div>
     </div>
   </div>
