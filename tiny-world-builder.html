@@ -1782,6 +1782,7 @@
   .welcome-tip strong {
     display: block;
     color: var(--ink);
+    text-align: center;
     margin-bottom: 3px;
   }
   .welcome-actions {
@@ -11089,9 +11090,9 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
         cameraTip = '· גררו כדי לסובב.<br>· סובבו את גלגל הגלילה של העכבר להגדלה והקטנה.';
       }
       const tipLines = [
-        '<div class="welcome-tip"><strong>בנייה</strong><br>· לחיצה כדי להוסיף.<br>· לחיצה כפולה כדי להוריד.</div>',
-        '<div class="welcome-tip"><strong>הזזת המצלמה</strong><br>' + cameraTip + '</div>',
-        '<div class="welcome-tip"><strong>סרגל כלים</strong><br>· השתמשו בסרגל הכלים<br>· לבחור את גודל הבסיס.<br>· להוריד גשם ועוד.</div>',
+        '<div class="welcome-tip"><strong>בנייה</strong>· לחיצה כדי להוסיף.<br>· לחיצה כפולה כדי להוריד.</div>',
+        '<div class="welcome-tip"><strong>הזזת המצלמה</strong>' + cameraTip + '</div>',
+        '<div class="welcome-tip"><strong>סרגל כלים</strong>· השתמשו בסרגל הכלים<br>· לבחור את גודל הבסיס.<br>· להוריד גשם ועוד.</div>',
       ];
       tips.innerHTML = tipLines.join('');
     }
