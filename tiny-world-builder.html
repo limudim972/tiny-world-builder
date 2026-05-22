@@ -926,12 +926,12 @@
   }
 
   /* -------- generate modal -------- */
-  .modal {
-    position: fixed; inset: 0;
-    background: rgba(20, 24, 40, 0.18);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    z-index: 50;
+    .modal {
+      position: fixed; inset: 0;
+      background: rgba(20, 24, 40, 0.58);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      z-index: 50;
     display: flex; align-items: flex-start; justify-content: center;
     padding: 80px 20px 20px;
   }
@@ -2152,8 +2152,8 @@
         <strong id="welcome-title" class="welcome-title">עולם קטן</strong>
         <button class="modal-close" id="welcome-close" title="סגירה" aria-label="סגירת חלון הפתיחה">×</button>
       </div>
-      <p class="welcome-copy">בנו עולם ווקסלים קטן על ידי צביעת שטח, הנחת בתים, ציור גדרות, שתילת גידולים ועיצוב שבילים.</p>
-      <div class="welcome-tips" aria-label="טיפים מהירים">
+      <p class="welcome-copy">בנו עולם קטן על ידי הוספת בתים ותנו לאנשים הקטנים  מקום לגור.</p>
+      <div class="welcome-tips" aria-label="טיפים">
         <div class="welcome-tip"><strong>הקשה או לחיצה לבנייה</strong>בחרו כלי ואז הקישו על כל אריח כדי להציב אותו.</div>
         <div class="welcome-tip"><strong>הזזת המצלמה</strong>אצבע אחת או גרירה שמאלה לסיבוב · שתי אצבעות / גרירה ימנית / רווח להזזה · צביטה או גלילה להגדלה.</div>
         <div class="welcome-tip"><strong>המשיכו לבנות</strong>השתמשו באיפוס, ניקוי, ייצוא, ייבוא והגדרות מהסרגל העליון.</div>
@@ -11091,7 +11091,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
       const tipLines = [
         '<div class="welcome-tip"><strong>בנייה</strong><br>· לחיצה כדי להוסיף.<br>· לחיצה כפולה כדי להוריד.</div>',
         '<div class="welcome-tip"><strong>הזזת המצלמה</strong><br>' + cameraTip + '</div>',
-        '<div class="welcome-tip"><strong>כלים</strong><br>· השתמשו בסרגל הכלים לבחור את גודל הבסיס.<br>· להוריד גשם ועוד.</div>',
+        '<div class="welcome-tip"><strong>סרגל כלים</strong><br>· השתמשו בסרגל הכלים<br>· לבחור את גודל הבסיס.<br>· להוריד גשם ועוד.</div>',
       ];
       tips.innerHTML = tipLines.join('');
     }
