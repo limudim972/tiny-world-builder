@@ -1163,6 +1163,17 @@
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
+  .minimap-header {
+    display: grid;
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+  .minimap-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
   .stacked-map {
     display: grid;
     border-radius: 6px;
@@ -1950,9 +1961,17 @@
   <!-- Minimap (top-down repaint of the home grid) -->
   <div class="minimap-wrap" id="minimap-wrap">
     <div class="minimap-card">
+      <div class="minimap-header">
+        <div class="minimap-header-row">
+          <span class="minimap-footer-label">תצוגה</span>
+          <div class="minimap-footer-angles" aria-label="זוויות מצלמה">
+            <span id="minimap-azimuth">Az 0°</span>
+            <span id="minimap-polar">Pol 0°</span>
+          </div>
+        </div>
+      </div>
       <div id="minimap-canvas" class="stacked-map" role="grid" aria-label="Stacked map showing floor counts"></div>
       <div class="minimap-footer">
-        <span class="minimap-footer-label">תצוגה</span>
         <select id="minimap-view-mode" class="toolbar-home-grid-select minimap-view-select" aria-label="תצוגת המיני מפה">
           <option value="numbers">תרשים מספרים</option>
           <option value="front">מבט מלפנים</option>
@@ -1960,10 +1979,6 @@
           <option value="left">מבט משמאל</option>
           <option value="top">מבט מלמעלה</option>
         </select>
-        <div class="minimap-footer-angles" aria-label="זוויות מצלמה">
-          <span id="minimap-azimuth">Az 0°</span>
-          <span id="minimap-polar">Pol 0°</span>
-        </div>
       </div>
     </div>
   </div>
