@@ -5064,6 +5064,13 @@
     buildHomeFrontArrow();
   }
   buildHomeBorder();
+  function updateHomeFrontArrowVisibility() {
+    const polarDeg = (typeof polar === 'number' ? polar : 0) * 180 / Math.PI;
+    const azimuthDeg = ((typeof azimuth === 'number' ? azimuth : 0) * 180 / Math.PI) % 360;
+    const normalizedAzimuth = azimuthDeg < 0 ? azimuthDeg + 360 : azimuthDeg;
+    const nearFront = normalizedAzimuth <= 10 || normalizedAzimuth >= 350;
+    homeFrontArrowGroup.visible = !(polarDeg > 80 && nearFront);
+  }
 
   // -------- ghost worlds --------
   // Non-editable neighbouring boards. They preview the multiplayer shape of
@@ -11406,6 +11413,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
       if (!IS_LOCAL_ENV) {
         if (azimuthEl) azimuthEl.hidden = true;
         if (polarEl) polarEl.hidden = true;
+        updateHomeFrontArrowVisibility();
         return;
       }
       if (azimuthEl) azimuthEl.hidden = false;
@@ -11419,6 +11427,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
         const deg = (typeof polar === 'number' ? polar : 0) * 180 / Math.PI;
         polarEl.textContent = `Pol ${Math.round(deg)}°`;
       }
+      updateHomeFrontArrowVisibility();
     }
     window.__paintMinimapAngles = paintAngles;
     paintSize();
