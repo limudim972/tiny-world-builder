@@ -7634,8 +7634,20 @@
   renderer.domElement.addEventListener('pointerup', e => {
     renderer.domElement.classList.remove('dragging');
     if (draggedCrowdPersonId) {
+      const droppedPersonId = draggedCrowdPersonId;
+      const releaseCell = pickTile(e.clientX, e.clientY);
+      const droppedOnHomeGrid = !!(releaseCell && !(releaseCell.boardX || releaseCell.boardZ));
       syncCrowdDragState(null);
-      if (e.pointerType === 'mouse') {
+      if (droppedOnHomeGrid) {
+        if (crowdLayer && crowdLayer.loaded) crowdLayer.setPersonFalling(droppedPersonId, false);
+      } else if (crowdLayer && crowdLayer.loaded) {
+        crowdLayer.setPersonFalling(droppedPersonId, true, {
+          startY: 0,
+          removeY: -12,
+          fallVel: 0,
+        });
+      }
+      if (droppedOnHomeGrid && e.pointerType === 'mouse') {
         updateHoverAt(e.clientX, e.clientY);
       } else {
         hoverMesh.visible = false;

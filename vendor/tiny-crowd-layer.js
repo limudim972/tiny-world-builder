@@ -550,6 +550,9 @@
         route: Array.isArray(opts.route) ? opts.route.slice() : null,
         routeIndex: 0,
         routeHold: 0,
+        falling: false,
+        fallVel: 0,
+        fallRemoveY: -12,
         view: opts.view || pickViewFromHeading(opts.heading || 0, null),
         scale: opts.scale || 1,
         radius: opts.radius || this.worldConfig.zoneRadius,
@@ -574,6 +577,24 @@
       this.placePerson(person);
     }
 
+    setPersonFalling(id, falling, opts = {}) {
+      const person = this.people.get(id);
+      if (!person) return;
+      person.falling = !!falling;
+      if (person.falling) {
+        person.hoverPaused = false;
+        person.routeHold = 0;
+        person.route = null;
+        person.speed = 0;
+        person.fallVel = Number.isFinite(opts.fallVel) ? opts.fallVel : 0;
+        person.fallRemoveY = Number.isFinite(opts.removeY) ? opts.removeY : -12;
+        if (Number.isFinite(opts.startY)) person.y = opts.startY;
+      } else {
+        person.fallVel = 0;
+        person.fallRemoveY = -12;
+      }
+    }
+
     removePerson(id) {
       const person = this.people.get(id);
       if (!person) return;
@@ -589,13 +610,31 @@
 
     update(dt, camera) {
       const activeCamera = camera || this.camera;
-      this.people.forEach(person => {
-        this.tickRoute(person, dt || 0);
-        if (activeCamera) this.updatePersonView(person, activeCamera);
-        this.tickPhase(person, dt || 0);
+      const people = Array.from(this.people.values());
+      for (const person of people) {
+        if (!this.people.has(person.id)) continue;
+        if (person.falling) {
+          if (this.tickFall(person, dt || 0)) continue;
+        } else {
+          this.tickRoute(person, dt || 0);
+          if (activeCamera) this.updatePersonView(person, activeCamera);
+          this.tickPhase(person, dt || 0);
+        }
         this.placePerson(person);
         this.drawPersonTexture(person, false);
-      });
+      }
+    }
+
+    tickFall(person, dt) {
+      if (!person.falling) return false;
+      const fallAccel = 18;
+      person.fallVel += fallAccel * dt;
+      person.y -= person.fallVel * dt;
+      if (person.y <= person.fallRemoveY) {
+        this.removePerson(person.id);
+        return true;
+      }
+      return false;
     }
 
     tickRoute(person, dt) {
