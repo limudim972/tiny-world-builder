@@ -598,6 +598,7 @@
     }
 
     tickRoute(person, dt) {
+      if (person.hoverPaused) return;
       if (person.routeHold > 0) {
         person.routeHold = Math.max(0, person.routeHold - dt);
         return;
@@ -647,6 +648,7 @@
     }
 
     tickPhase(person, dt) {
+      if (person.hoverPaused) return;
       const movingForward = !!(person.route && person.route.length > 1 && person.speed);
       const fwd = this.config.speed * person.speedMul;
       const speedFactor = movingForward ? clamp(fwd / 50, 0.2, 2.5) : 0.18;

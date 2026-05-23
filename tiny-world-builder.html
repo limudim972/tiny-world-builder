@@ -6510,6 +6510,9 @@
   let ghostRotation = 0;         // radians (added on top of any deterministic rotation)
   let ghostOffsetX = 0;          // within-tile x nudge
   let ghostOffsetZ = 0;          // within-tile z nudge
+  let hoveredCrowdPersonId = null;
+  let draggedCrowdPersonId = null;
+  const CROWD_DRAG_RENDER_ORDER = 10000;
   const GHOST_ROT_STEP = Math.PI / 2;     // 90° per arrow press — snaps to cardinal facings
   const GHOST_OFFSET_STEP = 0.06;          // ~6% of a tile per arrow press
   const GHOST_OFFSET_LIMIT = 0.32;         // clamp so the ghost stays on the tile
@@ -6594,7 +6597,7 @@
       ghostPreview.visible = false;
       return;
     }
-    if (!currentHover) { ghostPreview.visible = false; return; }
+    if (!currentHover || hoveredCrowdPersonId || draggedCrowdPersonId) { ghostPreview.visible = false; return; }
     ghostPreview.visible = true;
     const baseY = TOP_H + (terrainRiseAt(currentHover.x, currentHover.z) || 0);
     ghostPreview.position.set(
@@ -6619,7 +6622,110 @@
   const ndc = new THREE.Vector2();
   const pickPoint = new THREE.Vector3();
   const pickBox = new THREE.Box3();
+  const pickPlane = new THREE.Plane();
+  const pickPlanePoint = new THREE.Vector3();
+  const pickScreenPoint = new THREE.Vector3();
+  const pickScreenOffset = new THREE.Vector2();
   const TILE_PICK_PAD = 0.01;
+
+  function pickCrowdPerson(clientX, clientY) {
+    if (!crowdLayer || !crowdLayer.loaded || !crowdLayer.group) return null;
+    const rect = renderer.domElement.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return null;
+    ndc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    ndc.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(ndc, camera);
+    const hits = raycaster.intersectObjects(crowdLayer.group.children, false);
+    if (!hits.length) return null;
+    const hit = hits[0];
+    if (!hit || !hit.object || !hit.object.name || hit.object.name.indexOf('crowd-') !== 0) return null;
+    return {
+      id: hit.object.name.slice('crowd-'.length),
+      point: hit.point ? hit.point.clone() : null,
+    };
+  }
+
+  function getCrowdPerson(personId) {
+    if (!crowdLayer || !crowdLayer.loaded || !personId) return null;
+    return crowdLayer.people.get(personId) || null;
+  }
+
+  function syncCrowdHoverState(personId) {
+    hoveredCrowdPersonId = personId || null;
+    if (!crowdLayer || !crowdLayer.loaded) return;
+    crowdLayer.people.forEach(person => {
+      person.hoverPaused = !!hoveredCrowdPersonId && person.id === hoveredCrowdPersonId;
+    });
+  }
+
+  function syncCrowdDragState(personId) {
+    draggedCrowdPersonId = personId || null;
+    if (!crowdLayer || !crowdLayer.loaded) return;
+    crowdLayer.people.forEach(person => {
+      if (person.sprite && person.material) {
+        if (draggedCrowdPersonId && person.id === draggedCrowdPersonId) {
+          person.sprite.renderOrder = CROWD_DRAG_RENDER_ORDER;
+          person.material.depthTest = false;
+          person.material.needsUpdate = true;
+        } else {
+          person.sprite.renderOrder = -5;
+          person.material.depthTest = true;
+          person.material.needsUpdate = true;
+        }
+      }
+      if (draggedCrowdPersonId && person.id === draggedCrowdPersonId) {
+        person.hoverPaused = true;
+      } else if (!hoveredCrowdPersonId || person.id !== hoveredCrowdPersonId) {
+        person.hoverPaused = false;
+      }
+    });
+  }
+
+  function moveDraggedCrowdPersonToPointer(clientX, clientY) {
+    if (!draggedCrowdPersonId || !crowdLayer || !crowdLayer.loaded) return;
+    const person = getCrowdPerson(draggedCrowdPersonId);
+    if (!person) return;
+    const rect = renderer.domElement.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+    const targetX = clientX - pickScreenOffset.x;
+    const targetY = clientY - pickScreenOffset.y;
+    ndc.x = ((targetX - rect.left) / rect.width) * 2 - 1;
+    ndc.y = -((targetY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(ndc, camera);
+    let x = person.x;
+    let z = person.z;
+    let planeY = crowdTerrainHeightAt(x, z);
+    for (let i = 0; i < 3; i++) {
+      pickPlane.set(new THREE.Vector3(0, 1, 0), -planeY);
+      if (!raycaster.ray.intersectPlane(pickPlane, pickPlanePoint)) return;
+      x = pickPlanePoint.x + GRID_W / 2 - 0.5;
+      z = pickPlanePoint.z + GRID_D / 2 - 0.5;
+      const nextPlaneY = crowdTerrainHeightAt(x, z);
+      if (Math.abs(nextPlaneY - planeY) < 1e-5) break;
+      planeY = nextPlaneY;
+    }
+    crowdLayer.setPersonPosition(draggedCrowdPersonId, {
+      x,
+      z,
+    });
+  }
+
+  function captureCrowdDragOffset(person, clientX, clientY) {
+    if (!person || !person.sprite) {
+      pickScreenOffset.set(0, 0);
+      return;
+    }
+    const rect = renderer.domElement.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) {
+      pickScreenOffset.set(0, 0);
+      return;
+    }
+    person.sprite.updateWorldMatrix(true, false);
+    pickScreenPoint.copy(person.sprite.position).project(camera);
+    const sx = rect.left + (pickScreenPoint.x * 0.5 + 0.5) * rect.width;
+    const sy = rect.top + (-pickScreenPoint.y * 0.5 + 0.5) * rect.height;
+    pickScreenOffset.set(clientX - sx, clientY - sy);
+  }
 
   function getTilePickMesh(tile) {
     if (!tile || !tile.children) return null;
@@ -7358,12 +7464,30 @@
   const DRAG_THRESHOLD = 5;
   let pendingHouseClick = null;
   function updateHoverAt(x, y) {
-    if (pointerDown && didDrag) {
+    if (draggedCrowdPersonId) {
       hoverMesh.visible = false;
       currentHover = null;
+      syncCrowdHoverState(draggedCrowdPersonId);
       updateGhostPlacement();
       return;
     }
+    if (pointerDown && didDrag) {
+      hoverMesh.visible = false;
+      currentHover = null;
+      syncCrowdHoverState(null);
+      updateGhostPlacement();
+      return;
+    }
+    const crowdPersonId = pickCrowdPerson(x, y);
+    if (crowdPersonId) {
+      const personId = crowdPersonId.id;
+      hoverMesh.visible = false;
+      currentHover = null;
+      syncCrowdHoverState(personId);
+      updateGhostPlacement();
+      return;
+    }
+    syncCrowdHoverState(null);
     const cell = pickTile(x, y);
     if (cell && !(cell.boardX || cell.boardZ)) {
       hoverMesh.position.set(cell.worldX, hoverHeightForCell(cell), cell.worldZ);
@@ -7458,6 +7582,18 @@
     pointerDown = { x: e.clientX, y: e.clientY };
     lastPointer = { x: e.clientX, y: e.clientY };
     didDrag = false;
+    const crowdHit = pickCrowdPerson(e.clientX, e.clientY);
+    if (crowdHit) {
+      const person = getCrowdPerson(crowdHit.id);
+      captureCrowdDragOffset(person, e.clientX, e.clientY);
+      syncCrowdDragState(crowdHit.id);
+      syncCrowdHoverState(crowdHit.id);
+      hoverMesh.visible = false;
+      currentHover = null;
+      updateGhostPlacement();
+      renderer.domElement.classList.add('dragging');
+      return;
+    }
     updateHoverAt(e.clientX, e.clientY);
     renderer.domElement.classList.add('dragging');
   });
@@ -7471,6 +7607,16 @@
     const dx = e.clientX - pointerDown.x;
     const dy = e.clientY - pointerDown.y;
     if (!didDrag && Math.abs(dx) + Math.abs(dy) > DRAG_THRESHOLD) didDrag = true;
+    if (draggedCrowdPersonId) {
+      markCameraMoving();
+      moveDraggedCrowdPersonToPointer(e.clientX, e.clientY);
+      hoverMesh.visible = false;
+      currentHover = null;
+      syncCrowdHoverState(draggedCrowdPersonId);
+      updateGhostPlacement();
+      lastPointer = { x: e.clientX, y: e.clientY };
+      return;
+    }
     if (didDrag) {
       markCameraMoving();
       azimuth += (e.clientX - lastPointer.x) * 0.008;
@@ -7480,12 +7626,27 @@
       updateCamera();
       hoverMesh.visible = false;
       currentHover = null;
+      syncCrowdHoverState(null);
     }
     lastPointer = { x: e.clientX, y: e.clientY };
   });
 
   renderer.domElement.addEventListener('pointerup', e => {
     renderer.domElement.classList.remove('dragging');
+    if (draggedCrowdPersonId) {
+      syncCrowdDragState(null);
+      if (e.pointerType === 'mouse') {
+        updateHoverAt(e.clientX, e.clientY);
+      } else {
+        hoverMesh.visible = false;
+        currentHover = null;
+        syncCrowdHoverState(null);
+      }
+      pointerDown = null;
+      lastPointer = null;
+      didDrag = false;
+      return;
+    }
     if (pointerDown && !didDrag && currentHover && e.pointerType !== 'mouse') {
       applyToolToCell(currentHover);
     }
@@ -7496,6 +7657,7 @@
     } else {
       hoverMesh.visible = false;
       currentHover = null;
+      syncCrowdHoverState(null);
     }
   });
 
@@ -7509,6 +7671,8 @@
     renderer.domElement.classList.remove('dragging');
     pointerDown = null;
     lastPointer = null;
+    didDrag = false;
+    syncCrowdDragState(null);
   });
 
   renderer.domElement.addEventListener('wheel', e => {
@@ -9968,6 +10132,9 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     tickWeather(dt);
     updateClouds(dt);
     updateCropDuster(dt);
+    if (lastPointer && !pointerDown) {
+      updateHoverAt(lastPointer.x, lastPointer.y);
+    }
     if (crowdLayer && crowdLayer.loaded) {
       if (crowdHouseEnvelopeDirty) seedCrowdPeople();
       crowdLayer.update(dt, camera);
