@@ -2697,8 +2697,8 @@
   canvasEl.setAttribute(
     'aria-label',
     canvasInputMode === 'touch'
-      ? 'Interactive 3D tiny world editor. Use the toolbar to choose a tool, tap cells to place items, drag with one finger to orbit, and use two fingers to pan or pinch to zoom.'
-      : 'Interactive 3D tiny world editor. Use toolbar buttons or keyboard shortcuts to choose a tool, click cells to place items, drag to orbit, and press C to clear.'
+      ? 'Interactive 3D tiny world editor. Use the toolbar to choose a tool and tap cells to place items.'
+      : 'Interactive 3D tiny world editor. Use toolbar buttons or keyboard shortcuts to choose a tool and click cells to place items.'
   );
   const MIN_STAGE_W = 1440;
   const MIN_STAGE_H = 860;
@@ -2963,8 +2963,6 @@
   let azimuth = DEFAULT_AZIMUTH;   // around Y
   let polar   = DEFAULT_POLAR;     // from +Y axis
   const target = DEFAULT_TARGET.clone();
-  const panRight = new THREE.Vector3();
-  const panForward = new THREE.Vector3();
 
   function updateCamera() {
     const r = cameraMode === 'ortho' ? 14 : (cameraMode === 'soft' ? viewSize * 5.6 : viewSize * 4.2);
@@ -2976,36 +2974,11 @@
     if (typeof updateSunFollow === 'function') updateSunFollow();
     saveState();
   }
-  function panCameraByPixels(dx, dy) {
-    markCameraMoving();
-    const scale = (viewSize * 2) / Math.max(1, window.innerHeight);
-    camera.updateMatrixWorld();
-    panRight.setFromMatrixColumn(camera.matrixWorld, 0).normalize();
-    camera.getWorldDirection(panForward);
-    panForward.y = 0;
-    if (panForward.lengthSq() < 0.001) panForward.set(0, 0, -1);
-    panForward.normalize();
-    target.addScaledVector(panRight, -dx * scale);
-    target.addScaledVector(panForward, dy * scale);
-    expandVisibleSizeOnFirstMove();
-    updateCamera();
-    ensureGhostBoardsAroundTarget();
-    if (typeof requestMinimapRepaint === 'function') requestMinimapRepaint();
-  }
-  function panCameraByCells(dx, dz) {
-    markCameraMoving();
-    target.x += dx;
-    target.z += dz;
-    expandVisibleSizeOnFirstMove();
-    updateCamera();
-    ensureGhostBoardsAroundTarget();
-    if (typeof requestMinimapRepaint === 'function') requestMinimapRepaint();
-  }
   updateCamera();
 
   // -------- lighting --------
   // Three sources stack to give every cell the same look regardless of
-  // how far the camera has panned:
+  // camera angle:
   //   1. AmbientLight   — flat minimum fill so shadowed sides never read black.
   //   2. HemisphereLight — soft sky-vs-ground gradient on top of ambient.
   //   3. DirectionalLight (sun) — the only shadow caster. The light's
@@ -7378,19 +7351,14 @@
     }
   }
 
-  // -------- input: drag-to-orbit + click-to-place + multi-touch --------
+  // -------- input: click-to-place --------
   let pointerDown = null;     // {x, y}
   let lastPointer = null;
   let didDrag = false;
-  let dragMode = null;        // 'orbit' | 'pan' | 'pinch'
-  let spaceDown = false;
   const DRAG_THRESHOLD = 5;
-  const activePointers = new Map(); // pointerId -> {x, y, type}
-  let pinchPrevDist = 0;
-  let pinchPrevMid = null;
   let pendingHouseClick = null;
   function updateHoverAt(x, y) {
-    if ((pointerDown && didDrag) || dragMode === 'pan' || dragMode === 'pinch') {
+    if (pointerDown && didDrag) {
       hoverMesh.visible = false;
       currentHover = null;
       updateGhostPlacement();
@@ -7485,146 +7453,62 @@
   renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
 
   renderer.domElement.addEventListener('pointerdown', e => {
-    if (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 2) return;
-    activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY, type: e.pointerType });
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
     try { renderer.domElement.setPointerCapture(e.pointerId); } catch (_) {}
-
-    if (activePointers.size >= 2) {
-      const pts = [...activePointers.values()];
-      pinchPrevDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-      pinchPrevMid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
-      dragMode = 'pinch';
-      didDrag = true;
-      pointerDown = null;
-      hoverMesh.visible = false;
-      currentHover = null;
-      renderer.domElement.classList.add('dragging');
-      return;
-    }
-
-    dragMode = (e.button === 2 || spaceDown) ? 'pan' : 'orbit';
     pointerDown = { x: e.clientX, y: e.clientY };
     lastPointer = { x: e.clientX, y: e.clientY };
     didDrag = false;
-    // Touch devices don't have hover before contact, so prime currentHover
-    // at the press location so a quick tap can place a tile.
-    if (e.pointerType !== 'mouse') updateHoverAt(e.clientX, e.clientY);
+    updateHoverAt(e.clientX, e.clientY);
     renderer.domElement.classList.add('dragging');
   });
 
   renderer.domElement.addEventListener('pointermove', e => {
-    if (activePointers.has(e.pointerId)) {
-      const p = activePointers.get(e.pointerId);
-      p.x = e.clientX; p.y = e.clientY;
-    }
-
-    if (dragMode === 'pinch' && activePointers.size >= 2) {
-      markCameraMoving();
-      const pts = [...activePointers.values()];
-      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-      const mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
-      if (pinchPrevDist > 0 && dist > 0) {
-        const ratio = pinchPrevDist / dist;
-        viewSize = Math.max(1, Math.min(25, viewSize * ratio));
-        onResize();
-      }
-      if (pinchPrevMid) {
-        panCameraByPixels(mid.x - pinchPrevMid.x, mid.y - pinchPrevMid.y);
-      }
-      pinchPrevDist = dist;
-      pinchPrevMid = mid;
+    if (!pointerDown) {
+      updateHoverAt(e.clientX, e.clientY);
       return;
     }
 
-    // hover update for mouse devices (touch hover handled on press)
-    if (e.pointerType === 'mouse' || !pointerDown) {
-      updateHoverAt(e.clientX, e.clientY);
+    const dx = e.clientX - pointerDown.x;
+    const dy = e.clientY - pointerDown.y;
+    if (!didDrag && Math.abs(dx) + Math.abs(dy) > DRAG_THRESHOLD) didDrag = true;
+    if (didDrag) {
+      markCameraMoving();
+      azimuth += (e.clientX - lastPointer.x) * 0.008;
+      // Keep a small floor so drag never collapses into a hard
+      // straight-down snap.
+      polar = Math.max(0.00000001, Math.min(Math.PI / 2, polar - (e.clientY - lastPointer.y) * 0.006));
+      updateCamera();
+      hoverMesh.visible = false;
+      currentHover = null;
     }
-
-    if (pointerDown) {
-      const dx = e.clientX - pointerDown.x;
-      const dy = e.clientY - pointerDown.y;
-      if (!didDrag && Math.abs(dx) + Math.abs(dy) > DRAG_THRESHOLD) didDrag = true;
-      if (didDrag) {
-        const ddx = e.clientX - lastPointer.x;
-        const ddy = e.clientY - lastPointer.y;
-        if (dragMode === 'pan') {
-          panCameraByPixels(ddx, ddy);
-        } else {
-          markCameraMoving();
-          // azimuth -= ddx * 0.008;
-          azimuth += ddx * 0.008;
-          // Keep a small floor so drag never collapses into a hard
-          // straight-down snap.
-          polar = Math.max(0.00000001, Math.min(Math.PI / 2, polar - ddy * 0.006));
-          updateCamera();
-        }
-        // While dragging on touch, hide the hover marker so it doesn't lag.
-        if (e.pointerType !== 'mouse') {
-          hoverMesh.visible = false;
-          currentHover = null;
-        }
-      }
-      lastPointer = { x: e.clientX, y: e.clientY };
-    }
+    lastPointer = { x: e.clientX, y: e.clientY };
   });
 
   renderer.domElement.addEventListener('pointerup', e => {
-    activePointers.delete(e.pointerId);
     renderer.domElement.classList.remove('dragging');
-
-    if (dragMode === 'pinch') {
-      if (activePointers.size === 1) {
-        // Drop from pinch back to one-finger: continue as pan, no click.
-        const [remaining] = [...activePointers.values()];
-        pointerDown = { x: remaining.x, y: remaining.y };
-        lastPointer = { x: remaining.x, y: remaining.y };
-        didDrag = true;
-        dragMode = 'pan';
-        renderer.domElement.classList.add('dragging');
-      } else {
-        dragMode = null;
-        pointerDown = null;
-        lastPointer = null;
-      }
-      pinchPrevDist = 0;
-      pinchPrevMid = null;
-      return;
-    }
-
-    if (pointerDown && !didDrag && currentHover && dragMode !== 'pan' && e.pointerType !== 'mouse') {
+    if (pointerDown && !didDrag && currentHover && e.pointerType !== 'mouse') {
       applyToolToCell(currentHover);
     }
-    if (activePointers.size === 0) {
-      pointerDown = null;
-      lastPointer = null;
-      dragMode = null;
-      if (e.pointerType === 'mouse') {
-        updateHoverAt(e.clientX, e.clientY);
-      } else {
-        // Touch devices: clear the hover marker after a tap so it doesn't linger.
-        hoverMesh.visible = false;
-        currentHover = null;
-      }
+    pointerDown = null;
+    lastPointer = null;
+    if (e.pointerType === 'mouse') {
+      updateHoverAt(e.clientX, e.clientY);
+    } else {
+      hoverMesh.visible = false;
+      currentHover = null;
     }
   });
 
   renderer.domElement.addEventListener('click', e => {
     if (e.pointerType && e.pointerType !== 'mouse') return;
-    if (!currentHover || didDrag || dragMode === 'pan') return;
+    if (!currentHover || didDrag) return;
     handleMouseClick(currentHover);
   });
 
   renderer.domElement.addEventListener('pointercancel', e => {
-    activePointers.delete(e.pointerId);
     renderer.domElement.classList.remove('dragging');
-    if (activePointers.size === 0) {
-      pointerDown = null;
-      lastPointer = null;
-      dragMode = null;
-      pinchPrevDist = 0;
-      pinchPrevMid = null;
-    }
+    pointerDown = null;
+    lastPointer = null;
   });
 
   renderer.domElement.addEventListener('wheel', e => {
@@ -7708,11 +7592,6 @@
     // Never swallow OS-level keystrokes like Cmd+R (reload), Ctrl+R, Cmd+F, etc.
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const k = e.key.toLowerCase();
-    if (e.code === 'Space') {
-      spaceDown = true;
-      e.preventDefault();
-      return;
-    }
     const shortcutTool = TOOLS.find(x => !x.hidden && x.shortcut && x.shortcut.toLowerCase() === k);
     if (shortcutTool) {
       selectTool(shortcutTool);
@@ -7729,28 +7608,11 @@
     else if (k === 'f') { adjustHoverTerrainHeight(-1); }
     else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault();
-      // Hold Shift to keep the original pan behaviour. Otherwise
-      // arrows steer the live ghost: left/right rotate, up/down
-      // nudge along Z, shift+left/right nudges along X.
-      if (e.shiftKey || !ghostPreview) {
-        if (e.key === 'ArrowLeft')       panCameraByCells(-1, 0);
-        else if (e.key === 'ArrowRight') panCameraByCells(1, 0);
-        else if (e.key === 'ArrowUp')    panCameraByCells(0, -1);
-        else                              panCameraByCells(0, 1);
-        return;
-      }
       if (e.key === 'ArrowLeft')  ghostRotation = snapRot(ghostRotation - GHOST_ROT_STEP);
       if (e.key === 'ArrowRight') ghostRotation = snapRot(ghostRotation + GHOST_ROT_STEP);
       if (e.key === 'ArrowUp')    ghostOffsetZ = Math.max(-GHOST_OFFSET_LIMIT, ghostOffsetZ - GHOST_OFFSET_STEP);
       if (e.key === 'ArrowDown')  ghostOffsetZ = Math.min( GHOST_OFFSET_LIMIT, ghostOffsetZ + GHOST_OFFSET_STEP);
       updateGhostPlacement();
-    }
-  });
-
-  window.addEventListener('keyup', e => {
-    if (e.code === 'Space') {
-      spaceDown = false;
-      e.preventDefault();
     }
   });
 
