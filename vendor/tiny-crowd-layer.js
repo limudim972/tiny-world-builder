@@ -662,12 +662,19 @@
       person.y -= person.fallVel * dt;
       if (person.fallStage === 'escape') {
         if (person.y <= person.fallRemoveY) {
-          if (Number.isFinite(person.fallReturnX)) person.x = person.fallReturnX;
-          if (Number.isFinite(person.fallReturnZ)) person.z = person.fallReturnZ;
-          person.y = person.fallSpawnY;
           person.fallVel = 0;
-          person.fallStage = 'return';
+          // Let the sprite finish the drop at the bottom edge before we
+          // warp it back in from the top on the next tick.
+          person.fallStage = 'reenter';
         }
+        return false;
+      }
+      if (person.fallStage === 'reenter') {
+        if (Number.isFinite(person.fallReturnX)) person.x = person.fallReturnX;
+        if (Number.isFinite(person.fallReturnZ)) person.z = person.fallReturnZ;
+        person.y = person.fallSpawnY;
+        person.fallVel = 0;
+        person.fallStage = 'return';
         return false;
       }
       if (person.fallStage === 'spawn') {
