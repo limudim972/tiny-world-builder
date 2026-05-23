@@ -2974,6 +2974,7 @@
     camera.position.z = target.z + r * Math.sin(polar) * Math.sin(azimuth);
     camera.lookAt(target);
     if (typeof updateSunFollow === 'function') updateSunFollow();
+    saveState();
   }
   function panCameraByPixels(dx, dy) {
     markCameraMoving();
@@ -10629,8 +10630,8 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
   // can restore the current build without needing a server round-trip.
   const STORAGE_KEY = 'tinyworld:v1';
   const STORAGE_VERSION = 4;
-  let saveTimer = null;
-  let suppressSave = false;
+  var saveTimer = null;
+  var suppressSave = false;
 
   function saveState() {
     if (suppressSave) return;
@@ -10644,6 +10645,12 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
           gridDepth: GRID_D,
           cells: snapshotCells(),
           cameraMode,
+          camera: {
+            target: { x: target.x, y: target.y, z: target.z },
+            azimuth,
+            polar,
+            viewSize,
+          },
         }));
       } catch (_) {}
     }, 200);
@@ -10812,6 +10819,18 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
 
     if (data.cameraMode && typeof setCameraMode === 'function') {
       try { setCameraMode(data.cameraMode); } catch (_) {}
+    }
+    if (data.camera) {
+      const cam = data.camera;
+      if (cam.target && typeof cam.target === 'object') {
+        if (Number.isFinite(cam.target.x)) target.x = cam.target.x;
+        if (Number.isFinite(cam.target.y)) target.y = cam.target.y;
+        if (Number.isFinite(cam.target.z)) target.z = cam.target.z;
+      }
+      if (Number.isFinite(cam.azimuth)) azimuth = cam.azimuth;
+      if (Number.isFinite(cam.polar)) polar = Math.max(0.00000001, Math.min(Math.PI / 2, cam.polar));
+      if (Number.isFinite(cam.viewSize)) viewSize = Math.max(1, Math.min(25, cam.viewSize));
+      updateCamera();
     }
     saveState();
     return true;
