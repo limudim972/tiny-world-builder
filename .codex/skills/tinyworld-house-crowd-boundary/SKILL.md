@@ -42,6 +42,9 @@ Use this when editing crowd pathing around houses in
 - Rain/storm can repurpose the same envelope graph to send active people to
   the nearest interior stop point, then stage a clear-weather exit in a small
   outside queue before restoring each person's saved route.
+- When rain shelter ends, clear `routeHold` instead of restoring an old dwell
+  timer; otherwise people can appear stuck at a doorway/interior visit point
+  for long house-visit holds right after rain stops.
 
 ## Door-gap detection notes
 

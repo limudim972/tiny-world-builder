@@ -4247,6 +4247,13 @@
     if (reseed || crowdLayer.people.size !== crowdCount) seedCrowdPeople();
   }
 
+  function crowdSetPersonFallingSafe(id, falling, opts = null) {
+    if (!crowdLayer || !crowdLayer.loaded) return false;
+    if (typeof crowdLayer.setPersonFalling !== 'function') return false;
+    crowdLayer.setPersonFalling(id, falling, opts || {});
+    return true;
+  }
+
   // Keep crowd sprites clear of house walls. The old buffer was tight enough
   // that tall billboard characters could clip into corners while the feet
   // still looked outside the wall.
@@ -4261,6 +4268,7 @@
   const CROWD_ROUTE_MAX_POINTS = 36;
   const CROWD_RAIN_EXIT_OUTSET = 0.18;
   const CROWD_RAIN_EXIT_SPREAD = 0.12;
+  const CROWD_RAIN_EXIT_COOLDOWN_MS = 15000;
   let crowdHouseEnvelopes = [];
   let crowdHouseEnvelopeDirty = true;
 
@@ -4976,6 +4984,49 @@
     person.speed = travel / Math.max(person.speedMul || 1, 0.25);
   }
 
+  function crowdRouteTargetInsideHouse(point, envelopes) {
+    if (!point || !Array.isArray(envelopes) || !envelopes.length) return false;
+    return !!crowdFindEnvelopeForPoint(point, envelopes, 0.001);
+  }
+
+  function crowdSkipInteriorRouteTargets(person, envelopes) {
+    if (!person || !Array.isArray(person.route) || !person.route.length) return;
+    person.routeHold = 0;
+    const len = person.route.length;
+    let hops = 0;
+    while (hops < len) {
+      const idx = person.routeIndex % len;
+      const target = person.route[idx];
+      if (!crowdRouteTargetInsideHouse(target, envelopes)) break;
+      person.routeIndex = (idx + 1) % len;
+      hops++;
+    }
+    if (hops >= len) {
+      const current = { x: person.x, z: person.z };
+      const envelope = crowdFindEnvelopeForPoint(current, envelopes, 0.001);
+      if (!envelope) return;
+      const gap = crowdChooseDoorGap(envelope, current, current) || crowdDoorGapCandidates(envelope)[0];
+      if (!gap) return;
+      const exitTarget = crowdRainExitReleasePoint(envelope, gap, 0, 1);
+      person.route = [
+        { x: person.x, z: person.z },
+        crowdClonePoint(exitTarget),
+      ];
+      person.routeIndex = 0;
+      person.routeHold = 0;
+    }
+  }
+
+  function crowdApplyRainExitCooldown(person, envelopes) {
+    if (!person || !Number.isFinite(person.rainExitCooldownUntil) || person.rainExitCooldownUntil <= 0) return;
+    const nowMs = performance.now();
+    if (nowMs >= person.rainExitCooldownUntil) {
+      person.rainExitCooldownUntil = 0;
+      return;
+    }
+    crowdSkipInteriorRouteTargets(person, envelopes);
+  }
+
   function crowdPickRainShelterTarget(person, envelopes) {
     if (!person || !Array.isArray(envelopes) || !envelopes.length) return null;
     const current = { x: person.x, z: person.z };
@@ -5014,11 +5065,14 @@
       gap: crowdCloneDoorGap(shelterChoice.gap),
       savedRoute: Array.isArray(person.route) ? person.route.slice() : null,
       savedRouteIndex: person.routeIndex || 0,
-      savedRouteHold: person.routeHold || 0,
+      // Exiting rain shelter should restore motion immediately instead of
+      // resuming a long house-visit dwell timer from before the weather shift.
+      savedRouteHold: 0,
       savedSpeed: person.speed || 0,
       travelSpeed: Math.max(person.speed || 0, 0.55),
       exitTarget: null,
     };
+    person.rainExitCooldownUntil = 0;
     person.route = [
       { x: person.x, z: person.z },
       crowdClonePoint(shelterChoice.target),
@@ -5034,7 +5088,7 @@
     if (Array.isArray(shelter.savedRoute)) {
       person.route = shelter.savedRoute.slice();
       person.routeIndex = shelter.savedRouteIndex || 0;
-      person.routeHold = shelter.savedRouteHold || 0;
+      person.routeHold = 0;
     } else {
       person.route = null;
       person.routeIndex = 0;
@@ -5042,6 +5096,7 @@
     }
     person.speed = shelter.savedSpeed || 0;
     person.rainShelter = null;
+    person.rainExitCooldownUntil = performance.now() + CROWD_RAIN_EXIT_COOLDOWN_MS;
   }
 
   function crowdBeginRainExit(person, envelope, gap, slotIndex, slotCount) {
@@ -5111,6 +5166,8 @@
         } else {
           crowdFinishRainShelter(person);
         }
+      } else if (clearEnvelopes) {
+        crowdApplyRainExitCooldown(person, clearEnvelopes);
       }
     });
     if (!rainy && phase === 'pre' && exitGroups.size) {
@@ -5173,7 +5230,7 @@
         route,
         scale: 0.92 + Math.random() * 0.18,
       });
-      crowdLayer.setPersonFalling('ambient-' + i, true, {
+      crowdSetPersonFallingSafe('ambient-' + i, true, {
         mode: 'spawn',
         startY: 10,
         removeY: -12,
@@ -7357,7 +7414,7 @@
     const spec = makeCrowdSpawnSpec(crowdLayer.people.size, 'ambient-drop-' + Date.now() + '-' + Math.floor(Math.random() * 1000));
     if (!spec) return false;
     crowdLayer.addPerson(spec);
-    crowdLayer.setPersonFalling(spec.id, true, {
+    crowdSetPersonFallingSafe(spec.id, true, {
       mode: 'spawn',
       startY: 10,
       removeY: -12,
@@ -7946,11 +8003,11 @@
       const droppedPerson = crowdLayer && crowdLayer.loaded ? crowdLayer.people.get(droppedPersonId) : null;
       syncCrowdDragState(null);
       if (droppedOnHomeGrid) {
-        if (crowdLayer && crowdLayer.loaded) crowdLayer.setPersonFalling(droppedPersonId, false);
+        crowdSetPersonFallingSafe(droppedPersonId, false);
       } else if (crowdLayer && crowdLayer.loaded) {
         const returnX = Math.max(0, Math.min(GRID_W - 1, Math.round(droppedPerson ? droppedPerson.x : GRID_W / 2)));
         const returnZ = Math.max(0, Math.min(GRID_D - 1, Math.round(droppedPerson ? droppedPerson.z : GRID_D / 2)));
-        crowdLayer.setPersonFalling(droppedPersonId, true, {
+        crowdSetPersonFallingSafe(droppedPersonId, true, {
           mode: 'return',
           returnX,
           returnZ,
