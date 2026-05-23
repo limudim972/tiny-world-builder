@@ -402,6 +402,8 @@
     border-radius: 12px;
     padding: 7px 36px 7px 10px;
     min-width: 88px;
+    text-align: center;
+    text-align-last: center;
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.88) inset,
       0 1px 2px rgba(20, 30, 50, 0.04);
@@ -410,7 +412,45 @@
   .toolbar-home-grid-select:hover {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.68));
   }
+  .select {
+    appearance: none;
+    -webkit-appearance: none;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--ink);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.58));
+    border: 1px solid rgba(120, 130, 150, 0.18);
+    border-radius: 12px;
+    min-width: 88px;
+    text-align: center;
+    text-align-last: center;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.88) inset,
+      0 1px 2px rgba(20, 30, 50, 0.04);
+    cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .minimap-view-select {
+    padding: 7px 10px 7px 36px;
+  }
+  .toolbar-home-grid-select {
+    padding: 7px 36px 7px 10px;
+  }
   .toolbar-home-grid-select:focus {
+    outline: none;
+    border-color: rgba(111, 180, 66, 0.45);
+    box-shadow:
+      0 0 0 2px rgba(111, 180, 66, 0.14),
+      0 1px 0 rgba(255, 255, 255, 0.88) inset,
+      0 1px 2px rgba(20, 30, 50, 0.04);
+  }
+  .select:hover {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.68));
+  }
+  .select:focus {
     outline: none;
     border-color: rgba(111, 180, 66, 0.45);
     box-shadow:
@@ -1176,6 +1216,7 @@
   }
   .stacked-map {
     display: grid;
+    margin: 0 auto;
     border-radius: 6px;
     overflow: hidden;
     border: 1px solid rgba(42, 39, 34, 0.24);
@@ -1213,7 +1254,7 @@
     white-space: nowrap;
     text-align: center;
   }
-  .minimap-view-select {
+  .select {
     width: 100%;
     box-sizing: border-box;
   }
@@ -1883,6 +1924,7 @@
       right: 12px;
     }
     .stacked-map {
+      margin: 0 auto;
       width: 118px;
       height: 118px;
     }
@@ -1910,6 +1952,12 @@
       display: none;
     }
     .toolbar-home-grid-select {
+      min-width: 74px;
+      padding-right: 30px;
+      padding-left: 9px;
+      font-size: 11px;
+    }
+    .select {
       min-width: 74px;
       padding-right: 30px;
       padding-left: 9px;
@@ -1979,17 +2027,12 @@
     <div class="minimap-card">
       <div class="minimap-header">
         <div class="minimap-header-row">
-          <span class="minimap-footer-label">תצוגה</span>
-          <div class="minimap-footer-angles" aria-label="זוויות מצלמה">
-            <span id="minimap-azimuth">Az 0°</span>
-            <span id="minimap-polar">Pol 0°</span>
-          </div>
         </div>
       </div>
       <div id="minimap-canvas" class="stacked-map" role="grid" aria-label="Stacked map showing floor counts"></div>
       <div class="minimap-footer">
         <div class="minimap-view-select-wrap">
-          <select id="minimap-view-mode" class="toolbar-home-grid-select minimap-view-select" aria-label="תצוגת המיני מפה">
+          <select id="minimap-view-mode" class="select minimap-view-select" aria-label="תצוגת המיני מפה">
             <option value="numbers">תרשים מספרים</option>
             <option value="front">מבט מלפנים</option>
             <option value="right">מבט מימין</option>
