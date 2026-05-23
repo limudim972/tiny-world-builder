@@ -551,8 +551,16 @@
         routeIndex: 0,
         routeHold: 0,
         falling: false,
+        fallStage: 'none',
         fallVel: 0,
         fallRemoveY: -12,
+        fallSpawnY: 10,
+        fallReturnX: null,
+        fallReturnZ: null,
+        savedRoute: null,
+        savedRouteIndex: 0,
+        savedRouteHold: 0,
+        savedSpeed: 0,
         view: opts.view || pickViewFromHeading(opts.heading || 0, null),
         scale: opts.scale || 1,
         radius: opts.radius || this.worldConfig.zoneRadius,
@@ -583,15 +591,37 @@
       person.falling = !!falling;
       if (person.falling) {
         person.hoverPaused = false;
+        person.savedRoute = Array.isArray(person.route) ? person.route.slice() : null;
+        person.savedRouteIndex = person.routeIndex || 0;
+        person.savedRouteHold = person.routeHold || 0;
+        person.savedSpeed = person.speed || 0;
         person.routeHold = 0;
         person.route = null;
         person.speed = 0;
+        person.fallStage = opts.mode === 'return' ? 'escape' : (opts.mode === 'spawn' ? 'spawn' : 'drop');
         person.fallVel = Number.isFinite(opts.fallVel) ? opts.fallVel : 0;
         person.fallRemoveY = Number.isFinite(opts.removeY) ? opts.removeY : -12;
+        person.fallSpawnY = Number.isFinite(opts.spawnY) ? opts.spawnY : 10;
+        person.fallReturnX = Number.isFinite(opts.returnX) ? opts.returnX : null;
+        person.fallReturnZ = Number.isFinite(opts.returnZ) ? opts.returnZ : null;
         if (Number.isFinite(opts.startY)) person.y = opts.startY;
       } else {
         person.fallVel = 0;
+        person.fallStage = 'none';
         person.fallRemoveY = -12;
+        person.fallSpawnY = 10;
+        person.fallReturnX = null;
+        person.fallReturnZ = null;
+        if (person.savedRoute) {
+          person.route = person.savedRoute.slice();
+          person.routeIndex = person.savedRouteIndex || 0;
+          person.routeHold = person.savedRouteHold || 0;
+          person.speed = person.savedSpeed || 0;
+        }
+        person.savedRoute = null;
+        person.savedRouteIndex = 0;
+        person.savedRouteHold = 0;
+        person.savedSpeed = 0;
       }
     }
 
@@ -630,6 +660,56 @@
       const fallAccel = 18;
       person.fallVel += fallAccel * dt;
       person.y -= person.fallVel * dt;
+      if (person.fallStage === 'escape') {
+        if (person.y <= person.fallRemoveY) {
+          if (Number.isFinite(person.fallReturnX)) person.x = person.fallReturnX;
+          if (Number.isFinite(person.fallReturnZ)) person.z = person.fallReturnZ;
+          person.y = person.fallSpawnY;
+          person.fallVel = 0;
+          person.fallStage = 'return';
+        }
+        return false;
+      }
+      if (person.fallStage === 'spawn') {
+        if (person.y <= 0) {
+          person.y = 0;
+          person.falling = false;
+          person.fallStage = 'none';
+          person.fallVel = 0;
+          if (person.savedRoute) {
+            person.route = person.savedRoute.slice();
+            person.routeIndex = person.savedRouteIndex || 0;
+            person.routeHold = person.savedRouteHold || 0;
+            person.speed = person.savedSpeed || 0;
+          }
+          person.savedRoute = null;
+          person.savedRouteIndex = 0;
+          person.savedRouteHold = 0;
+          person.savedSpeed = 0;
+          return false;
+        }
+        return false;
+      }
+      if (person.fallStage === 'return') {
+        if (person.y <= 0) {
+          person.y = 0;
+          person.falling = false;
+          person.fallStage = 'none';
+          person.fallVel = 0;
+          if (person.savedRoute) {
+            person.route = person.savedRoute.slice();
+            person.routeIndex = person.savedRouteIndex || 0;
+            person.routeHold = person.savedRouteHold || 0;
+            person.speed = person.savedSpeed || 0;
+          }
+          person.savedRoute = null;
+          person.savedRouteIndex = 0;
+          person.savedRouteHold = 0;
+          person.savedSpeed = 0;
+          return false;
+        }
+        return false;
+      }
       if (person.y <= person.fallRemoveY) {
         this.removePerson(person.id);
         return true;

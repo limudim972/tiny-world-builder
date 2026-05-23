@@ -4928,6 +4928,12 @@
         route,
         scale: 0.92 + Math.random() * 0.18,
       });
+      crowdLayer.setPersonFalling('ambient-' + i, true, {
+        mode: 'spawn',
+        startY: 10,
+        removeY: -12,
+        fallVel: 0,
+      });
     }
   }
 
@@ -7637,13 +7643,19 @@
       const droppedPersonId = draggedCrowdPersonId;
       const releaseCell = pickTile(e.clientX, e.clientY);
       const droppedOnHomeGrid = !!(releaseCell && !(releaseCell.boardX || releaseCell.boardZ));
+      const droppedPerson = crowdLayer && crowdLayer.loaded ? crowdLayer.people.get(droppedPersonId) : null;
       syncCrowdDragState(null);
       if (droppedOnHomeGrid) {
         if (crowdLayer && crowdLayer.loaded) crowdLayer.setPersonFalling(droppedPersonId, false);
       } else if (crowdLayer && crowdLayer.loaded) {
+        const returnX = Math.max(0, Math.min(GRID_W - 1, Math.round(droppedPerson ? droppedPerson.x : GRID_W / 2)));
+        const returnZ = Math.max(0, Math.min(GRID_D - 1, Math.round(droppedPerson ? droppedPerson.z : GRID_D / 2)));
         crowdLayer.setPersonFalling(droppedPersonId, true, {
-          startY: 0,
+          mode: 'return',
+          returnX,
+          returnZ,
           removeY: -12,
+          spawnY: 10,
           fallVel: 0,
         });
       }
