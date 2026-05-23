@@ -1988,14 +1988,16 @@
 <script type="text/javascript">
   // Cluso is a local feedback tool only. Production hosts must not load or
   // display it, even when the optional cluso/ files exist in a dev checkout.
-  (function () {
+  const IS_LOCAL_ENV = (() => {
     const host = window.location.hostname;
-    const isLocal = window.location.protocol === 'file:'
+    return window.location.protocol === 'file:'
       || host === 'localhost'
       || host === '127.0.0.1'
       || host === '[::1]'
       || host.endsWith('.local');
-    if (!isLocal) return;
+  })();
+  (function () {
+    if (!IS_LOCAL_ENV) return;
     window.__CLUSO_EMBEDDED_CONFIG__ = {
       defaultActive: false,
       showToolbar: true,
@@ -2027,6 +2029,10 @@
     <div class="minimap-card">
       <div class="minimap-header">
         <div class="minimap-header-row">
+          <div class="minimap-footer-angles" aria-label="Camera angles">
+            <span id="minimap-azimuth" class="minimap-footer-label"></span>
+            <span id="minimap-polar" class="minimap-footer-label"></span>
+          </div>
         </div>
       </div>
       <div id="minimap-canvas" class="stacked-map" role="grid" aria-label="Stacked map showing floor counts"></div>
@@ -2046,7 +2052,13 @@
 
   <div class="brand">
     <div class="title">עולם קטן</div>
-    <div class="sub">הקשה להצבה · גרירה לסיבוב · צביטה או גלילה להגדלה</div>
+    <div class="sub">
+      <span id="brand-place-text">לחיצה להצבה</span>
+      <span aria-hidden="true"> · </span>
+      <span>גרירה לסיבוב</span>
+      <span aria-hidden="true"> · </span>
+      <span id="brand-zoom-text">גלילה להגדלה</span>
+    </div>
   </div>
 
   <!-- View modes popup -->
@@ -11172,6 +11184,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
   function bootApp() {
     if (appBooted) return;
     appBooted = true;
+    initBrandSubtitle();
     buildToolbar();
     selectTool(DEFAULT_TOOL);
     if (!loadState()) {
@@ -11229,7 +11242,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     if (typeof setCameraMode === 'function') {
       try { setCameraMode('soft'); } catch (_) {}
     }
-    azimuth = mode === 'front' ? degToRad(0)
+    azimuth = mode === 'front' ? degToRad(359)
            : mode === 'right' ? degToRad(270)
            : mode === 'left'  ? degToRad(90)
            : DEFAULT_AZIMUTH;
@@ -11302,6 +11315,27 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     if (!Number.isFinite(gx) || !Number.isFinite(gz)) return null;
     return world[gx] && world[gx][gz] ? world[gx][gz] : null;
   }
+
+  // -------- brand subtitle --------
+  function initBrandSubtitle() {
+    const zoomEl = document.getElementById('brand-zoom-text');
+    if (!zoomEl) return;
+    const touchModeQuery = window.matchMedia('(hover: none), (pointer: coarse)');
+
+    function isTouchDevice() {
+      return !!(touchModeQuery && touchModeQuery.matches);
+    }
+
+    function renderBrandSubtitle() {
+      zoomEl.textContent = isTouchDevice() ? 'צביטה להגדלה' : 'גלילה להגדלה';
+    }
+
+    renderBrandSubtitle();
+    if (touchModeQuery && typeof touchModeQuery.addEventListener === 'function') {
+      touchModeQuery.addEventListener('change', renderBrandSubtitle);
+    }
+  }
+
   function redrawMinimap() {
     const map = document.getElementById('minimap-canvas');
     if (!map) return;
@@ -11369,6 +11403,13 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
       sizeEl.textContent = minimapSizeLabel();
     }
     function paintAngles() {
+      if (!IS_LOCAL_ENV) {
+        if (azimuthEl) azimuthEl.hidden = true;
+        if (polarEl) polarEl.hidden = true;
+        return;
+      }
+      if (azimuthEl) azimuthEl.hidden = false;
+      if (polarEl) polarEl.hidden = false;
       if (azimuthEl) {
         const deg = ((typeof azimuth === 'number' ? azimuth : 0) * 180 / Math.PI) % 360;
         const normalized = deg < 0 ? deg + 360 : deg;
