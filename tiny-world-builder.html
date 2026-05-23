@@ -4244,7 +4244,7 @@
         crowdSetRainShelterTravelSpeed(person);
       }
     });
-    if (reseed || crowdLayer.people.size !== crowdCount) seedCrowdPeople();
+    if (reseed || crowdLayer.people.size !== crowdCount) seedCrowdPeople(crowdCount);
   }
 
   function crowdSetPersonFallingSafe(id, falling, opts = null) {
@@ -4269,6 +4269,7 @@
   const CROWD_RAIN_EXIT_OUTSET = 0.18;
   const CROWD_RAIN_EXIT_SPREAD = 0.12;
   const CROWD_RAIN_EXIT_COOLDOWN_MS = 15000;
+  const CROWD_HOUSE_VISIT_DWELL_MS = 2200;
   let crowdHouseEnvelopes = [];
   let crowdHouseEnvelopeDirty = true;
 
@@ -5054,6 +5055,22 @@
     return best;
   }
 
+  function crowdPickHouseVisitTarget(person, envelopes) {
+    if (!person || !Array.isArray(envelopes) || !envelopes.length) return null;
+    const current = { x: person.x, z: person.z };
+    const currentEnvelope = crowdFindEnvelopeForPoint(current, envelopes, 0.001);
+    const envelope = currentEnvelope || envelopes[0];
+    if (!envelope) return null;
+    const gap = crowdChooseDoorGap(envelope, current, current) || crowdDoorGapCandidates(envelope)[0];
+    if (!gap) return null;
+    return {
+      envelope,
+      gap: crowdCloneDoorGap(gap),
+      key: crowdRainEnvelopeKey(envelope),
+      target: crowdInteriorStopPoint(envelope, gap),
+    };
+  }
+
   function crowdBeginRainShelter(person, shelterChoice) {
     if (!person || !shelterChoice || !shelterChoice.target) return;
     person.rainShelter = {
@@ -5202,12 +5219,14 @@
     }
   }
 
-  function seedCrowdPeople() {
+  function seedCrowdPeople(countOverride = null) {
     if (!crowdLayer || !crowdLayer.loaded) return;
     const houseEnvelopes = crowdCollectHouseEnvelopes();
+    const existingCount = crowdLayer.people ? crowdLayer.people.size : 0;
+    const targetCount = Number.isInteger(countOverride) ? countOverride : existingCount;
     crowdLayer.clear();
     const pathCells = collectCrowdPathCells();
-    const count = Math.min(crowdCount, pathCells.length);
+    const count = Math.min(targetCount || crowdCount, pathCells.length);
     if (!count) return;
     const characters = ['townie', 'little-girl', 'dad', 'grandfather', 'grandmother'];
     for (let i = 0; i < count; i++) {
@@ -7818,6 +7837,163 @@
         buildingType: null,
       });
     }
+  }
+
+  function refreshCrowdPeopleAfterHouseChange() {
+    if (!crowdLayer || !crowdLayer.loaded) return;
+    const houseEnvelopes = crowdCollectHouseEnvelopes();
+    const pathCells = collectCrowdPathCells();
+    const people = Array.from(crowdLayer.people.values());
+    if (!people.length || !pathCells.length) return;
+    people.forEach((person, index) => {
+      if (!person || person.falling) return;
+      const insideHouse = crowdFindEnvelopeForPoint({ x: person.x, z: person.z }, houseEnvelopes, 0.001);
+      if (insideHouse) {
+        if (!person.houseVisit || !person.houseVisit.active) {
+          const target = crowdPickHouseVisitTarget(person, houseEnvelopes);
+          if (!target) return;
+          person.houseVisit = {
+            active: true,
+            arrived: false,
+            exiting: false,
+            dwellUntil: 0,
+            envelopeKey: target.key || '',
+            gap: crowdCloneDoorGap(target.gap),
+            target: crowdClonePoint(target.target),
+            savedRoute: Array.isArray(person.route) ? person.route.slice() : null,
+            savedRouteIndex: person.routeIndex || 0,
+            savedRouteHold: 0,
+            savedSpeed: person.speed || 0,
+            exitTarget: null,
+          };
+          person.route = [
+            { x: person.x, z: person.z },
+            crowdClonePoint(target.target),
+          ];
+          person.routeIndex = 0;
+          person.routeHold = 0;
+          person.speed = Math.max(person.speed || 0, 0.55);
+        }
+        return;
+      }
+
+      const visit = person.houseVisit;
+      if (visit && visit.active) {
+        if (visit.exiting) {
+          if (crowdDist(person, visit.exitTarget || person) <= 0.06) {
+            if (Array.isArray(visit.savedRoute)) {
+              person.route = visit.savedRoute.slice();
+              person.routeIndex = visit.savedRouteIndex || 0;
+              person.routeHold = 0;
+            } else {
+              person.route = null;
+              person.routeIndex = 0;
+              person.routeHold = 0;
+            }
+            person.speed = visit.savedSpeed || 0;
+            person.houseVisit = null;
+          }
+          return;
+        }
+        if (!visit.arrived && crowdDist(person, visit.target) <= 0.06) {
+          person.x = visit.target.x;
+          person.z = visit.target.z;
+          visit.arrived = true;
+          visit.dwellUntil = performance.now() + CROWD_HOUSE_VISIT_DWELL_MS;
+          person.route = null;
+          person.routeIndex = 0;
+          person.routeHold = 0;
+          person.speed = 0;
+          return;
+        }
+        if (visit.arrived) {
+          person.route = null;
+          person.routeIndex = 0;
+          person.routeHold = 0;
+          person.speed = 0;
+          if (performance.now() >= visit.dwellUntil) {
+            const exitTarget = crowdRainExitReleasePoint(
+              insideHouse || crowdFindEnvelopeByKey(houseEnvelopes, visit.envelopeKey || ''),
+              visit.gap,
+              0,
+              1,
+            );
+            visit.exiting = true;
+            visit.exitTarget = exitTarget;
+            person.route = [
+              { x: person.x, z: person.z },
+              crowdClonePoint(exitTarget),
+            ];
+            person.routeIndex = 0;
+            person.routeHold = 0;
+            person.speed = Math.max(visit.savedSpeed || 0, 0.55);
+          }
+        }
+      }
+    });
+  }
+
+  function syncCrowdHouseVisitState() {
+    if (!crowdLayer || !crowdLayer.loaded) return;
+    const houseEnvelopes = crowdCollectHouseEnvelopes();
+    crowdLayer.people.forEach(person => {
+      if (!person || person.falling) return;
+      const visit = person.houseVisit;
+      if (!visit || !visit.active) return;
+      const envelope = crowdFindEnvelopeByKey(houseEnvelopes, visit.envelopeKey || '') || crowdFindEnvelopeForPoint({ x: person.x, z: person.z }, houseEnvelopes, 0.001);
+      if (!envelope) {
+        if (Array.isArray(visit.savedRoute)) {
+          person.route = visit.savedRoute.slice();
+          person.routeIndex = visit.savedRouteIndex || 0;
+          person.routeHold = 0;
+        } else {
+          person.route = null;
+          person.routeIndex = 0;
+          person.routeHold = 0;
+        }
+        person.speed = visit.savedSpeed || 0;
+        person.houseVisit = null;
+        return;
+      }
+      if (!visit.arrived) {
+        if (crowdDist(person, visit.target) <= 0.06) {
+          person.x = visit.target.x;
+          person.z = visit.target.z;
+          visit.arrived = true;
+          visit.dwellUntil = performance.now() + CROWD_HOUSE_VISIT_DWELL_MS;
+          person.route = null;
+          person.routeIndex = 0;
+          person.routeHold = 0;
+          person.speed = 0;
+        }
+        return;
+      }
+      if (!visit.exiting && performance.now() >= visit.dwellUntil) {
+        const exitTarget = crowdRainExitReleasePoint(envelope, visit.gap, 0, 1);
+        visit.exiting = true;
+        visit.exitTarget = exitTarget;
+        person.route = [
+          { x: person.x, z: person.z },
+          crowdClonePoint(exitTarget),
+        ];
+        person.routeIndex = 0;
+        person.routeHold = 0;
+        person.speed = Math.max(visit.savedSpeed || 0, 0.55);
+      }
+      if (visit.exiting && visit.exitTarget && crowdDist(person, visit.exitTarget) <= 0.06) {
+        if (Array.isArray(visit.savedRoute)) {
+          person.route = visit.savedRoute.slice();
+          person.routeIndex = visit.savedRouteIndex || 0;
+          person.routeHold = 0;
+        } else {
+          person.route = null;
+          person.routeIndex = 0;
+          person.routeHold = 0;
+        }
+        person.speed = visit.savedSpeed || 0;
+        person.houseVisit = null;
+      }
+    });
   }
 
   // -------- input: click-to-place --------
@@ -10577,7 +10753,8 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
       updateHoverAt(lastPointer.x, lastPointer.y);
     }
     if (crowdLayer && crowdLayer.loaded) {
-      if (crowdHouseEnvelopeDirty) seedCrowdPeople();
+      if (crowdHouseEnvelopeDirty) refreshCrowdPeopleAfterHouseChange();
+      syncCrowdHouseVisitState();
       syncCrowdRainShelterState('pre');
       crowdLayer.update(dt, camera);
       syncCrowdRainShelterState('post');
