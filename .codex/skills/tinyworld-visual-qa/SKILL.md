@@ -19,6 +19,9 @@ Checks:
 - Dragging/clicking the minimap canvas pans the camera target while dragging the minimap chrome/footer still moves the widget.
 - Minimap colours should track live scene materials plus time/weather theme tint, not a stale fixed palette.
 - Orbit still works with normal left-drag.
+- After a mouse orbit/pan drag, hover and the live ghost preview should
+  recover on pointerup or the next mousemove without requiring an extra
+  click.
 - Ghost boards do not become editable.
 - The opacity torch is smooth and does not reveal square board seams.
 - Tilt-shift overlays have `pointer-events: none` and stay below UI controls.
