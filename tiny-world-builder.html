@@ -4240,6 +4240,9 @@
     crowdLayer.people.forEach(person => {
       if (person.baseSpeed === undefined) person.baseSpeed = person.speed || 0;
       person.speed = (person.baseSpeed || 0) * crowdSpeedMul;
+      if (person.rainShelter && person.rainShelter.active) {
+        crowdSetRainShelterTravelSpeed(person);
+      }
     });
     if (reseed || crowdLayer.people.size !== crowdCount) seedCrowdPeople();
   }
@@ -4256,6 +4259,8 @@
   const CROWD_HOUSE_VISIT_DWELL = 30;
   const CROWD_ROUTE_POINT_EPS = 0.012;
   const CROWD_ROUTE_MAX_POINTS = 36;
+  const CROWD_RAIN_EXIT_OUTSET = 0.18;
+  const CROWD_RAIN_EXIT_SPREAD = 0.12;
   let crowdHouseEnvelopes = [];
   let crowdHouseEnvelopeDirty = true;
 
@@ -4300,6 +4305,46 @@
     const point = { x: p.x, z: p.z };
     if (Number.isFinite(p.dwell) && p.dwell > 0) point.dwell = p.dwell;
     return point;
+  }
+
+  function crowdCloneDoorGap(gap) {
+    if (!gap) return null;
+    return {
+      side: gap.side,
+      min: gap.min,
+      max: gap.max,
+      blocked: !!gap.blocked,
+    };
+  }
+
+  function crowdRainEnvelopeKey(envelope) {
+    if (!envelope || !envelope.inner) return '';
+    return [
+      envelope.inner.minX,
+      envelope.inner.maxX,
+      envelope.inner.minZ,
+      envelope.inner.maxZ,
+    ].map(v => v.toFixed(3)).join('|');
+  }
+
+  function crowdRainExitReleasePoint(envelope, gap, slotIndex, slotCount) {
+    const outside = crowdDoorPoint(envelope, gap, true);
+    const slotCenter = (Math.max(1, slotCount) - 1) * 0.5;
+    const slotOffset = (slotIndex - slotCenter) * CROWD_RAIN_EXIT_SPREAD;
+    let point = null;
+    if (gap.side === 'n') point = { x: outside.x + slotOffset, z: outside.z - CROWD_RAIN_EXIT_OUTSET };
+    else if (gap.side === 's') point = { x: outside.x + slotOffset, z: outside.z + CROWD_RAIN_EXIT_OUTSET };
+    else if (gap.side === 'e') point = { x: outside.x + CROWD_RAIN_EXIT_OUTSET, z: outside.z + slotOffset };
+    else point = { x: outside.x - CROWD_RAIN_EXIT_OUTSET, z: outside.z + slotOffset };
+    return crowdClampPointToRect(point, crowdBoardRect());
+  }
+
+  function crowdFindEnvelopeByKey(envelopes, key) {
+    if (!key || !Array.isArray(envelopes)) return null;
+    for (const envelope of envelopes) {
+      if (crowdRainEnvelopeKey(envelope) === key) return envelope;
+    }
+    return null;
   }
 
   function crowdClamp(v, lo, hi) {
@@ -4908,6 +4953,198 @@
     return crowdConstrainRoute(seed, route, houseEnvelopes || []);
   }
 
+  function crowdWeatherNeedsShelter() {
+    return weatherMode === 'rain' || weatherMode === 'storm';
+  }
+
+  function crowdComputeRainShelterTravelSpeed(person) {
+    const saved = person && person.rainShelter && Number.isFinite(person.rainShelter.savedSpeed)
+      ? person.rainShelter.savedSpeed
+      : 0;
+    return Math.max(saved, 0.55);
+  }
+
+  function crowdSetRainShelterTravelSpeed(person) {
+    if (!person || !person.rainShelter || !person.rainShelter.active) return;
+    if (person.rainShelter.arrived && !person.rainShelter.exiting) {
+      person.speed = 0;
+      return;
+    }
+    const travel = Number.isFinite(person.rainShelter.travelSpeed)
+      ? person.rainShelter.travelSpeed
+      : crowdComputeRainShelterTravelSpeed(person);
+    person.speed = travel / Math.max(person.speedMul || 1, 0.25);
+  }
+
+  function crowdPickRainShelterTarget(person, envelopes) {
+    if (!person || !Array.isArray(envelopes) || !envelopes.length) return null;
+    const current = { x: person.x, z: person.z };
+    const currentEnvelope = crowdFindEnvelopeForPoint(current, envelopes, 0.001);
+    let best = null;
+    let bestDist = Infinity;
+    const candidates = currentEnvelope ? [currentEnvelope] : envelopes;
+    for (const envelope of candidates) {
+      for (const gap of crowdDoorGapCandidates(envelope)) {
+        const stop = crowdInteriorStopPoint(envelope, gap);
+        const d = crowdDist(current, stop);
+        if (d < bestDist) {
+          bestDist = d;
+          best = {
+            target: stop,
+            envelope,
+            gap: crowdCloneDoorGap(gap),
+            key: crowdRainEnvelopeKey(envelope),
+          };
+        }
+      }
+    }
+    if (!best) return null;
+    best.target = crowdClampPointToRect(best.target, crowdBoardRect());
+    return best;
+  }
+
+  function crowdBeginRainShelter(person, shelterChoice) {
+    if (!person || !shelterChoice || !shelterChoice.target) return;
+    person.rainShelter = {
+      active: true,
+      arrived: false,
+      exiting: false,
+      target: crowdClonePoint(shelterChoice.target),
+      envelopeKey: shelterChoice.key || '',
+      gap: crowdCloneDoorGap(shelterChoice.gap),
+      savedRoute: Array.isArray(person.route) ? person.route.slice() : null,
+      savedRouteIndex: person.routeIndex || 0,
+      savedRouteHold: person.routeHold || 0,
+      savedSpeed: person.speed || 0,
+      travelSpeed: Math.max(person.speed || 0, 0.55),
+      exitTarget: null,
+    };
+    person.route = [
+      { x: person.x, z: person.z },
+      crowdClonePoint(shelterChoice.target),
+    ];
+    person.routeIndex = 0;
+    person.routeHold = 0;
+    crowdSetRainShelterTravelSpeed(person);
+  }
+
+  function crowdFinishRainShelter(person) {
+    if (!person || !person.rainShelter || !person.rainShelter.active) return;
+    const shelter = person.rainShelter;
+    if (Array.isArray(shelter.savedRoute)) {
+      person.route = shelter.savedRoute.slice();
+      person.routeIndex = shelter.savedRouteIndex || 0;
+      person.routeHold = shelter.savedRouteHold || 0;
+    } else {
+      person.route = null;
+      person.routeIndex = 0;
+      person.routeHold = 0;
+    }
+    person.speed = shelter.savedSpeed || 0;
+    person.rainShelter = null;
+  }
+
+  function crowdBeginRainExit(person, envelope, gap, slotIndex, slotCount) {
+    if (!person || !person.rainShelter || !person.rainShelter.active) return;
+    if (!envelope || !gap) {
+      crowdFinishRainShelter(person);
+      return;
+    }
+    const shelter = person.rainShelter;
+    shelter.exiting = true;
+    shelter.arrived = false;
+    shelter.exitTarget = crowdRainExitReleasePoint(envelope, gap, slotIndex, slotCount);
+    person.route = [
+      { x: person.x, z: person.z },
+      crowdClonePoint(shelter.exitTarget),
+    ];
+    person.routeIndex = 0;
+    person.routeHold = 0;
+    crowdSetRainShelterTravelSpeed(person);
+  }
+
+  function syncCrowdRainShelterState(phase = 'pre') {
+    if (!crowdLayer || !crowdLayer.loaded) return;
+    const rainy = crowdWeatherNeedsShelter();
+    const envelopes = rainy ? crowdCollectHouseEnvelopes() : null;
+    const clearEnvelopes = rainy ? null : crowdCollectHouseEnvelopes();
+    const exitGroups = new Map();
+    crowdLayer.people.forEach(person => {
+      if (!person || person.falling) return;
+      const shelter = person.rainShelter;
+      if (rainy) {
+        if (!shelter || !shelter.active) {
+          const target = crowdPickRainShelterTarget(person, envelopes);
+          if (!target) return;
+          crowdBeginRainShelter(person, target);
+        }
+        const activeShelter = person.rainShelter;
+        if (!activeShelter) return;
+        if (phase === 'pre' && !activeShelter.arrived) {
+          crowdSetRainShelterTravelSpeed(person);
+        }
+        if (!activeShelter.arrived && crowdDist(person, activeShelter.target) <= 0.06) {
+          person.x = activeShelter.target.x;
+          person.z = activeShelter.target.z;
+          activeShelter.arrived = true;
+          person.route = null;
+          person.routeIndex = 0;
+          person.routeHold = 0;
+          person.speed = 0;
+          return;
+        }
+        if (activeShelter.arrived) {
+          person.route = null;
+          person.routeIndex = 0;
+          person.routeHold = 0;
+          person.speed = 0;
+        }
+      } else if (shelter && shelter.active) {
+        if (shelter.exiting) {
+          if (phase === 'post' && shelter.exitTarget && crowdDist(person, shelter.exitTarget) <= 0.06) {
+            crowdFinishRainShelter(person);
+          }
+        } else if (phase === 'pre') {
+          const key = shelter.envelopeKey || '';
+          if (!exitGroups.has(key)) exitGroups.set(key, []);
+          exitGroups.get(key).push(person);
+        } else {
+          crowdFinishRainShelter(person);
+        }
+      }
+    });
+    if (!rainy && phase === 'pre' && exitGroups.size) {
+      for (const [key, people] of exitGroups.entries()) {
+        const envelope = crowdFindEnvelopeByKey(clearEnvelopes, key);
+        if (!envelope || !people.length) {
+          for (const person of people) crowdFinishRainShelter(person);
+          continue;
+        }
+        const sorted = people.slice().sort((a, b) => String(a.id).localeCompare(String(b.id)));
+        const gapByKey = new Map();
+        for (const person of sorted) {
+          const shelter = person.rainShelter;
+          const gap = shelter && shelter.gap ? shelter.gap : null;
+          const gapKey = gap ? `${gap.side}|${gap.min.toFixed(3)}|${gap.max.toFixed(3)}` : '';
+          if (!gapByKey.has(gapKey)) gapByKey.set(gapKey, []);
+          gapByKey.get(gapKey).push(person);
+        }
+        for (const [gapKey, group] of gapByKey.entries()) {
+          const shelter0 = group[0] && group[0].rainShelter;
+          const gap = shelter0 && shelter0.gap ? shelter0.gap : null;
+          if (!gap) {
+            for (const person of group) crowdFinishRainShelter(person);
+            continue;
+          }
+          const doors = group.slice().sort((a, b) => String(a.id).localeCompare(String(b.id)));
+          for (let i = 0; i < doors.length; i++) {
+            crowdBeginRainExit(doors[i], envelope, gap, i, doors.length);
+          }
+        }
+      }
+    }
+  }
+
   function seedCrowdPeople() {
     if (!crowdLayer || !crowdLayer.loaded) return;
     const houseEnvelopes = crowdCollectHouseEnvelopes();
@@ -4943,6 +5180,7 @@
         fallVel: 0,
       });
     }
+    syncCrowdRainShelterState('pre');
   }
 
   function initCrowdLayer() {
@@ -8629,6 +8867,8 @@
 
   const SOUNDS_BASE = 'sounds/';
   const MUSIC_TRACKS = ['music-horizon-1.mp3', 'music-horizon-2.mp3'];
+  const RAIN_TRACK = 'rain.mp3';
+  const RAIN_LOOP_VOLUME = storedAudio('tinyworld:audio:weather', 0.68, 0, 1);
   const SFX_GROUPS = {
     rustle: ['foley-rustle-1.mp3', 'foley-rustle-2.mp3', 'foley-rustle-3.mp3'],
     knock:  ['foley-knock-jingle-1.mp3', 'foley-knock-jingle-2.mp3'],
@@ -8680,6 +8920,51 @@
   let musicAudio = null;
   let musicStarted = false;
   let musicPickedTrack = null;
+  let rainAudio = null;
+  let rainStarted = false;
+
+  function ensureRainAudio() {
+    if (!rainAudio) {
+      rainAudio = new Audio(SOUNDS_BASE + encodeURIComponent(RAIN_TRACK));
+      rainAudio.loop = true;
+      rainAudio.volume = RAIN_LOOP_VOLUME;
+      rainAudio.crossOrigin = 'anonymous';
+      rainAudio.preload = 'auto';
+    }
+    return rainAudio;
+  }
+
+  function syncRainAudioVolume() {
+    if (!rainAudio) return;
+    rainAudio.volume = RAIN_LOOP_VOLUME;
+  }
+
+  function stopRainAudio() {
+    if (!rainAudio) return;
+    rainAudio.pause();
+    rainAudio.currentTime = 0;
+    rainStarted = false;
+  }
+
+  function syncRainAudio() {
+    const rainy = weatherMode === 'rain' || weatherMode === 'storm';
+    if (!rainy) {
+      if (!rainy) stopRainAudio();
+      syncRainAudioVolume();
+      return;
+    }
+    const audio = ensureRainAudio();
+    syncRainAudioVolume();
+    if (rainStarted && !audio.paused) return;
+    rainStarted = true;
+    const p = audio.play();
+    if (p && typeof p.catch === 'function') {
+      p.catch(() => {
+        rainStarted = false;
+      });
+    }
+  }
+
   function startMusicIfNeeded() {
     if (musicStarted || audioMusicMuted) return;
     musicStarted = true;
@@ -8708,10 +8993,21 @@
     window.addEventListener('keydown', handler);
   }
   armMusicAutostart();
+  function armRainAutostart() {
+    const handler = () => {
+      syncRainAudio();
+    };
+    window.addEventListener('pointerdown', handler, { passive: true });
+    window.addEventListener('keydown', handler);
+  }
+  armRainAutostart();
 
   function applyAudioState() {
     if (musicAudio) musicAudio.volume = audioMusicMuted ? 0 : audioMusicVolume;
-    // SFX volume is applied per-play; nothing to update here.
+    syncRainAudioVolume();
+    syncRainAudio();
+    // SFX volume still applies per-play. Rain is treated as weather
+    // ambience, so it stays audible while rain is active.
     localStorage.setItem(AUDIO_LS.music, String(audioMusicVolume));
     localStorage.setItem(AUDIO_LS.sfx, String(audioSfxVolume));
     localStorage.setItem(AUDIO_LS.musicMuted, audioMusicMuted ? '1' : '0');
@@ -9438,6 +9734,8 @@
     setPrecipActive(rainMesh, (mode === 'rain' || mode === 'storm') ? weatherScaledCount(180, 700) : 0);
     setPrecipActive(snowMesh, mode === 'snow' ? weatherScaledCount(120, 520) : 0);
     if (mode !== previous && (mode === 'rain' || mode === 'storm' || mode === 'snow')) seedWeatherSurfaceMarks(mode, 1);
+    syncRainAudio();
+    syncCrowdRainShelterState('pre');
   }
   function setWeatherIntensity(value) {
     weatherIntensity = Math.max(0.25, Math.min(3, Number.isFinite(value) ? value : 0.25));
@@ -10223,8 +10521,11 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     }
     if (crowdLayer && crowdLayer.loaded) {
       if (crowdHouseEnvelopeDirty) seedCrowdPeople();
+      syncCrowdRainShelterState('pre');
       crowdLayer.update(dt, camera);
+      syncCrowdRainShelterState('post');
     }
+    if (weatherMode === 'rain' || weatherMode === 'storm') syncRainAudio();
     // Drain the ghost-board build queue in small slices so visible-distance
     // changes and Reset don't lock up the frame.
     if (pendingGhostBoards.length) processGhostBoardQueue(6);

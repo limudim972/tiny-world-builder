@@ -39,6 +39,9 @@ Use this when editing crowd pathing around houses in
 - Door travel needs a direct portal corridor exception: once a step is already
   inside the chosen door gap corridor, do not snap it back out to the door's
   outside anchor or the person will oscillate at the threshold.
+- Rain/storm can repurpose the same envelope graph to send active people to
+  the nearest interior stop point, then stage a clear-weather exit in a small
+  outside queue before restoring each person's saved route.
 
 ## Door-gap detection notes
 
