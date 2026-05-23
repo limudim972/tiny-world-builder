@@ -287,10 +287,11 @@
     return currentView;
   }
 
-  function pickCameraRelativeView(person, camera) {
-    const dx = camera.position.x - person.sprite.position.x;
-    const dy = camera.position.y - person.sprite.position.y;
-    const dz = camera.position.z - person.sprite.position.z;
+  function pickCameraRelativeView(person, camera, position) {
+    const pos = position || person.sprite.position;
+    const dx = camera.position.x - pos.x;
+    const dy = camera.position.y - pos.y;
+    const dz = camera.position.z - pos.z;
     const horizontalDist = Math.hypot(dx, dz);
     if (horizontalDist + Math.abs(dy) < 0.0001) return person.view || 'down';
     const overheadAmount = Math.atan2(Math.max(0, dy), Math.max(0.0001, horizontalDist)) / (Math.PI * 0.5);
@@ -667,7 +668,11 @@
     }
 
     updatePersonView(person, camera) {
-      const nextView = pickCameraRelativeView(person, camera);
+      const nextView = pickCameraRelativeView(person, camera, {
+        x: person.x,
+        y: this.getTerrainHeight(person.x, person.z) + (person.y || 0),
+        z: person.z,
+      });
       if (nextView !== person.view) person.view = nextView;
     }
 
