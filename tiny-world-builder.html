@@ -11710,8 +11710,9 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
   // follows the current camera target, so panning keeps the overview centered
   // on the active area instead of pinning to the saved home grid.
   // The default minimap mode stays plain, with floor counts overlaid so
-  // stacked cells remain readable. The footer select can switch to tinted
-  // and rotated views for the same board.
+  // stacked cells remain readable. The numbers chart uses the front-at-
+  // bottom top-down orientation, while the footer select can switch to
+  // tinted and rotated views for the same board.
   // Repainting is throttled: setCell + saveState + applyState all call
   // requestMinimapRepaint(), and the next animation frame consolidates.
   const MINIMAP_MODE_KEY = 'tinyworld:minimap.mode';
@@ -11766,11 +11767,11 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
       width,
       depth,
       mapCell(x, z) {
+        if (mode === 'numbers' || mode === 'right') {
+          return minimapGlobalCell(startGx + z, startGz + (depth - 1 - x));
+        }
         if (mode === 'front') {
           return minimapGlobalCell(startGx + x, startGz + (depth - 1 - z));
-        }
-        if (mode === 'right') {
-          return minimapGlobalCell(startGx + z, startGz + (depth - 1 - x));
         }
         if (mode === 'left') {
           return minimapGlobalCell(startGx + (width - 1 - z), startGz + x);
@@ -11778,7 +11779,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
         return minimapGlobalCell(startGx + x, startGz + z);
       },
     };
-    if (mode === 'right' || mode === 'left') {
+    if (mode === 'numbers' || mode === 'right' || mode === 'left') {
       view.width = depth;
       view.depth = width;
     }
