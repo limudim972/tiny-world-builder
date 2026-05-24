@@ -12095,38 +12095,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     `;
   }
   function minimapFacadeMarkup(mode, floor, height) {
-    const top = floor === height;
-    const ground = floor === 1;
-    const front = mode === 'front';
-    const mirrored = mode === 'left';
-    const body = [];
-
-    if (ground) {
-      if (front) {
-        body.push(minimapFacadeDoor(38, 35, 24, 46));
-        body.push(minimapFacadeWindow(67, 39, 18, 18));
-      } else {
-        body.push(minimapFacadeDoor(18, 35, 24, 46));
-        body.push(minimapFacadeWindow(60, 39, 18, 18));
-      }
-    } else {
-      body.push(minimapFacadeWindow(41, 39, 18, 18));
-    }
-
-    const roof = top ? `
-      <rect x="0" y="0" width="100" height="8" fill="${MINIMAP_HOUSE_ROOF}"></rect>
-      <rect x="0" y="8" width="100" height="2" fill="${MINIMAP_HOUSE_ROOF_HL}" opacity="0.45"></rect>
-    ` : '';
-    const transform = mirrored && !front ? ' transform="translate(100 0) scale(-1 1)"' : '';
-
-    return `
-      <svg class="stacked-map-facade-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false" shape-rendering="crispEdges">
-        ${roof}
-        <g${transform}>
-          ${body.join('')}
-        </g>
-      </svg>
-    `;
+    return '';
   }
   function minimapViewCellCounts() {
     return {
