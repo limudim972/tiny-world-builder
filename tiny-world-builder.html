@@ -1263,6 +1263,31 @@
     gap: 4px;
     margin-top: 8px;
   }
+  .minimap-column-counts {
+    display: grid;
+    margin: 0 auto 2px;
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid rgba(42, 39, 34, 0.24);
+    background: rgba(255, 255, 255, 0.72);
+    direction: ltr;
+    user-select: none;
+    touch-action: none;
+  }
+  .minimap-column-count {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 20px;
+    padding: 2px 0 1px;
+    font: 700 11px/1 'Courier New', monospace;
+    color: #2f2a20;
+    border-right: 1px solid rgba(42, 39, 34, 0.22);
+    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.25);
+  }
+  .minimap-column-count.is-edge-right { border-right: none; }
+  .minimap-column-count.is-empty { color: rgba(47, 42, 32, 0.5); }
   .minimap-footer-label {
     font-size: 11px;
     font-weight: 700;
@@ -2052,6 +2077,7 @@
         </div>
       </div>
       <div id="minimap-canvas" class="stacked-map" role="grid" aria-label="Stacked map showing floor counts"></div>
+      <div id="minimap-column-counts" class="minimap-column-counts" aria-label="Floor counts by column"></div>
       <div class="minimap-footer">
         <div class="minimap-view-select-wrap">
           <select id="minimap-view-mode" class="select minimap-view-select" aria-label="תצוגת המיני מפה">
@@ -12041,7 +12067,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     return minimapElevationConfig(mode, width, depth, startGx, startGz);
   }
   function minimapCellFill(cell, mode) {
-    if (mode === 'numbers') return 'transparent';
+    const fillMode = mode === 'numbers' ? 'top' : mode;
     if (!cell) return 'rgba(255,255,255,0.18)';
     const palette = {
       grass: [145, 190, 95],
@@ -12056,7 +12082,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     const base = palette[cell.terrain || 'grass'] || palette.grass;
     const level = Math.max(0, Math.min(4, (cell.kind ? (cell.floors || 1) : (cell.terrainFloors || 1)) - 1));
     const lift = 0.12 * level;
-    const alpha = mode === 'top' ? 0.82 : 0.62;
+    const alpha = fillMode === 'top' ? 0.82 : 0.62;
     const r = Math.round(base[0] + (255 - base[0]) * lift);
     const g = Math.round(base[1] + (255 - base[1]) * lift);
     const b = Math.round(base[2] + (255 - base[2]) * lift);
@@ -12110,6 +12136,11 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     if (!Number.isFinite(gx) || !Number.isFinite(gz)) return null;
     return world[gx] && world[gx][gz] ? world[gx][gz] : null;
   }
+  function minimapColumnCountForCell(cell) {
+    if (!cell) return 0;
+    if (cell.kind) return Math.max(0, Math.min(MAX_FLOORS, cell.floors || 1));
+    return 0;
+  }
 
   // -------- brand subtitle --------
   function initBrandSubtitle() {
@@ -12133,6 +12164,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
 
   function redrawMinimap() {
     const map = document.getElementById('minimap-canvas');
+    const counts = document.getElementById('minimap-column-counts');
     if (!map) return;
     const size = minimapViewCellCounts();
     const W = Math.max(1, size.width);
@@ -12153,8 +12185,27 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     map.style.gridTemplateColumns = `repeat(${view.width}, ${cellSize}px)`;
     map.style.gridTemplateRows = `repeat(${view.depth}, ${cellSize}px)`;
     map.textContent = '';
+    if (counts) {
+      counts.textContent = '';
+      counts.style.width = mapWidth + 'px';
+      counts.style.gridTemplateColumns = `repeat(${view.width}, ${cellSize}px)`;
+    }
     const fragment = document.createDocumentFragment();
     if (view.kind === 'elevation') {
+      const columnCounts = view.columns.map(column => Math.max(0, Math.min(MAX_FLOORS, column.height || 0)));
+      if (counts) {
+        const countsFragment = document.createDocumentFragment();
+        for (let x = 0; x < view.width; x++) {
+          const count = columnCounts[x] || 0;
+          const countEl = document.createElement('div');
+          countEl.className = 'minimap-column-count';
+          if (x === view.width - 1) countEl.classList.add('is-edge-right');
+          if (!count) countEl.classList.add('is-empty');
+          countEl.textContent = String(count);
+          countsFragment.appendChild(countEl);
+        }
+        counts.appendChild(countsFragment);
+      }
       for (let floor = view.depth; floor >= 1; floor--) {
         for (let x = 0; x < view.width; x++) {
           const column = view.columns[x] || { cell: null, height: 0 };
@@ -12169,19 +12220,32 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
         }
       }
     } else {
+      const columnCounts = Array.from({ length: view.width }, () => 0);
       for (let z = 0; z < view.depth; z++) {
         for (let x = 0; x < view.width; x++) {
           const cell = view.mapCell(x, z);
-          const floors = cell ? (cell.kind ? (cell.floors || 1) : (cell.terrainFloors || 1)) : 1;
-          const showFloors = minimapMode === 'numbers' ? !!cell && !!cell.kind : !!cell && floors > 1;
+          const floors = minimapColumnCountForCell(cell);
+          if (floors > columnCounts[x]) columnCounts[x] = floors;
           const cellEl = document.createElement('div');
           cellEl.className = 'stacked-map-cell';
           if (x === view.width - 1) cellEl.classList.add('is-edge-right');
           if (z === view.depth - 1) cellEl.classList.add('is-edge-bottom');
           cellEl.style.background = minimapCellFill(cell, minimapMode);
-          cellEl.innerHTML = showFloors ? `<span class="stacked-map-number">${floors}</span>` : '';
           fragment.appendChild(cellEl);
         }
+      }
+      if (counts) {
+        const countsFragment = document.createDocumentFragment();
+        for (let x = 0; x < view.width; x++) {
+          const count = columnCounts[x] || 0;
+          const countEl = document.createElement('div');
+          countEl.className = 'minimap-column-count';
+          if (x === view.width - 1) countEl.classList.add('is-edge-right');
+          if (!count) countEl.classList.add('is-empty');
+          countEl.textContent = String(count);
+          countsFragment.appendChild(countEl);
+        }
+        counts.appendChild(countsFragment);
       }
     }
     map.appendChild(fragment);
