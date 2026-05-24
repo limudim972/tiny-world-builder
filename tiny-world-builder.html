@@ -11972,7 +11972,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
       width,
       depth,
       mapCell(x, z) {
-        if (mode === 'numbers' || mode === 'right') {
+        if (mode === 'numbers' || mode === 'right' || mode === 'top') {
           return minimapGlobalCell(startGx + z, startGz + (depth - 1 - x));
         }
         if (mode === 'front') {
@@ -11984,7 +11984,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
         return minimapGlobalCell(startGx + x, startGz + z);
       },
     };
-    if (mode === 'numbers' || mode === 'right' || mode === 'left') {
+    if (mode === 'numbers' || mode === 'right' || mode === 'left' || mode === 'top') {
       view.width = depth;
       view.depth = width;
     }
@@ -12079,8 +12079,12 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     const b = Math.round(base[2] + (255 - base[2]) * lift);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
+  function minimapTopCellFill(cell) {
+    if (!cell) return 'rgba(255,255,255,0.18)';
+    return cell.kind ? MINIMAP_TOP_CELL : '#ffffff';
+  }
   const MINIMAP_HOUSE_WALL = '#e3d7be';
-  const MINIMAP_HOUSE_ROOF = '#3a3a40';
+  const MINIMAP_TOP_CELL = '#838185';
   const MINIMAP_HOUSE_ROOF_HL = '#6f6f76';
   const MINIMAP_HOUSE_DOOR = '#7a4a2e';
   const MINIMAP_HOUSE_TRIM = '#5c3818';
@@ -12168,6 +12172,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     map.style.setProperty('--minimap-cell-size', cellSize + 'px');
     map.style.width = mapWidth + 'px';
     map.style.height = mapHeight + 'px';
+    map.style.background = minimapMode === 'top' ? '#ffffff' : '';
     map.style.gridTemplateColumns = `repeat(${view.width}, ${cellSize}px)`;
     map.style.gridTemplateRows = `repeat(${view.depth}, ${cellSize}px)`;
     map.textContent = '';
@@ -12210,14 +12215,13 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
       for (let z = 0; z < view.depth; z++) {
         for (let x = 0; x < view.width; x++) {
           const cell = view.mapCell(x, z);
-          const floors = cell ? (cell.kind ? (cell.floors || 1) : (cell.terrainFloors || 1)) : 1;
-          const showFloors = minimapMode === 'numbers' ? !!cell && !!cell.kind : !!cell && floors > 1;
           const cellEl = document.createElement('div');
           cellEl.className = 'stacked-map-cell';
           if (x === view.width - 1) cellEl.classList.add('is-edge-right');
           if (z === view.depth - 1) cellEl.classList.add('is-edge-bottom');
-          cellEl.style.background = minimapCellFill(cell, minimapMode);
-          cellEl.innerHTML = showFloors ? `<span class="stacked-map-number">${floors}</span>` : '';
+          cellEl.style.background = minimapMode === 'top'
+            ? minimapTopCellFill(cell)
+            : minimapCellFill(cell, minimapMode);
           fragment.appendChild(cellEl);
         }
       }
