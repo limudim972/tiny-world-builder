@@ -4753,6 +4753,13 @@
       prev = seg[seg.length - 1];
       if (constrained.length >= CROWD_ROUTE_MAX_POINTS) break;
     }
+    if (constrained.length < 2) {
+      const fallbackTarget = constrained[0] || route[0];
+      if (fallbackTarget) {
+        // TinyCrowdLayer ignores 1-point routes, so keep the seed as a lead-in.
+        return [crowdClonePoint(seedPoint), crowdClonePoint(fallbackTarget)];
+      }
+    }
     return constrained.length ? constrained : route;
   }
 
@@ -4808,6 +4815,24 @@
       }
     }
     return targets;
+  }
+
+  function crowdSparsePerimeterRoute(seed, index, houseEnvelopes) {
+    const boardRect = crowdBoardRect(0.08);
+    const inset = Math.min(0.18, Math.max(0.06, Math.min(GRID_W, GRID_D) * 0.07));
+    const corners = [
+      { x: boardRect.minX + inset, z: boardRect.minZ + inset },
+      { x: boardRect.maxX - inset, z: boardRect.minZ + inset },
+      { x: boardRect.maxX - inset, z: boardRect.maxZ - inset },
+      { x: boardRect.minX + inset, z: boardRect.maxZ - inset },
+    ];
+    const loop = index % 2 === 0 ? corners : corners.slice().reverse();
+    const start = index % loop.length;
+    const route = [];
+    for (let i = 0; i < loop.length * 2; i++) {
+      route.push(loop[(start + i) % loop.length]);
+    }
+    return crowdConstrainRoute(seed, route, houseEnvelopes || []);
   }
 
   function crowdCollectDoorGaps(houseMesh, innerRect, baseY) {
@@ -4976,6 +5001,7 @@
     }
     if (houseVisits.length) {
       const visit = crowdClonePoint(houseVisits[index % houseVisits.length]);
+      if (pathCells.length <= 1) visit.dwell = 0;
       if (!route || !route.length) {
         route = [visit];
       } else if (index % 2 === 0) {
@@ -4983,7 +5009,12 @@
         route.splice(slot, 0, visit);
       }
     }
-    return crowdConstrainRoute(seed, route, houseEnvelopes || []);
+    const constrained = crowdConstrainRoute(seed, route, houseEnvelopes || []);
+    const minRouteLength = 1.8;
+    if (pathCells.length <= 1 || crowdPolylineLength(constrained) < minRouteLength) {
+      return crowdSparsePerimeterRoute(seed, index, houseEnvelopes || []);
+    }
+    return constrained;
   }
 
   function crowdWeatherNeedsShelter() {

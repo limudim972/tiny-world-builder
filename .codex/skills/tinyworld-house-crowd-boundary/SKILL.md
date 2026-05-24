@@ -27,6 +27,11 @@ Use this when editing crowd pathing around houses in
   to ring paths and doorway transitions.
 - `crowdConstrainMoveStep(stepState)` clamps each per-frame crowd step via
   the same envelope logic (wired into `TinyCrowdLayer` as `moveConstraint`).
+- Route builders must preserve a seed lead-in when a constrained route would
+  collapse to a single waypoint; `TinyCrowdLayer.tickRoute()` treats 1-point
+  routes as idle.
+- On very sparse boards, short ambient routes should fall back to a longer
+  perimeter circuit instead of jittering around the same open tile cluster.
 
 ## Edge-house and portal rules
 
@@ -39,6 +44,8 @@ Use this when editing crowd pathing around houses in
 - Door travel needs a direct portal corridor exception: once a step is already
   inside the chosen door gap corridor, do not snap it back out to the door's
   outside anchor or the person will oscillate at the threshold.
+- On ultra-sparse boards, skip ambient house-visit dwell so the crowd keeps
+  circulating instead of parking on the only walkable tile.
 - Rain/storm can repurpose the same envelope graph to send active people to
   the nearest interior stop point, then stage a clear-weather exit in a small
   outside queue before restoring each person's saved route.
