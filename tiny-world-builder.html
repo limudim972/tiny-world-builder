@@ -12057,7 +12057,8 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     return minimapElevationConfig(mode, width, depth, startGx, startGz);
   }
   function minimapCellFill(cell, mode) {
-    const fillMode = mode === 'numbers' ? 'top' : mode;
+    const fillMode = mode === 'numbers' ? 'numbers' : mode;
+    if (fillMode === 'numbers') return '#ffffff';
     if (!cell) return 'rgba(255,255,255,0.18)';
     const palette = {
       grass: [145, 190, 95],
@@ -12126,11 +12127,6 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     if (!Number.isFinite(gx) || !Number.isFinite(gz)) return null;
     return world[gx] && world[gx][gz] ? world[gx][gz] : null;
   }
-  function minimapColumnCountForCell(cell) {
-    if (!cell) return 0;
-    if (cell.kind) return Math.max(0, Math.min(MAX_FLOORS, cell.floors || 1));
-    return 0;
-  }
 
   // -------- brand subtitle --------
   function initBrandSubtitle() {
@@ -12177,13 +12173,14 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     map.textContent = '';
     if (counts) {
       counts.textContent = '';
+      counts.hidden = minimapMode === 'numbers';
       counts.style.width = mapWidth + 'px';
       counts.style.gridTemplateColumns = `repeat(${view.width}, ${cellSize}px)`;
     }
     const fragment = document.createDocumentFragment();
     if (view.kind === 'elevation') {
       const columnCounts = view.columns.map(column => Math.max(0, Math.min(MAX_FLOORS, column.height || 0)));
-      if (counts) {
+      if (counts && minimapMode !== 'numbers') {
         const countsFragment = document.createDocumentFragment();
         for (let x = 0; x < view.width; x++) {
           const count = columnCounts[x] || 0;
@@ -12213,17 +12210,18 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
       for (let z = 0; z < view.depth; z++) {
         for (let x = 0; x < view.width; x++) {
           const cell = view.mapCell(x, z);
-          const floors = minimapColumnCountForCell(cell);
-          if (floors > columnCounts[x]) columnCounts[x] = floors;
+          const floors = cell ? (cell.kind ? (cell.floors || 1) : (cell.terrainFloors || 1)) : 1;
+          const showFloors = minimapMode === 'numbers' ? !!cell && !!cell.kind : !!cell && floors > 1;
           const cellEl = document.createElement('div');
           cellEl.className = 'stacked-map-cell';
           if (x === view.width - 1) cellEl.classList.add('is-edge-right');
           if (z === view.depth - 1) cellEl.classList.add('is-edge-bottom');
           cellEl.style.background = minimapCellFill(cell, minimapMode);
+          cellEl.innerHTML = showFloors ? `<span class="stacked-map-number">${floors}</span>` : '';
           fragment.appendChild(cellEl);
         }
       }
-      if (counts) {
+      if (counts && minimapMode !== 'numbers') {
         const countsFragment = document.createDocumentFragment();
         for (let x = 0; x < view.width; x++) {
           const count = columnCounts[x] || 0;
