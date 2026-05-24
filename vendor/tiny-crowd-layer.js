@@ -419,6 +419,7 @@
       this.tileToWorld = typeof opts.tileToWorld === 'function' ? opts.tileToWorld : null;
       this.getTerrainHeight = typeof opts.getTerrainHeight === 'function' ? opts.getTerrainHeight : (() => 0);
       this.moveConstraint = typeof opts.moveConstraint === 'function' ? opts.moveConstraint : null;
+      this.onRouteComplete = typeof opts.onRouteComplete === 'function' ? opts.onRouteComplete : null;
       this.scale = opts.scale || 1;
       this.config = mergeConfig(DEFAULT_CONFIG, opts.config);
       this.worldConfig = mergeConfig(DEFAULT_WORLD_CONFIG, opts.worldConfig);
@@ -446,6 +447,10 @@
 
     setMoveConstraint(fn) {
       this.moveConstraint = typeof fn === 'function' ? fn : null;
+    }
+
+    setRouteCompleteHandler(fn) {
+      this.onRouteComplete = typeof fn === 'function' ? fn : null;
     }
 
     load(opts = {}) {
@@ -732,12 +737,21 @@
       }
       if (!person.route || person.route.length < 2 || !person.speed || !dt) return;
       const target = person.route[person.routeIndex % person.route.length];
+      const advanceRouteTarget = () => {
+        const reachedFinalTarget = person.routeIndex >= person.route.length - 1;
+        if (reachedFinalTarget && this.onRouteComplete) {
+          const handled = this.onRouteComplete(person, target);
+          if (handled) return true;
+        }
+        if (target && target.dwell > 0) person.routeHold = target.dwell;
+        person.routeIndex = (person.routeIndex + 1) % person.route.length;
+        return false;
+      };
       const dx = target.x - person.x;
       const dz = target.z - person.z;
       const dist = Math.hypot(dx, dz);
       if (dist < 0.035) {
-        if (target && target.dwell > 0) person.routeHold = target.dwell;
-        person.routeIndex = (person.routeIndex + 1) % person.route.length;
+        if (advanceRouteTarget()) return;
         return;
       }
       const step = Math.min(dist, person.speed * person.speedMul * dt);
@@ -759,8 +773,18 @@
           nextZ = constrained.z;
         }
         if (constrained && constrained.advanceTarget) {
-          if (target && target.dwell > 0) person.routeHold = target.dwell;
-          person.routeIndex = (person.routeIndex + 1) % person.route.length;
+          if (advanceRouteTarget()) {
+            person.x = nextX;
+            person.z = nextZ;
+            const movedX = nextX - fromX;
+            const movedZ = nextZ - fromZ;
+            if (movedX * movedX + movedZ * movedZ > 1e-10) {
+              person.heading = Math.atan2(movedZ, movedX);
+            } else {
+              person.heading = Math.atan2(dz, dx);
+            }
+            return;
+          }
         }
       }
       person.x = nextX;

@@ -4835,6 +4835,14 @@
     return crowdConstrainRoute(seed, route, houseEnvelopes || []);
   }
 
+  function crowdWanderPoint(cell, spread = 0.42) {
+    const radius = Math.max(0.18, Math.min(0.48, spread));
+    return {
+      x: cell.x + (Math.random() - 0.5) * radius * 2,
+      z: cell.z + (Math.random() - 0.5) * radius * 2,
+    };
+  }
+
   function crowdSparsePathRoute(seed, pathCells, index, houseEnvelopes) {
     if (!Array.isArray(pathCells) || pathCells.length < 2) {
       return crowdSparsePerimeterRoute(seed, index, houseEnvelopes);
@@ -4844,27 +4852,19 @@
       const far = ordered[1] || ordered[0];
       const near = ordered[0] || ordered[1];
       const route = [];
-      const jitter = cell => ({
-        x: cell.x + (Math.random() - 0.5) * 0.22,
-        z: cell.z + (Math.random() - 0.5) * 0.22,
-      });
       // On a 2-tile board, keep the motion obvious: head to the other tile
       // first, then alternate cleanly so a house removal visibly changes where
       // the crowd is going.
       for (let i = 0; i < 8; i++) {
-        route.push(jitter(i % 2 === 0 ? far : near));
+        route.push(crowdWanderPoint(i % 2 === 0 ? far : near, 0.44));
       }
       return crowdConstrainRoute(seed, route, houseEnvelopes || []);
     }
     const ordered = pathCells.slice();
     const start = index % ordered.length;
     const route = [];
-    const jitter = cell => ({
-      x: cell.x + (Math.random() - 0.5) * 0.22,
-      z: cell.z + (Math.random() - 0.5) * 0.22,
-    });
     for (let i = 0; i < ordered.length * 4; i++) {
-      route.push(jitter(ordered[(start + i) % ordered.length]));
+      route.push(crowdWanderPoint(ordered[(start + i) % ordered.length]));
     }
     return crowdConstrainRoute(seed, route, houseEnvelopes || []);
   }
@@ -5015,10 +5015,7 @@
       return crowdSparsePathRoute(seed, pathCells, index, houseEnvelopes || []);
     }
     const houseVisits = crowdCollectHouseVisitTargets(houseEnvelopes || []);
-    const jitter = cell => ({
-      x: cell.x + (Math.random() - 0.5) * 0.22,
-      z: cell.z + (Math.random() - 0.5) * 0.22,
-    });
+    const jitter = cell => crowdWanderPoint(cell);
     let route = null;
     if (crowdMode === 'cross') {
       const far = pathCells
@@ -5039,12 +5036,12 @@
       const shuffled = pathCells.slice().sort(() => Math.random() - 0.5);
       route = shuffled.slice(0, Math.min(10, shuffled.length)).map(jitter);
     }
-    if (houseVisits.length) {
+    if (houseVisits.length && Math.random() < 0.35) {
       const visit = crowdClonePoint(houseVisits[index % houseVisits.length]);
       if (pathCells.length <= 1) visit.dwell = 0;
       if (!route || !route.length) {
         route = [visit];
-      } else if (index % 2 === 0) {
+      } else {
         const slot = Math.min(route.length, Math.max(1, Math.floor(route.length * 0.5)));
         route.splice(slot, 0, visit);
       }
@@ -5365,6 +5362,7 @@
       tileToWorld: tilePos,
       getTerrainHeight: crowdTerrainHeightAt,
       moveConstraint: crowdConstrainMoveStep,
+      onRouteComplete: crowdHandleAmbientRouteComplete,
       scale: crowdScale,
       config: crowdConfigOverride(),
       worldConfig: crowdWorldConfigOverride(),
@@ -8102,6 +8100,34 @@
         person.houseVisit = null;
       }
     });
+  }
+
+  function crowdHandleAmbientRouteComplete(person) {
+    if (!crowdLayer || !crowdLayer.loaded) return false;
+    if (!person || person.falling) return false;
+    if (person.houseVisit && person.houseVisit.active) return false;
+    if (person.rainShelter && person.rainShelter.active) return false;
+    const pathCells = collectCrowdPathCells();
+    if (!pathCells.length) return false;
+    const houseEnvelopes = crowdCollectHouseEnvelopes();
+    if (!Number.isFinite(person.wanderSalt)) {
+      person.wanderSalt = (Math.random() * 1000000) | 0;
+    }
+    person.wanderStep = (person.wanderStep || 0) + 1;
+    const route = crowdRouteAround(
+      { x: person.x, z: person.z },
+      pathCells,
+      person.wanderSalt + person.wanderStep,
+      houseEnvelopes,
+    );
+    if (!Array.isArray(route) || !route.length) return false;
+    person.route = route;
+    person.routeIndex = 0;
+    person.routeHold = Math.random() < 0.55 ? 0.12 + Math.random() * 0.75 : 0;
+    if (!person.speed || person.speed < 0.05) {
+      person.speed = Math.max(person.baseSpeed || 0, 0.55);
+    }
+    return true;
   }
 
   // -------- input: click-to-place --------

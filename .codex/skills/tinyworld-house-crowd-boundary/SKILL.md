@@ -34,6 +34,11 @@ Use this when editing crowd pathing around houses in
   perimeter circuit instead of jittering around the same open tile cluster.
 - On 2-open-tile boards, route directly between the two open cells instead of
   injecting a house visit that pulls walkers back to the house edge.
+- Ambient routes should be one-shot: when a walker finishes a route, replan a
+  fresh wander route with a short optional pause instead of looping the same
+  path forever.
+- Wander points should cover more of each tile than just the center so people
+  can drift near edges and corners, not orbit one spot.
 - After a house add/remove, refresh ambient routes once so walkers pick up the
   new walkable tiles without clearing active house-visit or rain-shelter state.
 
