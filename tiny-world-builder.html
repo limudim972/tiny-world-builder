@@ -11883,13 +11883,10 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
   }
 
   // -------- minimap (ported from OWB hud.js redrawMinimap) --------
-  // Repaints the stacked 2D map window from the live world state. The map
-  // follows the current camera target, so panning keeps the overview centered
-  // on the active area instead of pinning to the saved home grid.
-  // The default minimap mode stays plain, with floor counts overlaid so
-  // stacked cells remain readable. The numbers chart uses the front-at-
-  // bottom top-down orientation, while the footer select can switch to
-  // tinted and rotated views for the same board.
+  // Repaints the stacked map from the live world state. Top-down modes stay
+  // anchored to the current camera target, while front/right/left switch to
+  // elevation-style stacks whose row count grows from the tallest live floor
+  // in the projected span. Numbers stays a plain count chart.
   // Repainting is throttled: setCell + saveState + applyState all call
   // requestMinimapRepaint(), and the next animation frame consolidates.
   const MINIMAP_MODE_KEY = 'tinyworld:minimap.mode';
@@ -11933,14 +11930,20 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     if (typeof window.__paintMinimapAngles === 'function') window.__paintMinimapAngles();
   }
   function minimapModeLabel(mode) {
-    if (mode === 'front') return 'מבט מלפנים';
-    if (mode === 'right') return 'מבט מימין';
-    if (mode === 'left') return 'מבט משמאל';
+    if (mode === 'front') return 'מבט מלפנים, תצוגת קומות';
+    if (mode === 'right') return 'מבט מימין, תצוגת קומות';
+    if (mode === 'left') return 'מבט משמאל, תצוגת קומות';
     if (mode === 'top') return 'מבט מלמעלה';
     return 'תרשים מספרים';
   }
-  function minimapModeConfig(mode, width, depth, startGx, startGz) {
+  function minimapCellStackHeight(cell) {
+    if (!cell) return 0;
+    const height = cell.kind ? (cell.floors || 1) : (cell.terrainFloors || 1);
+    return Math.max(1, Math.min(MAX_FLOORS, height || 1));
+  }
+  function minimapTopDownConfig(mode, width, depth, startGx, startGz) {
     const view = {
+      kind: 'topdown',
       width,
       depth,
       mapCell(x, z) {
@@ -11961,6 +11964,70 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
       view.depth = width;
     }
     return view;
+  }
+  function minimapElevationConfig(mode, width, depth, startGx, startGz) {
+    const columns = [];
+    let maxFloors = 1;
+    function pushColumn(cell, height) {
+      const safeHeight = Math.max(0, Math.min(MAX_FLOORS, height || 0));
+      columns.push({ cell, height: safeHeight });
+      if (safeHeight > maxFloors) maxFloors = safeHeight;
+    }
+    if (mode === 'front') {
+      for (let x = 0; x < width; x++) {
+        let bestCell = null;
+        let bestHeight = 0;
+        for (let z = depth - 1; z >= 0; z--) {
+          const cell = minimapGlobalCell(startGx + x, startGz + z);
+          const height = minimapCellStackHeight(cell);
+          if (height > bestHeight) {
+            bestHeight = height;
+            bestCell = cell;
+          }
+        }
+        pushColumn(bestCell, bestHeight);
+      }
+    } else if (mode === 'right') {
+      for (let z = 0; z < depth; z++) {
+        let bestCell = null;
+        let bestHeight = 0;
+        for (let x = width - 1; x >= 0; x--) {
+          const cell = minimapGlobalCell(startGx + x, startGz + z);
+          const height = minimapCellStackHeight(cell);
+          if (height > bestHeight) {
+            bestHeight = height;
+            bestCell = cell;
+          }
+        }
+        pushColumn(bestCell, bestHeight);
+      }
+    } else if (mode === 'left') {
+      for (let z = depth - 1; z >= 0; z--) {
+        let bestCell = null;
+        let bestHeight = 0;
+        for (let x = 0; x < width; x++) {
+          const cell = minimapGlobalCell(startGx + x, startGz + z);
+          const height = minimapCellStackHeight(cell);
+          if (height > bestHeight) {
+            bestHeight = height;
+            bestCell = cell;
+          }
+        }
+        pushColumn(bestCell, bestHeight);
+      }
+    }
+    return {
+      kind: 'elevation',
+      width: columns.length,
+      depth: Math.max(1, maxFloors),
+      columns,
+    };
+  }
+  function minimapModeConfig(mode, width, depth, startGx, startGz) {
+    if (mode === 'numbers' || mode === 'top') {
+      return minimapTopDownConfig(mode, width, depth, startGx, startGz);
+    }
+    return minimapElevationConfig(mode, width, depth, startGx, startGz);
   }
   function minimapCellFill(cell, mode) {
     if (mode === 'numbers') return 'transparent';
@@ -12033,8 +12100,6 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     const cellSize = Math.max(1, Math.floor(maxMapSize / Math.max(view.width, view.depth)));
     const mapWidth = cellSize * view.width;
     const mapHeight = cellSize * view.depth;
-    const sizeEl = document.getElementById('minimap-size');
-    if (sizeEl) sizeEl.textContent = minimapSizeLabel();
     map.setAttribute('aria-label', `מיני מפה - ${minimapModeLabel(minimapMode)}`);
     map.style.setProperty('--minimap-cell-size', cellSize + 'px');
     map.style.width = mapWidth + 'px';
@@ -12043,18 +12108,34 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     map.style.gridTemplateRows = `repeat(${view.depth}, ${cellSize}px)`;
     map.textContent = '';
     const fragment = document.createDocumentFragment();
-    for (let z = 0; z < view.depth; z++) {
-      for (let x = 0; x < view.width; x++) {
-        const cell = view.mapCell(x, z);
-        const floors = cell ? (cell.kind ? (cell.floors || 1) : (cell.terrainFloors || 1)) : 1;
-        const showFloors = minimapMode === 'numbers' ? !!cell && !!cell.kind : !!cell && floors > 1;
-        const cellEl = document.createElement('div');
-        cellEl.className = 'stacked-map-cell';
-        if (x === view.width - 1) cellEl.classList.add('is-edge-right');
-        if (z === view.depth - 1) cellEl.classList.add('is-edge-bottom');
-        cellEl.style.background = minimapCellFill(cell, minimapMode);
-        cellEl.innerHTML = showFloors ? `<span class="stacked-map-number">${floors}</span>` : '';
-        fragment.appendChild(cellEl);
+    if (view.kind === 'elevation') {
+      for (let floor = view.depth; floor >= 1; floor--) {
+        for (let x = 0; x < view.width; x++) {
+          const column = view.columns[x] || { cell: null, height: 0 };
+          const occupied = column.height >= floor;
+          const cellEl = document.createElement('div');
+          cellEl.className = 'stacked-map-cell';
+          if (x === view.width - 1) cellEl.classList.add('is-edge-right');
+          if (floor === 1) cellEl.classList.add('is-edge-bottom');
+          cellEl.style.background = occupied ? minimapCellFill(column.cell, minimapMode) : 'transparent';
+          cellEl.innerHTML = occupied ? `<span class="stacked-map-number">${floor}</span>` : '';
+          fragment.appendChild(cellEl);
+        }
+      }
+    } else {
+      for (let z = 0; z < view.depth; z++) {
+        for (let x = 0; x < view.width; x++) {
+          const cell = view.mapCell(x, z);
+          const floors = cell ? (cell.kind ? (cell.floors || 1) : (cell.terrainFloors || 1)) : 1;
+          const showFloors = minimapMode === 'numbers' ? !!cell && !!cell.kind : !!cell && floors > 1;
+          const cellEl = document.createElement('div');
+          cellEl.className = 'stacked-map-cell';
+          if (x === view.width - 1) cellEl.classList.add('is-edge-right');
+          if (z === view.depth - 1) cellEl.classList.add('is-edge-bottom');
+          cellEl.style.background = minimapCellFill(cell, minimapMode);
+          cellEl.innerHTML = showFloors ? `<span class="stacked-map-number">${floors}</span>` : '';
+          fragment.appendChild(cellEl);
+        }
       }
     }
     map.appendChild(fragment);
