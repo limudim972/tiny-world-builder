@@ -32,6 +32,10 @@ Use this when editing crowd pathing around houses in
   routes as idle.
 - On very sparse boards, short ambient routes should fall back to a longer
   perimeter circuit instead of jittering around the same open tile cluster.
+- On 2-open-tile boards, route directly between the two open cells instead of
+  injecting a house visit that pulls walkers back to the house edge.
+- After a house add/remove, refresh ambient routes once so walkers pick up the
+  new walkable tiles without clearing active house-visit or rain-shelter state.
 
 ## Edge-house and portal rules
 
@@ -63,8 +67,8 @@ Use this when editing crowd pathing around houses in
 ## Invalidation + refresh
 
 - Any house mesh add/remove must call `crowdMarkHouseEnvelopeDirty()`.
-- Frame loop checks `crowdHouseEnvelopeDirty` and reseeds once so crowd
-  routes stay aligned after edits.
+- Frame loop checks `crowdHouseEnvelopeDirty` and refreshes routes once so
+  crowd paths stay aligned after edits.
 
 ## Validation checklist
 
