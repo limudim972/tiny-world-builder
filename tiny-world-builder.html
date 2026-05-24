@@ -1234,6 +1234,7 @@
     touch-action: none;
   }
   .stacked-map-cell {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1243,12 +1244,19 @@
     border-bottom: 1px solid rgba(42, 39, 34, 0.34);
     box-sizing: border-box;
     background: transparent;
+    overflow: hidden;
   }
   .stacked-map-cell.is-edge-right { border-right: none; }
   .stacked-map-cell.is-edge-bottom { border-bottom: none; }
   .stacked-map-cell .stacked-map-number {
     font-size: calc(var(--minimap-cell-size, 56px) * 0.5);
     transform: translateY(-0.02em);
+  }
+  .stacked-map-facade-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none;
   }
   .minimap-footer {
     display: grid;
@@ -3198,7 +3206,7 @@
     leaves:    new THREE.MeshLambertMaterial({ color: 0x86d139 }),
     leavesDk:  new THREE.MeshLambertMaterial({ color: 0x5fab26 }),
 
-    wallCream: new THREE.MeshLambertMaterial({ color: 0xf2dfb0 }),
+    wallCream: new THREE.MeshLambertMaterial({ color: 0xe3d7be }),
     wallTrim:  new THREE.MeshLambertMaterial({ color: 0xe5cf99 }),
     roofBlue:  new THREE.MeshLambertMaterial({ color: 0x2a6dd1 }),
     roofBlueD: new THREE.MeshLambertMaterial({ color: 0x1d4d9c }),
@@ -11885,9 +11893,9 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
   // -------- minimap (ported from OWB hud.js redrawMinimap) --------
   // Repaints the stacked map from the live world state. Top-down modes stay
   // anchored to the current camera target, while front/right/left switch to
-  // elevation-style stacks derived from the home-board front arrow: front
-  // follows the arrow, and right/left rotate from that facing. Numbers stays
-  // a plain count chart.
+  // facade-style elevation cells derived from the home-board front arrow:
+  // front follows the arrow, and right/left rotate from that facing. Numbers
+  // stays a plain count chart.
   // Repainting is throttled: setCell + saveState + applyState all call
   // requestMinimapRepaint(), and the next animation frame consolidates.
   const MINIMAP_MODE_KEY = 'tinyworld:minimap.mode';
@@ -11931,9 +11939,9 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     if (typeof window.__paintMinimapAngles === 'function') window.__paintMinimapAngles();
   }
   function minimapModeLabel(mode) {
-    if (mode === 'front') return 'מבט מלפנים, תצוגת קומות';
-    if (mode === 'right') return 'מבט מימין, תצוגת קומות';
-    if (mode === 'left') return 'מבט משמאל, תצוגת קומות';
+    if (mode === 'front') return 'מבט מלפנים, חזיתות';
+    if (mode === 'right') return 'מבט מימין, חזיתות';
+    if (mode === 'left') return 'מבט משמאל, חזיתות';
     if (mode === 'top') return 'מבט מלמעלה';
     return 'תרשים מספרים';
   }
@@ -12054,6 +12062,72 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     const b = Math.round(base[2] + (255 - base[2]) * lift);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
+  const MINIMAP_HOUSE_WALL = '#e3d7be';
+  const MINIMAP_HOUSE_ROOF = '#3a3a40';
+  const MINIMAP_HOUSE_ROOF_HL = '#6f6f76';
+  const MINIMAP_HOUSE_DOOR = '#7a4a2e';
+  const MINIMAP_HOUSE_TRIM = '#5c3818';
+  const MINIMAP_HOUSE_WINDOW = '#2a6dd1';
+  const MINIMAP_HOUSE_WINDOW_HL = '#8db7ff';
+  const MINIMAP_HOUSE_KNOB = '#d7ba6a';
+
+  function minimapFacadeDoor(x, y, w, h) {
+    const pad = 2;
+    const innerW = Math.max(1, w - pad * 2);
+    const innerH = Math.max(1, h - pad * 2);
+    return `
+      <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1.5" fill="${MINIMAP_HOUSE_TRIM}"></rect>
+      <rect x="${x + pad}" y="${y + pad}" width="${innerW}" height="${innerH}" rx="1" fill="${MINIMAP_HOUSE_DOOR}"></rect>
+      <rect x="${x + 3}" y="${y + 4}" width="2" height="${Math.max(6, innerH - 8)}" fill="${MINIMAP_HOUSE_TRIM}" opacity="0.9"></rect>
+      <rect x="${x + w - 5}" y="${y + Math.max(8, Math.floor(h * 0.57))}" width="2.5" height="2.5" rx="1" fill="${MINIMAP_HOUSE_KNOB}"></rect>
+    `;
+  }
+  function minimapFacadeWindow(x, y, w, h) {
+    const pad = 2;
+    const innerW = Math.max(1, w - pad * 2);
+    const innerH = Math.max(1, h - pad * 2);
+    return `
+      <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1.3" fill="${MINIMAP_HOUSE_TRIM}"></rect>
+      <rect x="${x + pad}" y="${y + pad}" width="${innerW}" height="${innerH}" rx="0.8" fill="${MINIMAP_HOUSE_WINDOW}"></rect>
+      <rect x="${x + pad}" y="${y + Math.floor(h / 2) - 1}" width="${innerW}" height="2" fill="${MINIMAP_HOUSE_TRIM}"></rect>
+      <rect x="${x + Math.floor(w / 2) - 1}" y="${y + pad}" width="2" height="${innerH}" fill="${MINIMAP_HOUSE_TRIM}"></rect>
+      <rect x="${x + 3}" y="${y + 3}" width="${Math.max(2, Math.floor(innerW * 0.46))}" height="${Math.max(2, Math.floor(innerH * 0.2))}" fill="${MINIMAP_HOUSE_WINDOW_HL}" opacity="0.38"></rect>
+    `;
+  }
+  function minimapFacadeMarkup(mode, floor, height) {
+    const top = floor === height;
+    const ground = floor === 1;
+    const front = mode === 'front';
+    const mirrored = mode === 'left';
+    const body = [];
+
+    if (ground) {
+      if (front) {
+        body.push(minimapFacadeDoor(38, 35, 24, 46));
+        body.push(minimapFacadeWindow(67, 39, 18, 18));
+      } else {
+        body.push(minimapFacadeDoor(18, 35, 24, 46));
+        body.push(minimapFacadeWindow(60, 39, 18, 18));
+      }
+    } else {
+      body.push(minimapFacadeWindow(41, 39, 18, 18));
+    }
+
+    const roof = top ? `
+      <rect x="0" y="0" width="100" height="8" fill="${MINIMAP_HOUSE_ROOF}"></rect>
+      <rect x="0" y="8" width="100" height="2" fill="${MINIMAP_HOUSE_ROOF_HL}" opacity="0.45"></rect>
+    ` : '';
+    const transform = mirrored && !front ? ' transform="translate(100 0) scale(-1 1)"' : '';
+
+    return `
+      <svg class="stacked-map-facade-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false" shape-rendering="crispEdges">
+        ${roof}
+        <g${transform}>
+          ${body.join('')}
+        </g>
+      </svg>
+    `;
+  }
   function minimapViewCellCounts() {
     return {
       width: GRID_W,
@@ -12120,8 +12194,8 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
           cellEl.className = 'stacked-map-cell';
           if (x === view.width - 1) cellEl.classList.add('is-edge-right');
           if (floor === 1) cellEl.classList.add('is-edge-bottom');
-          cellEl.style.background = occupied ? minimapCellFill(column.cell, minimapMode) : 'transparent';
-          cellEl.innerHTML = occupied ? `<span class="stacked-map-number">${floor}</span>` : '';
+          cellEl.style.background = occupied ? MINIMAP_HOUSE_WALL : 'transparent';
+          cellEl.innerHTML = occupied ? minimapFacadeMarkup(minimapMode, floor, column.height) : '';
           fragment.appendChild(cellEl);
         }
       }
