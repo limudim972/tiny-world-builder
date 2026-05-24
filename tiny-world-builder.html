@@ -11885,8 +11885,9 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
   // -------- minimap (ported from OWB hud.js redrawMinimap) --------
   // Repaints the stacked map from the live world state. Top-down modes stay
   // anchored to the current camera target, while front/right/left switch to
-  // elevation-style stacks whose row count grows from the tallest live floor
-  // in the projected span. Numbers stays a plain count chart.
+  // elevation-style stacks derived from the home-board front arrow: front
+  // follows the arrow, and right/left rotate from that facing. Numbers stays
+  // a plain count chart.
   // Repainting is throttled: setCell + saveState + applyState all call
   // requestMinimapRepaint(), and the next animation frame consolidates.
   const MINIMAP_MODE_KEY = 'tinyworld:minimap.mode';
@@ -11921,7 +11922,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     if (typeof setCameraMode === 'function') {
       try { setCameraMode('soft'); } catch (_) {}
     }
-    azimuth = mode === 'front' ? degToRad(359)
+    azimuth = mode === 'front' ? degToRad(0)
            : mode === 'right' ? degToRad(270)
            : mode === 'left'  ? degToRad(90)
            : DEFAULT_AZIMUTH;
@@ -11937,8 +11938,8 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     return 'תרשים מספרים';
   }
   function minimapCellStackHeight(cell) {
-    if (!cell) return 0;
-    const height = cell.kind ? (cell.floors || 1) : (cell.terrainFloors || 1);
+    if (!cell || !cell.kind) return 0;
+    const height = cell.floors || 1;
     return Math.max(1, Math.min(MAX_FLOORS, height || 1));
   }
   function minimapTopDownConfig(mode, width, depth, startGx, startGz) {
@@ -11973,11 +11974,13 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
       columns.push({ cell, height: safeHeight });
       if (safeHeight > maxFloors) maxFloors = safeHeight;
     }
+    // Front is the arrow-facing side of the home board. Right/left are
+    // derived by rotating from that facing so the view names stay consistent.
     if (mode === 'front') {
-      for (let x = 0; x < width; x++) {
+      for (let z = depth - 1; z >= 0; z--) {
         let bestCell = null;
         let bestHeight = 0;
-        for (let z = depth - 1; z >= 0; z--) {
+        for (let x = 0; x < width; x++) {
           const cell = minimapGlobalCell(startGx + x, startGz + z);
           const height = minimapCellStackHeight(cell);
           if (height > bestHeight) {
@@ -11988,10 +11991,10 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
         pushColumn(bestCell, bestHeight);
       }
     } else if (mode === 'right') {
-      for (let z = 0; z < depth; z++) {
+      for (let x = width - 1; x >= 0; x--) {
         let bestCell = null;
         let bestHeight = 0;
-        for (let x = width - 1; x >= 0; x--) {
+        for (let z = 0; z < depth; z++) {
           const cell = minimapGlobalCell(startGx + x, startGz + z);
           const height = minimapCellStackHeight(cell);
           if (height > bestHeight) {
@@ -12002,10 +12005,10 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
         pushColumn(bestCell, bestHeight);
       }
     } else if (mode === 'left') {
-      for (let z = depth - 1; z >= 0; z--) {
+      for (let x = 0; x < width; x++) {
         let bestCell = null;
         let bestHeight = 0;
-        for (let x = 0; x < width; x++) {
+        for (let z = depth - 1; z >= 0; z--) {
           const cell = minimapGlobalCell(startGx + x, startGz + z);
           const height = minimapCellStackHeight(cell);
           if (height > bestHeight) {
