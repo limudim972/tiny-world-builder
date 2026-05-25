@@ -14,7 +14,7 @@ open tiny-world-builder.html
 ```
 
 ## Deploy
-
+dont deploy unless requested by the user, the server is running dev version so no need to deploy for using the server, just refresh.
 The app deploys as a static site on Vercel or Netlify. Both host configs run
 `./publish.sh` and serve the generated `dist/` directory. Three.js r128 and
 GLTFLoader are self-hosted from `vendor/three/` so deploys do not depend on
