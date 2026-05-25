@@ -4293,7 +4293,6 @@
   const CROWD_RAIN_EXIT_OUTSET = 0.18;
   const CROWD_RAIN_EXIT_SPREAD = 0.12;
   const CROWD_RAIN_EXIT_COOLDOWN_MS = 15000;
-  const CROWD_HOUSE_VISIT_DWELL_MS = 1000;
   let crowdHouseEnvelopes = [];
   let crowdHouseEnvelopeDirty = true;
 
@@ -7992,7 +7991,7 @@
           person.x = visit.target.x;
           person.z = visit.target.z;
           visit.arrived = true;
-          visit.dwellUntil = performance.now() + CROWD_HOUSE_VISIT_DWELL_MS;
+          visit.dwellUntil = performance.now() + (CROWD_HOUSE_VISIT_DWELL * 1000);
           person.route = null;
           person.routeIndex = 0;
           person.routeHold = 0;
@@ -8066,7 +8065,7 @@
           person.x = visit.target.x;
           person.z = visit.target.z;
           visit.arrived = true;
-          visit.dwellUntil = performance.now() + CROWD_HOUSE_VISIT_DWELL_MS;
+          visit.dwellUntil = performance.now() + (CROWD_HOUSE_VISIT_DWELL * 1000);
           person.route = null;
           person.routeIndex = 0;
           person.routeHold = 0;
