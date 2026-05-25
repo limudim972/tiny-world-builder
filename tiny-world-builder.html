@@ -4774,7 +4774,11 @@
     const dx = waypoint.x - from.x;
     const dz = waypoint.z - from.z;
     const dist = Math.hypot(dx, dz);
-    if (dist < 1e-6) return { x: from.x, z: from.z };
+    if (dist < 1e-6) {
+      // Normalized house waypoints can collapse back onto the current stop.
+      // Advance the route so people don't freeze at interior door stops.
+      return { x: from.x, z: from.z, advanceTarget: true };
+    }
     const fallbackStep = stepState.to ? crowdDist(from, stepState.to) : 0;
     const maxStep = Math.max(1e-4, stepState.step || fallbackStep);
     const travel = Math.min(dist, maxStep);

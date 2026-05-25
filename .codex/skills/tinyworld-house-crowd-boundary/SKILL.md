@@ -53,6 +53,10 @@ Use this when editing crowd pathing around houses in
 - Door travel needs a direct portal corridor exception: once a step is already
   inside the chosen door gap corridor, do not snap it back out to the door's
   outside anchor or the person will oscillate at the threshold.
+- If `crowdConstrainMoveStep()` collapses a move back onto the current stop
+  after house normalization, return `advanceTarget: true` so
+  `TinyCrowdLayer.tickRoute()` can step to the next waypoint instead of
+  freezing on an interior stop.
 - On ultra-sparse boards, skip ambient house-visit dwell so the crowd keeps
   circulating instead of parking on the only walkable tile.
 - Rain/storm can repurpose the same envelope graph to send active people to
