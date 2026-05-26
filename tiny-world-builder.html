@@ -6860,28 +6860,28 @@
   }
 
   // -------- crowd walk trail --------
-  // Moving people paint the exact spots they have crossed in solid red.
-  // The marks stay in place after the person moves on, but they stay tight
-  // to the tile surface instead of filling the whole tile.
+  // Moving people paint the exact path they crossed as a thick, continuous
+  // red stroke. The line stays in place after the person moves on, and it
+  // stays pinned to the tile surface instead of becoming a filled tile.
+  const CROWD_TRAIL_RENDER_ORDER = 9000;
   const crowdTrailGroup = new THREE.Group();
   crowdTrailGroup.name = 'crowdTrailGroup';
+  crowdTrailGroup.renderOrder = CROWD_TRAIL_RENDER_ORDER;
   worldGroup.add(crowdTrailGroup);
-  const crowdTrailMarksByTile = new Map(); // 'x,z' -> Map('qx|qz' -> Mesh)
-  const CROWD_TRAIL_MARK_SIZE = 0.08;
-  const CROWD_TRAIL_MARK_HEIGHT = 0.018;
-  const crowdTrailMarkGeo = new THREE.BoxGeometry(CROWD_TRAIL_MARK_SIZE, CROWD_TRAIL_MARK_HEIGHT, CROWD_TRAIL_MARK_SIZE);
-  crowdTrailMarkGeo.userData.cached = true;
-  const CROWD_TRAIL_SAMPLE_STEP = 0.08;
-  const CROWD_TRAIL_MARK_QUANT = 0.03;
-  const CROWD_TRAIL_MARK_HALF = CROWD_TRAIL_MARK_HEIGHT / 2;
-  const CROWD_TRAIL_MARK_MAX_OFFSET = 0.46;
+  const crowdTrailSegmentsByTile = new Map(); // 'x,z' -> Mesh[]
+  const CROWD_TRAIL_SEGMENT_WIDTH = 0.12;
+  const CROWD_TRAIL_SEGMENT_HEIGHT = 0.02;
+  const CROWD_TRAIL_SEGMENT_OVERLAP = 0.01;
+  const crowdTrailSegmentGeo = new THREE.BoxGeometry(1, CROWD_TRAIL_SEGMENT_HEIGHT, CROWD_TRAIL_SEGMENT_WIDTH);
+  crowdTrailSegmentGeo.userData.cached = true;
+  const CROWD_TRAIL_SAMPLE_STEP = 0.05;
+  const CROWD_TRAIL_SEGMENT_HALF = CROWD_TRAIL_SEGMENT_HEIGHT / 2;
   crowdWalkRedMat.depthWrite = false;
   crowdWalkRedMat.depthTest = false;
   crowdWalkRedMat.toneMapped = false;
   crowdWalkRedMat.polygonOffset = true;
   crowdWalkRedMat.polygonOffsetFactor = -2;
   crowdWalkRedMat.polygonOffsetUnits = -2;
-  const CROWD_TRAIL_RENDER_ORDER = 9000;
 
   function crowdPersonIsWalking(person) {
     return !!(
@@ -6900,87 +6900,86 @@
     return x + ',' + z;
   }
 
-  function crowdTrailMarkKey(localX, localZ) {
-    return Math.round(localX / CROWD_TRAIL_MARK_QUANT) + '|' + Math.round(localZ / CROWD_TRAIL_MARK_QUANT);
+  function crowdTrailSegmentY(x, z) {
+    return terrainRiseAt(x, z) + TOP_H + CROWD_TRAIL_SEGMENT_HALF + 0.002;
   }
 
-  function crowdTrailMarkY(x, z) {
-    return terrainRiseAt(x, z) + TOP_H + CROWD_TRAIL_MARK_HALF + 0.002;
-  }
-
-  function crowdTrailMarksForTile(tileKey) {
-    let marks = crowdTrailMarksByTile.get(tileKey);
-    if (!marks) {
-      marks = new Map();
-      crowdTrailMarksByTile.set(tileKey, marks);
+  function crowdTrailSegmentsForTile(tileKey) {
+    let segments = crowdTrailSegmentsByTile.get(tileKey);
+    if (!segments) {
+      segments = [];
+      crowdTrailSegmentsByTile.set(tileKey, segments);
     }
-    return marks;
+    return segments;
   }
 
-  function crowdTrailRefreshTileMarks(x, z) {
+  function crowdTrailRefreshTileSegments(x, z) {
     const tileKey = crowdTrailTileKey(x, z);
-    const marks = crowdTrailMarksByTile.get(tileKey);
-    if (!marks || !marks.size) return;
-    const baseX = cellWorldX(x);
-    const baseZ = cellWorldZ(z);
-    const y = crowdTrailMarkY(x, z);
-    marks.forEach(mesh => {
+    const segments = crowdTrailSegmentsByTile.get(tileKey);
+    if (!segments || !segments.length) return;
+    const y = crowdTrailSegmentY(x, z);
+    segments.forEach(mesh => {
       if (!mesh || !mesh.userData) return;
-      mesh.position.set(baseX + mesh.userData.localX, y, baseZ + mesh.userData.localZ);
+      mesh.position.y = y;
     });
   }
 
-  function crowdTrailAddMark(tileX, tileZ) {
-    if (!Number.isFinite(tileX) || !Number.isFinite(tileZ)) return;
-    const clampedX = crowdClamp(tileX, -0.5, GRID_W - 0.5);
-    const clampedZ = crowdClamp(tileZ, -0.5, GRID_D - 0.5);
-    const x = Math.max(0, Math.min(GRID_W - 1, Math.floor(clampedX + 0.5)));
-    const z = Math.max(0, Math.min(GRID_D - 1, Math.floor(clampedZ + 0.5)));
-    const localX = crowdClamp(clampedX - x, -CROWD_TRAIL_MARK_MAX_OFFSET, CROWD_TRAIL_MARK_MAX_OFFSET);
-    const localZ = crowdClamp(clampedZ - z, -CROWD_TRAIL_MARK_MAX_OFFSET, CROWD_TRAIL_MARK_MAX_OFFSET);
+  function crowdTrailAddSegment(fromX, fromZ, toX, toZ) {
+    if (!Number.isFinite(fromX) || !Number.isFinite(fromZ) || !Number.isFinite(toX) || !Number.isFinite(toZ)) return null;
+    const clampedFromX = crowdClamp(fromX, -0.5, GRID_W - 0.5);
+    const clampedFromZ = crowdClamp(fromZ, -0.5, GRID_D - 0.5);
+    const clampedToX = crowdClamp(toX, -0.5, GRID_W - 0.5);
+    const clampedToZ = crowdClamp(toZ, -0.5, GRID_D - 0.5);
+    const dx = clampedToX - clampedFromX;
+    const dz = clampedToZ - clampedFromZ;
+    const len = Math.hypot(dx, dz);
+    if (!(len > 0)) return null;
+
+    const midX = (clampedFromX + clampedToX) * 0.5;
+    const midZ = (clampedFromZ + clampedToZ) * 0.5;
+    const x = Math.max(0, Math.min(GRID_W - 1, Math.floor(midX + 0.5)));
+    const z = Math.max(0, Math.min(GRID_D - 1, Math.floor(midZ + 0.5)));
     const tileKey = crowdTrailTileKey(x, z);
-    const markKey = crowdTrailMarkKey(localX, localZ);
-    const marks = crowdTrailMarksForTile(tileKey);
-    const existing = marks.get(markKey);
-    if (existing) {
-      existing.position.set(cellWorldX(x) + existing.userData.localX, crowdTrailMarkY(x, z), cellWorldZ(z) + existing.userData.localZ);
-      return existing;
-    }
-    const mesh = new THREE.Mesh(crowdTrailMarkGeo, crowdWalkRedMat);
+
+    const mesh = new THREE.Mesh(crowdTrailSegmentGeo, crowdWalkRedMat);
     mesh.userData = {
       kind: 'crowdTrail',
       tileKey,
-      markKey,
-      localX,
-      localZ,
+      tileX: x,
+      tileZ: z,
     };
     mesh.castShadow = false;
     mesh.receiveShadow = false;
     mesh.renderOrder = CROWD_TRAIL_RENDER_ORDER;
     mesh.frustumCulled = false;
-    mesh.position.set(cellWorldX(x) + localX, crowdTrailMarkY(x, z), cellWorldZ(z) + localZ);
+    mesh.position.set(cellWorldX(midX), crowdTrailSegmentY(x, z), cellWorldZ(midZ));
+    mesh.rotation.y = Math.atan2(-dz, dx);
+    mesh.scale.set(len + CROWD_TRAIL_SEGMENT_OVERLAP, 1, 1);
     crowdTrailGroup.add(mesh);
-    marks.set(markKey, mesh);
+    crowdTrailSegmentsForTile(tileKey).push(mesh);
     return mesh;
   }
 
-  function crowdTrailMarkSegment(fromX, fromZ, toX, toZ) {
+  function crowdTrailPaintSegment(fromX, fromZ, toX, toZ) {
     const dx = toX - fromX;
     const dz = toZ - fromZ;
     const len = Math.hypot(dx, dz);
-    if (!(len > 0)) {
-      crowdTrailAddMark(toX, toZ);
-      return;
-    }
+    if (!(len > 0)) return;
     const steps = Math.max(1, Math.ceil(len / CROWD_TRAIL_SAMPLE_STEP));
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      crowdTrailAddMark(fromX + dx * t, fromZ + dz * t);
+    for (let i = 0; i < steps; i++) {
+      const t0 = i / steps;
+      const t1 = (i + 1) / steps;
+      crowdTrailAddSegment(
+        fromX + dx * t0,
+        fromZ + dz * t0,
+        fromX + dx * t1,
+        fromZ + dz * t1,
+      );
     }
   }
 
   function clearCrowdTrails() {
-    crowdTrailMarksByTile.clear();
+    crowdTrailSegmentsByTile.clear();
     for (const child of crowdTrailGroup.children.slice()) {
       crowdTrailGroup.remove(child);
       disposeGroup(child);
@@ -7007,7 +7006,7 @@
       const fromZ = Number.isFinite(person.trailLastZ) ? person.trailLastZ : person.z;
       const toX = person.x;
       const toZ = person.z;
-      crowdTrailMarkSegment(fromX, fromZ, toX, toZ);
+      crowdTrailPaintSegment(fromX, fromZ, toX, toZ);
       person.trailLastX = toX;
       person.trailLastZ = toZ;
     });
@@ -7036,7 +7035,7 @@
     tile.userData.gz = z;
     tile.userData.fadeRole = 'tile';
     applyWeatherTileEffect(tile);
-    crowdTrailRefreshTileMarks(x, z);
+    crowdTrailRefreshTileSegments(x, z);
     prepareFadeable(tile, { opacity: opacityAtWorldPosition(p.x, p.z), grayscale: isOutsideHomeGrid(x, z) });
     worldGroup.add(tile);
     entry.tile = tile;

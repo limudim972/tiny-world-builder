@@ -11,8 +11,8 @@ Core rules:
 
 - Trail marks must stay tile-local and persistent after the walker moves on.
 - Paint the exact path the person actually crossed, not the destination route or the whole tile.
-- Prefer small, dense footprints/stamps over large filled overlays.
-- Render the marks as an overlay decal so they stay visible at close top-down zoom.
+- Prefer a continuous, thick stroke over separated blobs when the user wants a line trail.
+- Render the trail as an overlay decal so it stays visible at close top-down zoom.
 - Reposition marks when tiles rebuild so the trail stays attached to the live tile surface.
 - Clear trail state when the scene is reset or reloaded.
 
