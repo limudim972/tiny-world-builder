@@ -53,6 +53,11 @@ Use this when editing crowd pathing around houses in
 - Door travel needs a direct portal corridor exception: once a step is already
   inside the chosen door gap corridor, do not snap it back out to the door's
   outside anchor or the person will oscillate at the threshold.
+- Door portal exceptions must stay corridor-aligned. Being near a doorway is
+  not enough to permit an arbitrary diagonal segment through the wall.
+- Route targets and per-frame steps need a wall-buffer cleanup around house
+  envelopes, especially on board-edge houses where the detour ring can collapse
+  onto an actual wall edge.
 - If `crowdConstrainMoveStep()` collapses a move back onto the current stop
   after house normalization, return `advanceTarget: true` so
   `TinyCrowdLayer.tickRoute()` can step to the next waypoint instead of
