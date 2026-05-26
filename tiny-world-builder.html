@@ -4873,7 +4873,7 @@
         person.crowdDoorwayWatch = { since: now, x: person.x, z: person.z };
         return;
       }
-      if (now - watch.since < 2500) return;
+      if (now - watch.since < (CROWD_HOUSE_VISIT_DWELL * 1000) + 100) return;
       const exitEnvelope = envelope || (portal && portal.envelope);
       const exitGap = (portal && portal.gap) || crowdChooseDoorGap(exitEnvelope, point, point);
       crowdQueueDoorwayExit(person, exitEnvelope, exitGap);
