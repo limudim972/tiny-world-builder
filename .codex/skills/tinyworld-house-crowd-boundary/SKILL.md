@@ -59,6 +59,12 @@ Use this when editing crowd pathing around houses in
   freezing on an interior stop.
 - On ultra-sparse boards, skip ambient house-visit dwell so the crowd keeps
   circulating instead of parking on the only walkable tile.
+- Ambient house visits should target interior stop points only. Exterior door
+  anchors are route waypoints for crossing the portal, not standalone visit
+  destinations, or people can appear parked outside the house.
+- Doorway recovery should measure actual displacement over time, not just
+  nonzero speed. A person can report speed while route constraints keep them
+  visually pinned in the door portal.
 - Rain/storm can repurpose the same envelope graph to send active people to
   the nearest interior stop point, then stage a clear-weather exit in a small
   outside queue before restoring each person's saved route.

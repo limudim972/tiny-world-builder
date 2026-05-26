@@ -4628,6 +4628,18 @@
     );
   }
 
+  function crowdFindDoorPortalForPoint(point, envelopes, pad = 0.08) {
+    if (!point || !Array.isArray(envelopes)) return null;
+    for (const envelope of envelopes) {
+      for (const gap of crowdDoorGapCandidates(envelope)) {
+        if (crowdPointInDoorPortal(point, envelope, gap, pad)) {
+          return { envelope, gap };
+        }
+      }
+    }
+    return null;
+  }
+
   function crowdChooseDoorGap(envelope, a, b) {
     const candidates = crowdDoorGapCandidates(envelope);
     if (!candidates.length) return null;
@@ -4805,6 +4817,69 @@
     return crowdClampPointToRect(projected, boardRect);
   }
 
+  function crowdQueueDoorwayExit(person, envelope, gap) {
+    if (!person || !envelope || !gap) return false;
+    const release = crowdRainExitReleasePoint(envelope, gap, 0, 1);
+    const away = crowdClampPointToRect({
+      x: release.x + (gap.side === 'e' ? 0.32 : (gap.side === 'w' ? -0.32 : 0)),
+      z: release.z + (gap.side === 's' ? 0.32 : (gap.side === 'n' ? -0.32 : 0)),
+    }, crowdBoardRect());
+    person.x = release.x;
+    person.z = release.z;
+    person.route = [
+      crowdClonePoint(release),
+      crowdClonePoint(away),
+    ];
+    person.routeIndex = 0;
+    person.routeHold = 0;
+    person.speed = Math.max(person.speed || 0, person.baseSpeed || 0, 0.55);
+    person.crowdDoorwayWatch = null;
+    return true;
+  }
+
+  function syncCrowdDoorwayRecovery() {
+    if (!crowdLayer || !crowdLayer.loaded) return;
+    const envelopes = crowdCollectHouseEnvelopes();
+    if (!envelopes.length) return;
+    const now = performance.now();
+    crowdLayer.people.forEach(person => {
+      if (!person || person.falling || person.hoverPaused) return;
+      if (person.houseVisit && person.houseVisit.active) {
+        person.crowdDoorwayWatch = null;
+        return;
+      }
+      if (person.rainShelter && person.rainShelter.active) {
+        person.crowdDoorwayWatch = null;
+        return;
+      }
+      const point = { x: person.x, z: person.z };
+      const envelope = crowdFindEnvelopeForPoint(point, envelopes, 0.001);
+      const portal = crowdFindDoorPortalForPoint(point, envelopes, 0.08);
+      if (!envelope && !portal) {
+        person.crowdDoorwayWatch = null;
+        return;
+      }
+      if (person.routeHold > 0) {
+        person.crowdDoorwayWatch = null;
+        return;
+      }
+      const watch = person.crowdDoorwayWatch;
+      if (!watch) {
+        person.crowdDoorwayWatch = { since: now, x: person.x, z: person.z };
+        return;
+      }
+      const drift = Math.hypot(person.x - watch.x, person.z - watch.z);
+      if (drift > 0.12) {
+        person.crowdDoorwayWatch = { since: now, x: person.x, z: person.z };
+        return;
+      }
+      if (now - watch.since < 2500) return;
+      const exitEnvelope = envelope || (portal && portal.envelope);
+      const exitGap = (portal && portal.gap) || crowdChooseDoorGap(exitEnvelope, point, point);
+      crowdQueueDoorwayExit(person, exitEnvelope, exitGap);
+    });
+  }
+
   function crowdCollectHouseVisitTargets(envelopes) {
     if (!Array.isArray(envelopes) || !envelopes.length) return [];
     const targets = [];
@@ -4814,7 +4889,6 @@
         const stop = crowdInteriorStopPoint(envelope, gap);
         stop.dwell = CROWD_HOUSE_VISIT_DWELL;
         targets.push(stop);
-        targets.push(crowdDoorPoint(envelope, gap, true));
       }
     }
     return targets;
@@ -5039,13 +5113,13 @@
       const shuffled = pathCells.slice().sort(() => Math.random() - 0.5);
       route = shuffled.slice(0, Math.min(10, shuffled.length)).map(jitter);
     }
-    if (houseVisits.length && Math.random() < 0.35) {
+    if (houseVisits.length && (index % 3 === 0 || Math.random() < 0.45)) {
       const visit = crowdClonePoint(houseVisits[index % houseVisits.length]);
       if (pathCells.length <= 1) visit.dwell = 0;
       if (!route || !route.length) {
         route = [visit];
       } else {
-        const slot = Math.min(route.length, Math.max(1, Math.floor(route.length * 0.5)));
+        const slot = Math.min(route.length, 1 + (index % Math.min(2, route.length)));
         route.splice(slot, 0, visit);
       }
     }
@@ -10893,6 +10967,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
       if (crowdHouseEnvelopeDirty) refreshCrowdPeopleAfterHouseChange();
       syncCrowdHouseVisitState();
       syncCrowdRainShelterState('pre');
+      syncCrowdDoorwayRecovery();
       crowdLayer.update(dt, camera);
       syncCrowdRainShelterState('post');
     }
