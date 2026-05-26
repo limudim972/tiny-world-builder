@@ -39,6 +39,12 @@ Use this when editing crowd pathing around houses in
   path forever.
 - Wander points should cover more of each tile than just the center so people
   can drift near edges and corners, not orbit one spot.
+- Ambient crowd routing should use every unoccupied home-board cell, not only
+  `path` terrain. Paths are visual terrain; house envelopes and wall buffers
+  decide where people cannot walk.
+- Prefer continuous free-space samples that are visible from the current point
+  before falling back to constrained detours. Otherwise random cell waypoints
+  can cut through houses and turn every route into a perimeter corridor.
 - After a house add/remove, refresh ambient routes once so walkers pick up the
   new walkable tiles without clearing active house-visit or rain-shelter state.
 

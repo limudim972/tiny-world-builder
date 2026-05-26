@@ -5047,6 +5047,81 @@
     };
   }
 
+  function crowdPointInOccupiedCell(point) {
+    const x = Math.max(0, Math.min(GRID_W - 1, Math.round(point.x)));
+    const z = Math.max(0, Math.min(GRID_D - 1, Math.round(point.z)));
+    const cell = getWorldCell(x, z);
+    return !!(cell && cell.kind && cell.kind !== 'bridge');
+  }
+
+  function crowdRandomHomePoint(pathCells, envelopes, seedPoint = null) {
+    if (!Array.isArray(pathCells) || !pathCells.length) return null;
+    const board = crowdBoardRect(0.04);
+    let best = null;
+    let bestScore = -Infinity;
+    for (let i = 0; i < 36; i++) {
+      const cell = pathCells[(Math.random() * pathCells.length) | 0];
+      let point = {
+        x: crowdClamp(cell.x + (Math.random() - 0.5) * 0.92, board.minX, board.maxX),
+        z: crowdClamp(cell.z + (Math.random() - 0.5) * 0.92, board.minZ, board.maxZ),
+      };
+      if (crowdPointInOccupiedCell(point)) continue;
+      if (crowdFindEnvelopeForPoint(point, envelopes, 0.001)) continue;
+      if (crowdFindEnvelopeWallBufferForPoint(point, envelopes, 0.04) && !crowdFindDoorPortalForPoint(point, envelopes, 0.06)) {
+        point = crowdSanitizeWallBufferPoint(point, envelopes);
+      }
+      if (crowdPointInOccupiedCell(point)) continue;
+      if (crowdFindEnvelopeForPoint(point, envelopes, 0.001)) continue;
+      const edgeScore = Math.min(
+        Math.abs(point.x - board.minX),
+        Math.abs(point.x - board.maxX),
+        Math.abs(point.z - board.minZ),
+        Math.abs(point.z - board.maxZ),
+      );
+      const travelScore = seedPoint ? crowdDist(seedPoint, point) : 0;
+      const score = travelScore + (Math.random() * 0.35) - Math.abs(edgeScore - 0.16) * 0.25;
+      if (score > bestScore) {
+        bestScore = score;
+        best = point;
+      }
+    }
+    return best || crowdWanderPoint(pathCells[(Math.random() * pathCells.length) | 0], 0.46);
+  }
+
+  function crowdSegmentClearOfHouse(a, b, envelopes) {
+    if (!Array.isArray(envelopes) || !envelopes.length) return true;
+    for (const envelope of envelopes) {
+      const aInside = crowdPointInsideRect(a, envelope.inner, 0.001);
+      const bInside = crowdPointInsideRect(b, envelope.inner, 0.001);
+      if (aInside && bInside) continue;
+      if (!crowdSegmentIntersectsRect(a, b, envelope.inner, -0.001)) continue;
+      const doorOk = crowdDoorGapCandidates(envelope).some(gap => crowdSegmentUsesDoorPortal(a, b, envelope, gap));
+      if (!doorOk) return false;
+    }
+    return true;
+  }
+
+  function crowdFreeSpaceRoute(seed, pathCells, count, envelopes) {
+    const route = [];
+    let cursor = crowdClonePoint(seed);
+    const maxPoints = Math.max(3, count || 10);
+    for (let i = 0; i < maxPoints; i++) {
+      let chosen = null;
+      for (let attempt = 0; attempt < 24; attempt++) {
+        const point = crowdRandomHomePoint(pathCells, envelopes, cursor);
+        if (!point) continue;
+        if (!crowdSegmentClearOfHouse(cursor, point, envelopes)) continue;
+        chosen = point;
+        break;
+      }
+      if (!chosen) chosen = crowdRandomHomePoint(pathCells, envelopes, cursor);
+      if (!chosen) break;
+      crowdAppendPoint(route, chosen);
+      cursor = chosen;
+    }
+    return route;
+  }
+
   function crowdSparsePathRoute(seed, pathCells, index, houseEnvelopes) {
     if (!Array.isArray(pathCells) || pathCells.length < 2) {
       return crowdSparsePerimeterRoute(seed, index, houseEnvelopes);
@@ -5190,7 +5265,7 @@
     if (x < 0 || x >= GRID_W || z < 0 || z >= GRID_D) return false;
     const cell = getWorldCell(x, z);
     if (cell.kind === 'bridge') return true;
-    return cell.terrain === 'path' && !cell.kind;
+    return !cell.kind;
   }
 
   function collectCrowdPathCells() {
@@ -5198,13 +5273,6 @@
     for (let x = 0; x < GRID_W; x++) {
       for (let z = 0; z < GRID_D; z++) {
         if (isCrowdWalkableCell(x, z)) cells.push({ x, z });
-      }
-    }
-    if (cells.length) return cells;
-    for (let x = 0; x < GRID_W; x++) {
-      for (let z = 0; z < GRID_D; z++) {
-        const cell = getWorldCell(x, z);
-        if (!cell.kind) cells.push({ x, z });
       }
     }
     return cells;
@@ -5237,8 +5305,7 @@
         .slice(0, 10)
         .map(jitter);
     } else {
-      const shuffled = pathCells.slice().sort(() => Math.random() - 0.5);
-      route = shuffled.slice(0, Math.min(10, shuffled.length)).map(jitter);
+      route = crowdFreeSpaceRoute(seed, pathCells, Math.min(12, Math.max(8, pathCells.length * 3)), houseEnvelopes || []);
     }
     const shouldVisitHouse = index % 3 === 0 || Math.random() < 0.45;
     if (houseVisits.length && shouldVisitHouse) {
