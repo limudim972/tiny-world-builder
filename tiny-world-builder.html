@@ -4281,12 +4281,12 @@
 
   // Keep crowd sprites clear of house walls, but only by a thin margin so the
   // crowd can read as "near" the buildings without visibly floating away.
-  const CROWD_HOUSE_CLEARANCE = 0.08;
+  const CROWD_HOUSE_CLEARANCE = 0.01;
   const CROWD_HOUSE_EXCLUSION_PAD = CROWD_HOUSE_CLEARANCE;
-  const CROWD_HOUSE_RING_WIDTH = 0.24;
-  const CROWD_DOOR_GAP_PAD = 0.06;
+  const CROWD_HOUSE_RING_WIDTH = 0.01;
+  const CROWD_DOOR_GAP_PAD = 0.04;
   const CROWD_DOOR_INSET = CROWD_HOUSE_CLEARANCE;
-  const CROWD_INTERIOR_STOP = 1.08;
+  const CROWD_INTERIOR_STOP = 0.96;
   const CROWD_HOUSE_VISIT_DWELL = 1;
   const CROWD_ROUTE_POINT_EPS = 0.012;
   const CROWD_ROUTE_MAX_POINTS = 36;
@@ -5022,8 +5022,8 @@
   }
 
   function crowdSparsePerimeterRoute(seed, index, houseEnvelopes) {
-    const boardRect = crowdBoardRect(0.04);
-    const inset = Math.min(0.12, Math.max(0.03, Math.min(GRID_W, GRID_D) * 0.04));
+    const boardRect = crowdBoardRect(0.025);
+    const inset = Math.min(0.08, Math.max(0.02, Math.min(GRID_W, GRID_D) * 0.03));
     const corners = [
       { x: boardRect.minX + inset, z: boardRect.minZ + inset },
       { x: boardRect.maxX - inset, z: boardRect.minZ + inset },
@@ -5067,7 +5067,7 @@
       };
       if (crowdPointInOccupiedCell(point)) continue;
       if (crowdFindEnvelopeForPoint(point, envelopes, 0.001)) continue;
-      if (crowdFindEnvelopeWallBufferForPoint(point, envelopes, 0.04) && !crowdFindDoorPortalForPoint(point, envelopes, 0.06)) {
+      if (crowdFindEnvelopeWallBufferForPoint(point, envelopes, 0.03) && !crowdFindDoorPortalForPoint(point, envelopes, 0.05)) {
         point = crowdSanitizeWallBufferPoint(point, envelopes);
       }
       if (crowdPointInOccupiedCell(point)) continue;
@@ -5078,11 +5078,11 @@
         Math.abs(point.z - board.minZ),
         Math.abs(point.z - board.maxZ),
       );
-      const edgeBias = 0.06;
+      const edgeBias = 0.04;
       const travelScore = seedPoint ? crowdDist(seedPoint, point) : 0;
       // Keep only a slight edge preference; otherwise sparse routes leave a
       // visible empty band around the border.
-      const score = travelScore + (Math.random() * 0.35) - Math.abs(edgeScore - edgeBias) * 0.12;
+      const score = travelScore + (Math.random() * 0.35) - Math.abs(edgeScore - edgeBias) * 0.08;
       if (score > bestScore) {
         bestScore = score;
         best = point;
