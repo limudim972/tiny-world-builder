@@ -2371,6 +2371,10 @@
               <input type="checkbox" id="crowd-debug" />
               <span>Debug animation</span>
             </label>
+            <label class="gen-check">
+              <input type="checkbox" id="crowd-trail-visible" />
+              <span>Show red trail</span>
+            </label>
             <button class="btn" id="crowd-reseed" type="button">Reseed crowd</button>
           </section>
 
@@ -2665,9 +2669,10 @@
     ghostOpacity: 'tinyworld:render:ghostOpacity',
     floorOpacity: 'tinyworld:render:floorOpacity',
     objectOpacity: 'tinyworld:render:objectOpacity',
+    crowdTrailVisible: 'tinyworld:render:crowdTrailVisible',
     version: 'tinyworld:render:version',
   };
-  const RENDER_SETTINGS_VERSION = '16';
+  const RENDER_SETTINGS_VERSION = '18';
   const RENDER_DEFAULTS = {
     // Defaults tuned to keep image quality crisp while still trimming
     // a few cheap things off the per-frame budget.
@@ -2698,6 +2703,7 @@
     ghostOpacity: '1',
     floorOpacity: '1',
     objectOpacity: '1',
+    crowdTrailVisible: '0',
   };
   const renderSettingsReset = localStorage.getItem(RENDER_LS.version) !== RENDER_SETTINGS_VERSION;
   if (renderSettingsReset) {
@@ -4225,6 +4231,7 @@
   let crowdLean = storedNumber(RENDER_LS.crowdLean, 0.07, 0, 0.2);
   let crowdDebug = localStorage.getItem(RENDER_LS.crowdDebug) === '1';
   let crowdMode = localStorage.getItem(RENDER_LS.crowdMode) || 'wander';
+  let crowdTrailVisible = localStorage.getItem(RENDER_LS.crowdTrailVisible) === '1';
 
   function persistCrowdSettings() {
     localStorage.setItem(RENDER_LS.crowdCount, String(crowdCount));
@@ -4235,6 +4242,7 @@
     localStorage.setItem(RENDER_LS.crowdLean, crowdLean.toFixed(2));
     localStorage.setItem(RENDER_LS.crowdDebug, crowdDebug ? '1' : '0');
     localStorage.setItem(RENDER_LS.crowdMode, crowdMode);
+    localStorage.setItem(RENDER_LS.crowdTrailVisible, crowdTrailVisible ? '1' : '0');
   }
 
   function crowdConfigOverride() {
@@ -4259,6 +4267,7 @@
   function applyCrowdSettings({ reseed = false } = {}) {
     crowdCount = Math.max(1, Math.min(5, Math.round(crowdCount || 5)));
     persistCrowdSettings();
+    crowdTrailGroup.visible = crowdTrailVisible;
     if (!crowdLayer) return;
     crowdLayer.scale = crowdScale;
     crowdLayer.configure(crowdConfigOverride(), crowdWorldConfigOverride());
@@ -6984,6 +6993,7 @@
   const crowdTrailGroup = new THREE.Group();
   crowdTrailGroup.name = 'crowdTrailGroup';
   crowdTrailGroup.renderOrder = CROWD_TRAIL_RENDER_ORDER;
+  crowdTrailGroup.visible = crowdTrailVisible;
   worldGroup.add(crowdTrailGroup);
   const crowdTrailSegmentsByTile = new Map(); // 'x,z' -> Mesh[]
   const CROWD_TRAIL_SEGMENT_WIDTH = 0.12;
@@ -9570,6 +9580,7 @@
     const crowdLeanEl = document.getElementById('crowd-lean');
     const crowdReseedEl = document.getElementById('crowd-reseed');
     const crowdModeEl = document.getElementById('crowd-mode');
+    const crowdTrailVisibleEl = document.getElementById('crowd-trail-visible');
     const ghostOpacityEl = document.getElementById('render-ghost-opacity');
     const floorOpacityEl = document.getElementById('render-floor-opacity');
     const objectOpacityEl = document.getElementById('render-object-opacity');
@@ -9621,6 +9632,7 @@
       if (crowdSwayEl) crowdSwayEl.value = String(crowdSway);
       if (crowdLeanEl) crowdLeanEl.value = crowdLean.toFixed(2);
       if (crowdModeEl) crowdModeEl.value = crowdMode;
+      if (crowdTrailVisibleEl) crowdTrailVisibleEl.checked = crowdTrailVisible;
       ghostOpacityEl.value = String(Math.round(renderGhostOpacity * 100));
       floorOpacityEl.value = String(Math.round(renderFloorOpacity * 100));
       objectOpacityEl.value = String(Math.round(renderObjectOpacity * 100));
@@ -9694,6 +9706,7 @@
       crowdSway = crowdSwayEl ? parseFloat(crowdSwayEl.value) : crowdSway;
       crowdLean = crowdLeanEl ? parseFloat(crowdLeanEl.value) : crowdLean;
       crowdMode = crowdModeEl ? crowdModeEl.value : crowdMode;
+      crowdTrailVisible = crowdTrailVisibleEl ? crowdTrailVisibleEl.checked : crowdTrailVisible;
       applyCrowdSettings();
       renderGhostOpacity = parseInt(ghostOpacityEl.value, 10) / 100;
       renderFloorOpacity = parseInt(floorOpacityEl.value, 10) / 100;
@@ -9729,7 +9742,7 @@
     });
     closeBtn.addEventListener('click', () => { closeTinyModal(modal); });
     modal.addEventListener('click', e => { if (e.target === modal) closeTinyModal(modal); });
-    for (const el of [shadowEl, resolutionEl, distanceEl, visibleSizeEl, brightnessEl, lightingEl, saturationEl, contrastEl, cloudsEl, cloudSpeedEl, cloudHeightEl, cloudShadowEl, tiltFocusEl, ghostOpacityEl, floorOpacityEl, objectOpacityEl, crowdCountEl, crowdScaleEl, crowdSpeedEl, crowdBobEl, crowdSwayEl, crowdLeanEl, crowdModeEl]) {
+    for (const el of [shadowEl, resolutionEl, distanceEl, visibleSizeEl, brightnessEl, lightingEl, saturationEl, contrastEl, cloudsEl, cloudSpeedEl, cloudHeightEl, cloudShadowEl, tiltFocusEl, ghostOpacityEl, floorOpacityEl, objectOpacityEl, crowdCountEl, crowdScaleEl, crowdSpeedEl, crowdBobEl, crowdSwayEl, crowdLeanEl, crowdModeEl, crowdTrailVisibleEl]) {
       if (!el) continue;
       el.addEventListener('input', applyFromControls);
       el.addEventListener('change', applyFromControls);
