@@ -4291,6 +4291,7 @@
   // Keep crowd sprites clear of house walls, but only by a thin margin so the
   // crowd can read as "near" the buildings without visibly floating away.
   const CROWD_HOUSE_CLEARANCE = 0.01;
+  const CROWD_HOUSE_WALL_LIFT = CROWD_HOUSE_CLEARANCE + 0.1;
   const CROWD_HOUSE_EXCLUSION_PAD = CROWD_HOUSE_CLEARANCE;
   const CROWD_HOUSE_RING_WIDTH = 0.18;
   const CROWD_DOOR_GAP_PAD = 0.04;
@@ -5252,7 +5253,12 @@
         maxZ: Math.min(boardRect.maxZ, inner.maxZ + CROWD_HOUSE_RING_WIDTH),
       };
       const doors = crowdCollectDoorGaps(mesh, rawInner, box.min.y);
-      envelopes.push({ inner, outer, doors });
+      envelopes.push({
+        inner,
+        outer,
+        doors,
+        wallTopY: Math.max(box.min.y, box.max.y - 0.03),
+      });
     }
     for (const envelope of envelopes) {
       for (const gap of envelope.doors) {
@@ -5268,10 +5274,24 @@
     return crowdHouseEnvelopes;
   }
 
+  function crowdHouseWallLiftAtPoint(x, z, envelopes) {
+    if (!Array.isArray(envelopes) || !envelopes.length) return 0;
+    const point = { x, z };
+    let lift = 0;
+    for (const envelope of envelopes) {
+      if (crowdPointInsideRect(point, envelope.inner, 0.001)) return 0;
+      if (!crowdPointInsideRect(point, crowdExpandRect(envelope.inner, CROWD_HOUSE_CLEARANCE), 0)) continue;
+      const wallTopY = Number.isFinite(envelope.wallTopY) ? envelope.wallTopY : 0;
+      lift = Math.max(lift, wallTopY + CROWD_HOUSE_WALL_LIFT);
+    }
+    return lift;
+  }
+
   function crowdTerrainHeightAt(x, z) {
     const cellX = Math.max(0, Math.min(GRID_W - 1, Math.round(x)));
     const cellZ = Math.max(0, Math.min(GRID_D - 1, Math.round(z)));
-    return TOP_H + terrainRiseAt(cellX, cellZ) + 0.025;
+    const base = TOP_H + terrainRiseAt(cellX, cellZ) + 0.025;
+    return Math.max(base, crowdHouseWallLiftAtPoint(x, z, crowdCollectHouseEnvelopes()));
   }
 
   function isCrowdWalkableCell(x, z) {
