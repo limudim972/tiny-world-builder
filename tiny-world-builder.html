@@ -12923,7 +12923,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
   }
   function minimapCellFill(cell, mode) {
     const fillMode = mode === 'numbers' ? 'numbers' : mode;
-    if (fillMode === 'numbers') return '#ffffff';
+    if (fillMode === 'numbers') return 'transparent';
     if (!cell) return 'rgba(255,255,255,0.18)';
     const palette = {
       grass: [145, 190, 95],
@@ -13080,6 +13080,8 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
       for (let z = 0; z < view.depth; z++) {
         for (let x = 0; x < view.width; x++) {
           const cell = view.mapCell(x, z);
+          const floors = cell ? (cell.kind ? (cell.floors || 1) : (cell.terrainFloors || 1)) : 1;
+          const showFloors = minimapMode === 'numbers' && !!cell && !!cell.kind;
           const cellEl = document.createElement('div');
           cellEl.className = 'stacked-map-cell';
           if (x === view.width - 1) cellEl.classList.add('is-edge-right');
@@ -13087,6 +13089,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
           cellEl.style.background = minimapMode === 'top'
             ? minimapTopCellFill(cell)
             : minimapCellFill(cell, minimapMode);
+          cellEl.innerHTML = showFloors ? `<span class="stacked-map-number">${floors}</span>` : '';
           fragment.appendChild(cellEl);
         }
       }
