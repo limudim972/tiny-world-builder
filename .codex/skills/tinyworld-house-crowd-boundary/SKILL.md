@@ -15,6 +15,8 @@ Use this when editing crowd pathing around houses in
 - Crowd can move around the **outer ring** but may only enter/exit a house
   through detected **door gaps**.
 - Spawn points must be projected outside house interiors.
+- Keep the wall buffer thin enough to avoid a visible dead zone, but not so
+  thin that billboard characters clip corners.
 - Keep sprite rendering untouched; this is a spatial/pathing layer only.
 
 ## Main helpers
@@ -30,6 +32,8 @@ Use this when editing crowd pathing around houses in
 - Route builders must preserve a seed lead-in when a constrained route would
   collapse to a single waypoint; `TinyCrowdLayer.tickRoute()` treats 1-point
   routes as idle.
+- Sparse-board routing should use only a light board-edge preference; avoid
+  reintroducing a wide empty band around the perimeter when tuning scores.
 - On very sparse boards, short ambient routes should fall back to a longer
   perimeter circuit instead of jittering around the same open tile cluster.
 - On 2-open-tile boards, route directly between the two open cells instead of
