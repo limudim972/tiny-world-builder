@@ -32,6 +32,8 @@ Use this when editing crowd pathing around houses in
 - Route builders must preserve a seed lead-in when a constrained route would
   collapse to a single waypoint; `TinyCrowdLayer.tickRoute()` treats 1-point
   routes as idle.
+- Completed routes should end or reroll, not modulo-wrap back to waypoint 0;
+  otherwise open routes visibly backtrack to their starting point.
 - Ambient route completion should reroll until it gets a different path edge
   signature, not just a rotated waypoint list, and it should keep a longer
   recent route history so walkers do not restart the same visible path after

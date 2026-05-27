@@ -739,12 +739,18 @@
       const target = person.route[person.routeIndex % person.route.length];
       const advanceRouteTarget = () => {
         const reachedFinalTarget = person.routeIndex >= person.route.length - 1;
+        const routeBeforeComplete = person.route;
         if (reachedFinalTarget && this.onRouteComplete) {
           const handled = this.onRouteComplete(person, target);
-          if (handled) return true;
+          if (handled || person.route !== routeBeforeComplete) return true;
         }
         if (target && target.dwell > 0) person.routeHold = target.dwell;
-        person.routeIndex = (person.routeIndex + 1) % person.route.length;
+        if (reachedFinalTarget) {
+          person.route = null;
+          person.routeIndex = 0;
+          return true;
+        }
+        person.routeIndex = person.routeIndex + 1;
         return false;
       };
       const dx = target.x - person.x;
