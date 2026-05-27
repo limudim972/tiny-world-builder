@@ -284,6 +284,14 @@
     justify-content: center;
     cursor: pointer;
   }
+  .audio-mute .tool-icon {
+    width: 14px;
+    height: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
   .audio-mute svg {
     width: 14px;
     height: 14px;
@@ -2007,6 +2015,24 @@
     .tool .tool-thumb { width: 28px; height: 28px; }
     .unsaved-banner { bottom: 90px; font-size: 11.5px; padding: 7px 12px 7px 10px; }
   }
+  @media (max-width: 700px) {
+    .minimap-wrap {
+      top: auto;
+      right: auto;
+      bottom: 12px;
+      left: 12px;
+    }
+    .toolbar {
+      padding: 0 10px;
+      max-width: calc(100vw - 24px);
+    }
+    .toolbar > :not(.toolbar-menu-btn) {
+      display: none !important;
+    }
+    .toolbar .toolbar-menu-btn {
+      display: flex !important;
+    }
+  }
   @media (hover: none), (pointer: coarse) {
     .help { display: none; }
     .btn { padding: 11px 14px; min-height: 44px; }
@@ -2177,12 +2203,16 @@
 
   <div id="audio-panel" class="audio-panel" role="group" aria-label="בקרת צליל">
     <button type="button" class="audio-mute" id="audio-music-mute" data-tooltip="השתקת מוזיקה" aria-label="השתקת מוזיקה">
-      <svg class="ic-on" viewBox="0 0 24 24"><path d="M9 18V6l11-3v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="15" r="3"/></svg>
-      <svg class="ic-off" viewBox="0 0 24 24"><path d="M9 18V6l11-3v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="15" r="3"/><path d="M3 3l18 18"/></svg>
+      <span class="tool-icon" aria-hidden="true">
+        <svg class="ic-on" viewBox="0 0 24 24"><path d="M9 18V6l11-3v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="15" r="3"/></svg>
+        <svg class="ic-off" viewBox="0 0 24 24"><path d="M9 18V6l11-3v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="15" r="3"/><path d="M3 3l18 18"/></svg>
+      </span>
     </button>
     <button type="button" class="audio-mute" id="audio-sfx-mute" data-tooltip="השתקת אפקטים" aria-label="השתקת אפקטים">
-      <svg class="ic-on" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-      <svg class="ic-off" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6"/><path d="M16 9l6 6"/></svg>
+      <span class="tool-icon" aria-hidden="true">
+        <svg class="ic-on" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        <svg class="ic-off" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6"/><path d="M16 9l6 6"/></svg>
+      </span>
     </button>
   </div>
 
@@ -13173,10 +13203,18 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
 
     // -- draggable minimap --
     // Stored as top/left offsets so any viewport size resolves the same.
-    const MINIMAP_POS_KEY = 'tinyworld:minimap.pos';
+    const MINIMAP_POS_KEY_DESKTOP = 'tinyworld:minimap.pos';
+    const MINIMAP_POS_KEY_MOBILE = 'tinyworld:minimap.pos.mobile';
+    function minimapPosKey() {
+      return window.innerWidth <= 700 ? MINIMAP_POS_KEY_MOBILE : MINIMAP_POS_KEY_DESKTOP;
+    }
     function applyStoredMinimapPos() {
+      wrap.style.top = '';
+      wrap.style.left = '';
+      wrap.style.right = '';
+      wrap.style.bottom = '';
       try {
-        const raw = localStorage.getItem(MINIMAP_POS_KEY);
+        const raw = localStorage.getItem(minimapPosKey());
         if (!raw) return;
         const p = JSON.parse(raw);
         if (!Number.isFinite(p.top) || !Number.isFinite(p.left)) return;
@@ -13229,7 +13267,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
       if (moved) {
         const r = wrap.getBoundingClientRect();
         try {
-          localStorage.setItem(MINIMAP_POS_KEY, JSON.stringify({
+          localStorage.setItem(minimapPosKey(), JSON.stringify({
             top: Math.round(r.top),
             left: Math.round(r.left),
           }));
@@ -13239,6 +13277,10 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     wrap.addEventListener('pointerup', endMinimapDrag);
     wrap.addEventListener('pointercancel', endMinimapDrag);
     applyStoredMinimapPos();
+    window.addEventListener('resize', () => {
+      if (mmDrag) return;
+      applyStoredMinimapPos();
+    });
 
     // The stacked minimap is display-only now; clicks are intentionally inert.
     // FPS readout — own RAF sampler so it reflects real frame time
