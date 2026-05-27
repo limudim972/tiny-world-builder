@@ -4290,7 +4290,7 @@
 
   // Keep crowd sprites clear of house walls, but only by a thin margin so the
   // crowd can read as "near" the buildings without visibly floating away.
-  const CROWD_HOUSE_CLEARANCE = 0.1;
+  const CROWD_HOUSE_CLEARANCE = 0.01;
   const CROWD_HOUSE_EXCLUSION_PAD = CROWD_HOUSE_CLEARANCE;
   const CROWD_HOUSE_RING_WIDTH = 0.18;
   const CROWD_DOOR_GAP_PAD = 0.04;
@@ -5562,7 +5562,21 @@
     };
   }
 
-  function crowdBeginRainShelter(person, shelterChoice) {
+  function crowdBuildHouseTransitionRoute(start, target, envelope, gap, envelopes) {
+    const routeTargets = [];
+    if (envelope && gap) {
+      routeTargets.push(crowdDoorPoint(envelope, gap, true));
+    }
+    routeTargets.push(crowdClonePoint(target));
+    const constrained = crowdConstrainRoute(start, routeTargets, Array.isArray(envelopes) ? envelopes : []);
+    if (Array.isArray(constrained) && constrained.length >= 2) return constrained;
+    return [
+      crowdClonePoint(start),
+      crowdClonePoint(target),
+    ];
+  }
+
+  function crowdBeginRainShelter(person, shelterChoice, envelopes = null) {
     if (!person || !shelterChoice || !shelterChoice.target) return;
     person.rainShelter = {
       active: true,
@@ -5581,10 +5595,13 @@
       exitTarget: null,
     };
     person.rainExitCooldownUntil = 0;
-    person.route = [
+    person.route = crowdBuildHouseTransitionRoute(
       { x: person.x, z: person.z },
-      crowdClonePoint(shelterChoice.target),
-    ];
+      shelterChoice.target,
+      shelterChoice.envelope,
+      shelterChoice.gap,
+      envelopes,
+    );
     person.routeIndex = 0;
     person.routeHold = 0;
     crowdSetRainShelterTravelSpeed(person);
@@ -5607,7 +5624,7 @@
     person.rainExitCooldownUntil = performance.now() + CROWD_RAIN_EXIT_COOLDOWN_MS;
   }
 
-  function crowdBeginRainExit(person, envelope, gap, slotIndex, slotCount) {
+  function crowdBeginRainExit(person, envelope, gap, slotIndex, slotCount, envelopes = null) {
     if (!person || !person.rainShelter || !person.rainShelter.active) return;
     if (!envelope || !gap) {
       crowdFinishRainShelter(person);
@@ -5617,10 +5634,13 @@
     shelter.exiting = true;
     shelter.arrived = false;
     shelter.exitTarget = crowdRainExitReleasePoint(envelope, gap, slotIndex, slotCount);
-    person.route = [
+    person.route = crowdBuildHouseTransitionRoute(
       { x: person.x, z: person.z },
-      crowdClonePoint(shelter.exitTarget),
-    ];
+      shelter.exitTarget,
+      envelope,
+      gap,
+      envelopes,
+    );
     person.routeIndex = 0;
     person.routeHold = 0;
     crowdSetRainShelterTravelSpeed(person);
@@ -5639,7 +5659,7 @@
         if (!shelter || !shelter.active) {
           const target = crowdPickRainShelterTarget(person, envelopes);
           if (!target) return;
-          crowdBeginRainShelter(person, target);
+          crowdBeginRainShelter(person, target, envelopes);
         }
         const activeShelter = person.rainShelter;
         if (!activeShelter) return;
@@ -5703,7 +5723,7 @@
           }
           const doors = group.slice().sort((a, b) => String(a.id).localeCompare(String(b.id)));
           for (let i = 0; i < doors.length; i++) {
-            crowdBeginRainExit(doors[i], envelope, gap, i, doors.length);
+            crowdBeginRainExit(doors[i], envelope, gap, i, doors.length, clearEnvelopes);
           }
         }
       }
@@ -8515,10 +8535,13 @@
             savedSpeed: person.speed || 0,
             exitTarget: null,
           };
-          person.route = [
+          person.route = crowdBuildHouseTransitionRoute(
             { x: person.x, z: person.z },
-            crowdClonePoint(target.target),
-          ];
+            target.target,
+            target.envelope,
+            target.gap,
+            houseEnvelopes,
+          );
           person.routeIndex = 0;
           person.routeHold = 0;
           person.speed = Math.max(person.speed || 0, 0.55);
@@ -8561,18 +8584,22 @@
           person.routeHold = 0;
           person.speed = 0;
           if (performance.now() >= visit.dwellUntil) {
+            const exitEnvelope = envelope;
             const exitTarget = crowdRainExitReleasePoint(
-              insideHouse || crowdFindEnvelopeByKey(houseEnvelopes, visit.envelopeKey || ''),
+              exitEnvelope,
               visit.gap,
               0,
               1,
             );
             visit.exiting = true;
             visit.exitTarget = exitTarget;
-            person.route = [
+            person.route = crowdBuildHouseTransitionRoute(
               { x: person.x, z: person.z },
-              crowdClonePoint(exitTarget),
-            ];
+              exitTarget,
+              exitEnvelope,
+              visit.gap,
+              houseEnvelopes,
+            );
             person.routeIndex = 0;
             person.routeHold = 0;
             person.speed = Math.max(visit.savedSpeed || 0, 0.55);
@@ -8634,10 +8661,13 @@
         const exitTarget = crowdRainExitReleasePoint(envelope, visit.gap, 0, 1);
         visit.exiting = true;
         visit.exitTarget = exitTarget;
-        person.route = [
+        person.route = crowdBuildHouseTransitionRoute(
           { x: person.x, z: person.z },
-          crowdClonePoint(exitTarget),
-        ];
+          exitTarget,
+          envelope,
+          visit.gap,
+          houseEnvelopes,
+        );
         person.routeIndex = 0;
         person.routeHold = 0;
         person.speed = Math.max(visit.savedSpeed || 0, 0.55);
