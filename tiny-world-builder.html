@@ -2026,8 +2026,14 @@
       padding: 0 10px;
       max-width: calc(100vw - 24px);
     }
-    .toolbar > :not(.toolbar-menu-btn) {
+    .toolbar:not(.mobile-expanded) > :not(.toolbar-menu-btn) {
       display: none !important;
+    }
+    .toolbar.mobile-expanded > :not(.toolbar-menu-btn) {
+      display: flex !important;
+    }
+    .toolbar.mobile-expanded {
+      padding: 0 14px;
     }
     .toolbar .toolbar-menu-btn {
       display: flex !important;
@@ -8437,7 +8443,11 @@
     menuBtn.innerHTML = '<span class="tool-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></span><span>תפריט</span>';
     menuBtn.addEventListener('click', e => {
       e.stopPropagation();
-      toggleControlsMenu();
+      if (isMobileToolbarMode()) {
+        toggleMobileToolbar();
+      } else {
+        toggleControlsMenu();
+      }
     });
     bar.appendChild(menuBtn);
     bar.appendChild(buildHomeGridToolbarControl());
@@ -8509,6 +8519,31 @@
       if (!b.dataset.id) return;
       b.classList.toggle('active', b.dataset.id === selectedTool.id);
     });
+  }
+
+  function isMobileToolbarMode() {
+    return window.innerWidth <= 700;
+  }
+
+  function setMobileToolbarExpanded(open) {
+    const bar = document.getElementById('toolbar');
+    const menuBtn = document.getElementById('controls-toggle');
+    if (!bar) return;
+    bar.classList.toggle('mobile-expanded', !!open);
+    if (menuBtn) {
+      menuBtn.classList.toggle('active', !!open);
+      menuBtn.setAttribute('aria-expanded', String(!!open));
+    }
+  }
+
+  function isMobileToolbarExpanded() {
+    const bar = document.getElementById('toolbar');
+    return !!(bar && bar.classList.contains('mobile-expanded'));
+  }
+
+  function toggleMobileToolbar(open) {
+    const nextOpen = typeof open === 'boolean' ? open : !isMobileToolbarExpanded();
+    setMobileToolbarExpanded(nextOpen);
   }
 
   function toggleControlsMenu(open) {
@@ -13335,6 +13370,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
         controlsToggle.classList.remove('active');
         controlsToggle.setAttribute('aria-expanded', 'false');
       }
+      setMobileToolbarExpanded(false);
       if (viewPopup) viewPopup.hidden = true;
       if (timePopup) timePopup.hidden = true;
     }
@@ -13348,6 +13384,15 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     if (controlsMenu) {
       controlsMenu.addEventListener('click', e => e.stopPropagation());
     }
+    document.addEventListener('pointerdown', e => {
+      if (!isMobileToolbarExpanded()) return;
+      if (e.target.closest('.toolbar')) return;
+      if (e.target.closest('.topbar-popup')) return;
+      setMobileToolbarExpanded(false);
+    });
+    window.addEventListener('resize', () => {
+      if (!isMobileToolbarMode()) setMobileToolbarExpanded(false);
+    });
 
     // -- view modes --
     if (viewBtn && viewPopup) {
