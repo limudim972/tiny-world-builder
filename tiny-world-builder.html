@@ -4281,15 +4281,16 @@
 
   // Keep crowd sprites clear of house walls, but only by a thin margin so the
   // crowd can read as "near" the buildings without visibly floating away.
-  const CROWD_HOUSE_CLEARANCE = 0.01;
+  const CROWD_HOUSE_CLEARANCE = 0.05;
   const CROWD_HOUSE_EXCLUSION_PAD = CROWD_HOUSE_CLEARANCE;
-  const CROWD_HOUSE_RING_WIDTH = 0.01;
+  const CROWD_HOUSE_RING_WIDTH = 0.18;
   const CROWD_DOOR_GAP_PAD = 0.04;
   const CROWD_DOOR_INSET = CROWD_HOUSE_CLEARANCE;
   const CROWD_INTERIOR_STOP = 0.96;
   const CROWD_HOUSE_VISIT_DWELL = 1;
   const CROWD_ROUTE_POINT_EPS = 0.012;
   const CROWD_ROUTE_MAX_POINTS = 36;
+  const CROWD_ROUTE_HISTORY_SIZE = 12;
   const CROWD_RAIN_EXIT_OUTSET = 0.18;
   const CROWD_RAIN_EXIT_SPREAD = 0.12;
   const CROWD_RAIN_EXIT_COOLDOWN_MS = 15000;
@@ -5327,6 +5328,120 @@
       return crowdSparsePerimeterRoute(seed, index, houseEnvelopes || []);
     }
     return constrained;
+  }
+
+  function crowdRotateRoute(route, offset) {
+    if (!Array.isArray(route) || route.length < 2) return route;
+    const len = route.length;
+    const turn = ((offset % len) + len) % len;
+    if (!turn) return route.slice();
+    return route.slice(turn).concat(route.slice(0, turn));
+  }
+
+  function crowdRouteShapeKey(route, snap = 0.5) {
+    // Edge-multiset signature: same path gets the same key even if it starts
+    // at a different waypoint or runs in reverse.
+    if (!Array.isArray(route) || route.length < 2) return '';
+    const nodes = [];
+    let prev = '';
+    for (const point of route) {
+      if (!point) continue;
+      const x = Number.isFinite(point.x) ? Math.round(point.x / snap) : 'nan';
+      const z = Number.isFinite(point.z) ? Math.round(point.z / snap) : 'nan';
+      const node = x + ',' + z;
+      if (node === prev) continue;
+      nodes.push(node);
+      prev = node;
+    }
+    if (nodes.length < 2) return nodes[0] || '';
+    const edges = [];
+    for (let i = 1; i < nodes.length; i++) {
+      const a = nodes[i - 1];
+      const b = nodes[i];
+      edges.push(a < b ? a + '>' + b : b + '>' + a);
+    }
+    edges.sort();
+    return edges.join('|');
+  }
+
+  function crowdBuildAmbientRouteCandidates(seed, pathCells, routeSeed, houseEnvelopes) {
+    const freeCount = Math.min(12, Math.max(8, pathCells.length * 3));
+    const freeTightCount = Math.max(4, freeCount - 2);
+    const freeWideCount = Math.min(CROWD_ROUTE_MAX_POINTS - 2, freeCount + 2);
+    const candidates = [
+      crowdRouteAround(seed, pathCells, routeSeed, houseEnvelopes),
+      crowdConstrainRoute(seed, crowdFreeSpaceRoute(seed, pathCells, freeTightCount, houseEnvelopes), houseEnvelopes),
+      crowdConstrainRoute(seed, crowdFreeSpaceRoute(seed, pathCells, freeCount, houseEnvelopes), houseEnvelopes),
+      crowdConstrainRoute(seed, crowdFreeSpaceRoute(seed, pathCells, freeWideCount, houseEnvelopes), houseEnvelopes),
+      crowdSparsePerimeterRoute(seed, routeSeed, houseEnvelopes),
+      crowdSparsePerimeterRoute(seed, routeSeed + 1, houseEnvelopes),
+    ];
+    if (pathCells.length > 1) {
+      candidates.push(crowdSparsePathRoute(seed, pathCells, routeSeed, houseEnvelopes));
+      candidates.push(crowdSparsePathRoute(seed, pathCells, routeSeed + 1, houseEnvelopes));
+    }
+    return candidates.filter(route => Array.isArray(route) && route.length);
+  }
+
+  function crowdDiversifyAmbientRoute(seed, route, pathCells, houseEnvelopes, routeSeed) {
+    if (!Array.isArray(route) || route.length < 2 || !Array.isArray(pathCells) || !pathCells.length) return route;
+    const diversified = route.map(crowdClonePoint);
+    const insertions = Math.min(2, Math.max(1, Math.floor(diversified.length / 4)));
+    const base = Math.abs(routeSeed || 0);
+    for (let i = 0; i < insertions; i++) {
+      const slotRange = Math.max(1, diversified.length - 1);
+      const insertAt = 1 + ((base + i * 13) % slotRange);
+      const anchor = diversified[Math.max(0, insertAt - 1)] || seed;
+      let point = crowdRandomHomePoint(pathCells, houseEnvelopes, anchor);
+      if (!point) {
+        const cell = pathCells[(base + i * 17) % pathCells.length];
+        point = crowdWanderPoint(cell, 0.5);
+      }
+      diversified.splice(insertAt, 0, point);
+    }
+    return crowdConstrainRoute(seed, diversified, houseEnvelopes);
+  }
+
+  function crowdFindUniqueAmbientRoute(seed, pathCells, routeSeed, houseEnvelopes, recentKeys) {
+    const seen = recentKeys instanceof Set ? recentKeys : new Set();
+    for (let variant = 0; variant < 48; variant++) {
+      const candidateSeed = routeSeed + variant * 97;
+      const candidates = crowdBuildAmbientRouteCandidates(seed, pathCells, candidateSeed, houseEnvelopes);
+      if (!candidates.length) continue;
+      const startOffset = candidateSeed % candidates.length;
+      for (let attempt = 0; attempt < candidates.length; attempt++) {
+        const candidate = candidates[(startOffset + attempt) % candidates.length];
+        const candidateKey = crowdRouteShapeKey(candidate);
+        if (!candidateKey) continue;
+        if (!seen.has(candidateKey)) {
+          return { route: candidate, routeKey: candidateKey };
+        }
+        for (let spin = 1; spin < Math.min(6, candidate.length); spin++) {
+          const diversified = crowdDiversifyAmbientRoute(seed, candidate, pathCells, houseEnvelopes, candidateSeed + attempt * 131 + spin * 17);
+          const diversifiedKey = crowdRouteShapeKey(diversified);
+          if (diversifiedKey && !seen.has(diversifiedKey)) {
+            return { route: diversified, routeKey: diversifiedKey };
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  function crowdForceUniqueAmbientRoute(seed, pathCells, routeSeed, houseEnvelopes, recentKeys) {
+    const seen = recentKeys instanceof Set ? recentKeys : new Set();
+    for (let attempt = 0; attempt < 48; attempt++) {
+      const candidateSeed = routeSeed + attempt * 389;
+      const candidates = crowdBuildAmbientRouteCandidates(seed, pathCells, candidateSeed, houseEnvelopes);
+      if (!candidates.length) continue;
+      const base = candidates[(candidateSeed + attempt) % candidates.length];
+      const route = crowdDiversifyAmbientRoute(seed, base, pathCells, houseEnvelopes, candidateSeed + attempt * 29);
+      const routeKey = crowdRouteShapeKey(route);
+      if (routeKey && !seen.has(routeKey)) {
+        return { route, routeKey };
+      }
+    }
+    return null;
   }
 
   function crowdWeatherNeedsShelter() {
@@ -8545,16 +8660,26 @@
       person.wanderSalt = (Math.random() * 1000000) | 0;
     }
     person.wanderStep = (person.wanderStep || 0) + 1;
-    const route = crowdRouteAround(
-      { x: person.x, z: person.z },
-      pathCells,
-      person.wanderSalt + person.wanderStep,
-      houseEnvelopes,
-    );
-    if (!Array.isArray(route) || !route.length) return false;
+    const previousRouteKey = crowdRouteShapeKey(person.route);
+    const history = Array.isArray(person.routeHistoryKeys) ? person.routeHistoryKeys.slice(-CROWD_ROUTE_HISTORY_SIZE) : [];
+    const recentKeys = new Set(history);
+    if (previousRouteKey) recentKeys.add(previousRouteKey);
+    const routeSeed = person.wanderSalt + person.wanderStep * 17;
+    const seed = { x: person.x, z: person.z };
+    let choice = null;
+    for (let reroll = 0; reroll < 6 && !choice; reroll++) {
+      choice = crowdFindUniqueAmbientRoute(seed, pathCells, routeSeed + reroll * 313, houseEnvelopes, recentKeys);
+    }
+    if (!choice) {
+      choice = crowdForceUniqueAmbientRoute(seed, pathCells, routeSeed, houseEnvelopes, recentKeys);
+    }
+    if (!choice || !Array.isArray(choice.route) || !choice.route.length) return false;
+    const route = choice.route;
+    const routeKey = choice.routeKey || crowdRouteShapeKey(route);
     person.route = route;
     person.routeIndex = 0;
     person.routeHold = Math.random() < 0.55 ? 0.12 + Math.random() * 0.75 : 0;
+    person.routeHistoryKeys = (routeKey ? history.concat(routeKey) : history).slice(-CROWD_ROUTE_HISTORY_SIZE);
     if (!person.speed || person.speed < 0.05) {
       person.speed = Math.max(person.baseSpeed || 0, 0.55);
     }

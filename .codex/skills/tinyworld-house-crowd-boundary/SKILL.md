@@ -32,6 +32,10 @@ Use this when editing crowd pathing around houses in
 - Route builders must preserve a seed lead-in when a constrained route would
   collapse to a single waypoint; `TinyCrowdLayer.tickRoute()` treats 1-point
   routes as idle.
+- Ambient route completion should reroll until it gets a different path edge
+  signature, not just a rotated waypoint list, and it should keep a longer
+  recent route history so walkers do not restart the same visible path after
+  finishing one.
 - Sparse-board routing should use only a light board-edge preference; avoid
   reintroducing a wide empty band around the perimeter when tuning scores.
 - On very sparse boards, short ambient routes should fall back to a longer
