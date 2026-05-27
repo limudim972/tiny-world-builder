@@ -38,6 +38,13 @@ Use this when editing crowd pathing around houses in
   signature, not just a rotated waypoint list, and it should keep a longer
   recent route history so walkers do not restart the same visible path after
   finishing one.
+- If an ambient route stalls in a tight corner or overlapping wall-buffer
+  region, replan a fresh route from the current position instead of
+  incrementing `routeIndex` modulo the route length. That keeps walkers from
+  flickering between two limited waypoints.
+- Prefer rejecting ambient route samples that land inside overlapping house
+  wall buffers. A single house edge is fine; ambiguous corner corridors are
+  the failure mode to avoid.
 - Sparse-board routing should use only a light board-edge preference; avoid
   reintroducing a wide empty band around the perimeter when tuning scores.
 - On very sparse boards, short ambient routes should fall back to a longer
