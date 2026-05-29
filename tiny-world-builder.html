@@ -1961,36 +1961,81 @@
       right: auto;
       bottom: 12px;
       left: 12px;
+      cursor: default;
     }
     .toolbar {
       left: auto;
       right: 12px;
       bottom: 16px;
       transform: none;
+      flex-direction: row;
+      flex-wrap: wrap;
+      width: clamp(160px, 46vw, 392px);
       max-width: calc(100vw - 24px);
-      padding: 0 6px;
-    }
-    .toolbar:not(.mobile-expanded) > :not(.toolbar-menu-btn) {
-      display: none !important;
-    }
-    .toolbar.mobile-expanded > :not(.toolbar-menu-btn) {
-      display: flex !important;
-    }
-    .toolbar.mobile-expanded {
-      left: auto;
-      right: 12px;
-      bottom: 16px;
-      transform: none;
-      padding: 0 14px;
-      background: rgba(255, 255, 255, 0.98);
-      border-color: rgba(255, 255, 255, 0.92);
+      min-height: 0;
+      padding: 8px;
+      gap: 4px;
+      justify-content: center;
+      align-content: flex-start;
+      overflow: hidden;
+      background: rgb(27 203 203 / 18%);
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      border-radius: 18px;
       box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.96) inset,
-        0 1px 2px rgba(20, 30, 50, 0.08),
-        0 16px 40px -16px rgba(40, 50, 80, 0.26);
+        0 1px 2px rgba(20, 30, 50, 0.05),
+        0 12px 36px -12px rgba(40, 50, 80, 0.22);
     }
     .toolbar .toolbar-menu-btn {
-      display: flex !important;
+      display: none !important;
+    }
+    .toolbar-world-slot {
+      height: 44px;
+      padding: 0;
+      margin: 0;
+      border-left: 0;
+    }
+    .toolbar-home-grid-slot {
+      order: 1;
+    }
+    .toolbar-zoom-panel {
+      order: 2;
+    }
+    .toolbar .rain-100-btn {
+      order: 3;
+    }
+    .toolbar .crowd-drop-btn {
+      order: 4;
+    }
+    .toolbar button[title="Run banner"] {
+      order: 5;
+    }
+    .toolbar-divider {
+      order: 5;
+    }
+    .toolbar #audio-music-mute {
+      order: 6;
+    }
+    .toolbar #audio-sfx-mute {
+      order: 7;
+    }
+    .toolbar button[title="Clear all cells to grass (E)"] {
+      order: 8;
+    }
+    .toolbar-divider {
+      height: 28px;
+      margin: 0 3px;
+    }
+    .toolbar .audio-mute {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      min-height: 36px;
+      border-radius: 9px;
+    }
+    .toolbar .audio-mute .tool-icon,
+    .toolbar .audio-mute svg {
+      width: 16px;
+      height: 16px;
     }
   }
   @media (hover: none), (pointer: coarse) {
@@ -8373,11 +8418,7 @@
     if (menuBtn && !menuBtn.dataset.bound) {
       menuBtn.addEventListener('click', e => {
         e.stopPropagation();
-        if (isMobileToolbarMode()) {
-          toggleMobileToolbar();
-        } else {
-          toggleControlsMenu();
-        }
+        toggleControlsMenu();
       });
       menuBtn.dataset.bound = '1';
     }
@@ -8445,31 +8486,6 @@
       if (!b.dataset.id) return;
       b.classList.toggle('active', b.dataset.id === selectedTool.id);
     });
-  }
-
-  function isMobileToolbarMode() {
-    return window.innerWidth <= 700;
-  }
-
-  function setMobileToolbarExpanded(open) {
-    const bar = document.getElementById('toolbar');
-    const menuBtn = document.getElementById('controls-toggle');
-    if (!bar) return;
-    bar.classList.toggle('mobile-expanded', !!open);
-    if (menuBtn) {
-      menuBtn.classList.toggle('active', !!open);
-      menuBtn.setAttribute('aria-expanded', String(!!open));
-    }
-  }
-
-  function isMobileToolbarExpanded() {
-    const bar = document.getElementById('toolbar');
-    return !!(bar && bar.classList.contains('mobile-expanded'));
-  }
-
-  function toggleMobileToolbar(open) {
-    const nextOpen = typeof open === 'boolean' ? open : !isMobileToolbarExpanded();
-    setMobileToolbarExpanded(nextOpen);
   }
 
   function toggleControlsMenu(open) {
@@ -13020,7 +13036,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     const startGx = centerGx - Math.floor(W / 2);
     const startGz = centerGz - Math.floor(D / 2);
     const view = minimapModeConfig(minimapMode, W, D, startGx, startGz);
-    const maxMapSize = 168;
+    const maxMapSize = window.innerWidth <= 700 ? 114 : 168;
     const cellSize = Math.max(1, Math.floor(maxMapSize / Math.max(view.width, view.depth)));
     const mapWidth = cellSize * view.width;
     const mapHeight = cellSize * view.depth;
@@ -13163,19 +13179,16 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     });
 
     // -- draggable minimap --
-    // Stored as top/left offsets so any viewport size resolves the same.
+    // Desktop only: stored as top/left offsets so any viewport size resolves the same.
     const MINIMAP_POS_KEY_DESKTOP = 'tinyworld:minimap.pos';
-    const MINIMAP_POS_KEY_MOBILE = 'tinyworld:minimap.pos.mobile';
-    function minimapPosKey() {
-      return window.innerWidth <= 700 ? MINIMAP_POS_KEY_MOBILE : MINIMAP_POS_KEY_DESKTOP;
-    }
     function applyStoredMinimapPos() {
       wrap.style.top = '';
       wrap.style.left = '';
       wrap.style.right = '';
       wrap.style.bottom = '';
+      if (window.innerWidth <= 700) return;
       try {
-        const raw = localStorage.getItem(minimapPosKey());
+        const raw = localStorage.getItem(MINIMAP_POS_KEY_DESKTOP);
         if (!raw) return;
         const p = JSON.parse(raw);
         if (!Number.isFinite(p.top) || !Number.isFinite(p.left)) return;
@@ -13192,6 +13205,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     }
     let mmDrag = null;
     wrap.addEventListener('pointerdown', e => {
+      if (window.innerWidth <= 700) return;
       // Don't hijack clicks on the canvas/buttons inside if any are added later.
       if (e.target.closest('button, a, input, select, textarea')) return;
       const r = wrap.getBoundingClientRect();
@@ -13205,6 +13219,7 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
       try { wrap.setPointerCapture(e.pointerId); } catch (_) {}
     });
     wrap.addEventListener('pointermove', e => {
+      if (window.innerWidth <= 700) return;
       if (!mmDrag) return;
       const dx = e.clientX - mmDrag.startX;
       const dy = e.clientY - mmDrag.startY;
@@ -13225,10 +13240,10 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
       const moved = mmDrag.moved;
       mmDrag = null;
       wrap.classList.remove('dragging');
-      if (moved) {
+      if (moved && window.innerWidth > 700) {
         const r = wrap.getBoundingClientRect();
         try {
-          localStorage.setItem(minimapPosKey(), JSON.stringify({
+          localStorage.setItem(MINIMAP_POS_KEY_DESKTOP, JSON.stringify({
             top: Math.round(r.top),
             left: Math.round(r.left),
           }));
@@ -13296,7 +13311,6 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
         controlsToggle.classList.remove('active');
         controlsToggle.setAttribute('aria-expanded', 'false');
       }
-      setMobileToolbarExpanded(false);
       if (viewPopup) viewPopup.hidden = true;
       if (timePopup) timePopup.hidden = true;
     }
@@ -13310,15 +13324,6 @@ const baseSpeed = renderCloudSpeed * 2.4; // 0 → 2.4 m/s scalar
     if (controlsMenu) {
       controlsMenu.addEventListener('click', e => e.stopPropagation());
     }
-    document.addEventListener('pointerdown', e => {
-      if (!isMobileToolbarExpanded()) return;
-      if (e.target.closest('.toolbar')) return;
-      if (e.target.closest('.topbar-popup')) return;
-      setMobileToolbarExpanded(false);
-    });
-    window.addEventListener('resize', () => {
-      if (!isMobileToolbarMode()) setMobileToolbarExpanded(false);
-    });
 
     // -- view modes --
     if (viewBtn && viewPopup) {

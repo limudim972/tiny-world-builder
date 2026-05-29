@@ -11,6 +11,7 @@ Checks:
 
 - Console has no app errors.
 - Toolbar shortcuts still work: `0`, `1`-`9`, letter tools, `E`.
+- At mobile widths, the toolbar should stay visible as a fixed multi-row panel on the right while the minimap stays fixed on the left, and neither widget should be draggable.
 - Left-click places only on the editable home board.
 - Blank home-board cells should still hover/click at shallow camera angles;
   if a perspective tweak lands near the horizon, confirm the picker still
