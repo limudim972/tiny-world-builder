@@ -5548,6 +5548,14 @@
       return null;
     }
 
+    function crowdPointInDoorPortalForEnvelope(point, envelope, pad = 0.04) {
+      if (!point || !envelope) return false;
+      for (const gap of crowdDoorGapCandidates(envelope)) {
+        if (crowdPointInDoorPortal(point, envelope, gap, pad)) return true;
+      }
+      return false;
+    }
+
     function crowdFindEnvelopeWallBufferForPoint(point, envelopes, pad = CROWD_HOUSE_CLEARANCE) {
       if (!point || !Array.isArray(envelopes)) return null;
       for (const envelope of envelopes) {
@@ -6160,6 +6168,9 @@
       for (const envelope of envelopes) {
         if (crowdPointInsideRect(point, envelope.inner, 0.001)) return 0;
         if (!crowdPointInsideRect(point, crowdExpandRect(envelope.inner, CROWD_HOUSE_CLEARANCE), 0)) continue;
+        // Keep doorway crossings grounded; only the actual wall buffer should
+        // raise people away from the roof line.
+        if (crowdPointInDoorPortalForEnvelope(point, envelope)) continue;
         const wallTopY = Number.isFinite(envelope.wallTopY) ? envelope.wallTopY : 0;
         lift = Math.max(lift, wallTopY + CROWD_HOUSE_WALL_LIFT);
       }

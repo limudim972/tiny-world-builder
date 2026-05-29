@@ -78,6 +78,9 @@ Use this when editing crowd pathing around houses in
   outside anchor or the person will oscillate at the threshold.
 - Door portal exceptions must stay corridor-aligned. Being near a doorway is
   not enough to permit an arbitrary diagonal segment through the wall.
+- Doorway corridor points should stay grounded in the height sampler too. Skip
+  house wall lift inside the active door portal or people will pop upward
+  while crossing the threshold.
 - Route targets and per-frame steps need a wall-buffer cleanup around house
   envelopes, especially on board-edge houses where the detour ring can collapse
   onto an actual wall edge.
