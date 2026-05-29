@@ -195,7 +195,6 @@
     }
 
     .btn {
-      background: transparent;
       border: 1px solid transparent;
       padding: 9px 14px;
       border-radius: 10px;
@@ -1120,7 +1119,7 @@
     .modal {
       position: fixed;
       inset: 0;
-      background: rgba(20, 24, 40, 0.58);
+      background: rgba(20, 24, 40, 0.85);
       backdrop-filter: none;
       -webkit-backdrop-filter: none;
       z-index: 200;
@@ -1159,7 +1158,6 @@
       flex-direction: column;
       gap: 4px;
       font-weight: 500;
-      color: var(--muted);
     }
 
     .modal-card textarea,
@@ -2275,6 +2273,23 @@
       gap: 14px;
     }
 
+    .welcome-card .modal-head {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .welcome-card .modal-head strong {
+      text-align: center;
+    }
+
+    .welcome-card .modal-close {
+      order: -1;
+      align-self: flex-start;
+      margin: 0 0 -2px -4px;
+    }
+
     .welcome-title {
       font-family: 'Fraunces', Georgia, serif;
       font-size: clamp(28px, 6vw, 48px);
@@ -2288,7 +2303,6 @@
     }
 
     .welcome-copy {
-      color: var(--muted);
       font-size: 14px;
       line-height: 1.55;
       margin: 0;
@@ -2307,7 +2321,6 @@
       padding: 10px;
       font-size: 12px;
       line-height: 1.35;
-      color: var(--muted);
     }
 
     .welcome-tip strong {
@@ -2330,7 +2343,6 @@
       align-items: center;
       gap: 6px;
       font-size: 12px;
-      color: var(--muted);
       cursor: pointer;
       user-select: none;
     }
@@ -2338,6 +2350,20 @@
     .welcome-dontshow input[type="checkbox"] {
       margin: 0;
       accent-color: #8a6f3a;
+    }
+
+    #welcome-start {
+      border-color: rgba(138, 111, 58, 0.62);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.92) inset,
+        0 1px 2px rgba(20, 30, 50, 0.08),
+        0 0 0 1px rgba(138, 111, 58, 0.12);
+      font-weight: 700;
+    }
+
+    #welcome-start:hover {
+      background: rgba(255, 255, 255, 0.92);
+      border-color: rgba(138, 111, 58, 0.82);
     }
 
     @media (max-width: 600px) {
@@ -2478,9 +2504,9 @@
 
       .toolbar {
         top: auto;
-        bottom: 16px;
+        bottom: 8px;
         left: auto;
-        right: 12px;
+        right: 8px;
         transform: none;
         flex-direction: row;
         flex-wrap: wrap;
@@ -2740,7 +2766,7 @@
   <div class="brand">
     <div class="title">עולם קטן</div>
     <div class="sub">
-      <span id="brand-place-text">לחיצה להצבה</span>
+      <span id="brand-place-text">לחיצה להוסיף</span>
       <span aria-hidden="true"> · </span>
       <span>גרירה לסיבוב</span>
       <span aria-hidden="true"> · </span>
@@ -13688,7 +13714,7 @@
           cameraTip = '·גררו לסיבוב לצדדים או למעלה למטה.<br>· סובבו את גלגל הגלילה של העכבר להגדלה והקטנה.';
         }
         const tipLines = [
-          '<div class="welcome-tip"><strong>בנייה</strong>· לחיצה כדי להוסיף.<br>· לחיצה כפולה כדי להוריד.</div>',
+          '<div class="welcome-tip"><strong>בנייה</strong>· לחיצה להוסיף.<br>· לחיצה ארוכה להסיר.</div>',
           '<div class="welcome-tip"><strong>הזזת המצלמה</strong>' + cameraTip + '</div>',
           '<div class="welcome-tip"><strong>סרגל כלים</strong>· השתמשו בסרגל הכלים<br>· לבחור את גודל הבסיס.<br>· להוריד גשם ועוד.</div>',
         ];
