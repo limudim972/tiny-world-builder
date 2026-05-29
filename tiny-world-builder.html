@@ -9777,6 +9777,8 @@
     let pointerDown = null;     // {x, y}
     let lastPointer = null;
     let didDrag = false;
+    const activePointers = new Map(); // pointerId -> {x, y}
+    let pinchPrevDist = 0;
     const DRAG_THRESHOLD = 5;
     let pendingHousePress = null;
     let houseLongPressTriggered = false;
@@ -9827,6 +9829,35 @@
         currentHover = null;
       }
       updateGhostPlacement();
+    }
+
+    function clearPinchState() {
+      pinchPrevDist = 0;
+      if (activePointers.size === 1) {
+        const [remaining] = [...activePointers.values()];
+        pointerDown = { x: remaining.x, y: remaining.y };
+        lastPointer = { x: remaining.x, y: remaining.y };
+        didDrag = true;
+        renderer.domElement.classList.add('dragging');
+      } else {
+        pointerDown = null;
+        lastPointer = null;
+        didDrag = false;
+      }
+    }
+
+    function updatePinchZoom() {
+      if (activePointers.size < 2 || pinchPrevDist <= 0) return false;
+      const pts = [...activePointers.values()];
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      if (!dist) return false;
+      const ratio = pinchPrevDist / dist;
+      if (!Number.isFinite(ratio) || ratio <= 0) return false;
+      markCameraMoving();
+      viewSize = Math.max(1, Math.min(25, viewSize * ratio));
+      onResize();
+      pinchPrevDist = dist;
+      return true;
     }
 
     function clearPendingHouseClick(resetTrigger = true) {
@@ -9904,9 +9935,24 @@
     renderer.domElement.addEventListener('pointerdown', e => {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       try { renderer.domElement.setPointerCapture(e.pointerId); } catch (_) { }
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
       pointerDown = { x: e.clientX, y: e.clientY };
       lastPointer = { x: e.clientX, y: e.clientY };
       didDrag = false;
+      if (activePointers.size >= 2) {
+        const pts = [...activePointers.values()];
+        pinchPrevDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        pointerDown = null;
+        lastPointer = null;
+        didDrag = true;
+        clearPendingHouseClick();
+        pendingCrowdDragPersonId = null;
+        hoverMesh.visible = false;
+        currentHover = null;
+        syncCrowdHoverState(null);
+        renderer.domElement.classList.add('dragging');
+        return;
+      }
       const crowdHit = pickCrowdPerson(e.clientX, e.clientY);
       if (crowdHit) startPendingCrowdDrag(crowdHit.id, e.clientX, e.clientY);
       updateHoverAt(e.clientX, e.clientY);
@@ -9918,6 +9964,18 @@
     });
 
     renderer.domElement.addEventListener('pointermove', e => {
+      if (activePointers.has(e.pointerId)) {
+        const p = activePointers.get(e.pointerId);
+        p.x = e.clientX;
+        p.y = e.clientY;
+      }
+      if (activePointers.size >= 2 && updatePinchZoom()) {
+        hoverMesh.visible = false;
+        currentHover = null;
+        syncCrowdHoverState(null);
+        lastPointer = { x: e.clientX, y: e.clientY };
+        return;
+      }
       if (!pointerDown) {
         updateHoverAt(e.clientX, e.clientY);
         return;
@@ -9960,6 +10018,7 @@
 
     renderer.domElement.addEventListener('pointerup', e => {
       renderer.domElement.classList.remove('dragging');
+      activePointers.delete(e.pointerId);
       pendingCrowdDragPersonId = null;
       if (draggedCrowdPersonId) {
         const droppedPersonId = draggedCrowdPersonId;
@@ -9993,6 +10052,14 @@
         didDrag = false;
         return;
       }
+      if (pinchPrevDist) {
+        clearPendingHouseClick();
+        clearPinchState();
+        hoverMesh.visible = false;
+        currentHover = null;
+        syncCrowdHoverState(null);
+        return;
+      }
       clearPendingHouseClick(false);
       if (houseLongPressTriggered) {
         if (e.pointerType !== 'mouse') houseLongPressTriggered = false;
@@ -10022,10 +10089,16 @@
 
     renderer.domElement.addEventListener('pointercancel', e => {
       renderer.domElement.classList.remove('dragging');
-      pointerDown = null;
-      lastPointer = null;
-      didDrag = false;
+      activePointers.delete(e.pointerId);
       pendingCrowdDragPersonId = null;
+      if (pinchPrevDist) {
+        clearPinchState();
+      } else {
+        pointerDown = null;
+        lastPointer = null;
+        didDrag = false;
+      }
+      pinchPrevDist = 0;
       clearPendingHouseClick();
       syncCrowdDragState(null);
     });
