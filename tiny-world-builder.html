@@ -12338,13 +12338,13 @@
       const { rightX, rightZ, leftX, leftZ } = getCameraViewPassBasis();
       const halfSpan = getCameraViewHalfSpan();
       const lead = Math.max(0.35, halfSpan * 0.28);
-      const edge = Math.max(0.08, halfSpan * 0.03);
-      const wireLen = 1.25;
-      const exitPad = edge + wireLen + BANNER_LEN * 2;
-      const startX = target.x + leftX * (lead + edge);
-      const startZ = target.z + leftZ * (lead + edge);
-      const endX = target.x + rightX * (lead + exitPad);
-      const endZ = target.z + rightZ * (lead + exitPad);
+      // Keep the plane offscreen at entry/exit, but only a short distance
+      // beyond the edge so it becomes visible promptly after launch.
+      const offscreenPad = halfSpan + (canvasInputMode === 'desktop' ? 6 : 8);
+      const startX = target.x + leftX * offscreenPad;
+      const startZ = target.z + leftZ * offscreenPad;
+      const endX = target.x + rightX * offscreenPad;
+      const endZ = target.z + rightZ * offscreenPad;
       const midX = target.x;
       const midZ = target.z;
       return new THREE.CatmullRomCurve3([
