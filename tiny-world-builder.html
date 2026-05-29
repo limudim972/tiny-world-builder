@@ -11886,7 +11886,6 @@
       'כמעט שם',
       'הכל אפשרי',
     ];
-    const FLIGHT_BANNER_DIR = -1;
     let activeSeason = 'summer';
 
     const cropDusterState = {
@@ -12236,85 +12235,52 @@
 
     // A real crop-duster doesn't zig-zag between individual cells — it lines
     // up on the field, descends, and makes a single straight pass that dumps
-    // on every crop in the band. Returns a Catmull-Rom curve that starts well
-    // off-grid at cruise altitude, descends gently into the row, runs flat
-    // and low across the entire crop extent, then climbs back to cruise and
-    // exits off-grid on the other side. No 90° turns.
-    let cropDusterPassAxis = 'x'; // remembered for the dust-spawn loop
-    function planDustingCurve() {
-      const crops = cropCellsForDusting();
-      if (!crops.length) return null;
+    // on every crop in the band. The pass is now camera-relative: it always
+    // travels from the left edge of the current camera view to the right edge.
+    function getCameraViewPassBasis() {
+      const rightX = Math.sin(azimuth);
+      const rightZ = -Math.cos(azimuth);
+      const len = Math.hypot(rightX, rightZ) || 1;
+      return {
+        rightX: rightX / len,
+        rightZ: rightZ / len,
+        leftX: -rightX / len,
+        leftZ: -rightZ / len,
+      };
+    }
+
+    function planViewPassCurve(altBoost) {
       const dustY = FLIGHT_DUST_ALT;
-      const cruiseY = Math.max(renderCloudHeight + 0.4, FLIGHT_CRUISE_ALT);
-
-      let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
-      for (const c of crops) {
-        const p = tilePos(c.x, c.z);
-        if (p.x < minX) minX = p.x;
-        if (p.x > maxX) maxX = p.x;
-        if (p.z < minZ) minZ = p.z;
-        if (p.z > maxZ) maxZ = p.z;
-      }
-      const extentX = maxX - minX;
-      const extentZ = maxZ - minZ;
-      // Run along the longer axis so a single pass crosses the most rows.
-      const axis = extentX >= extentZ ? 'x' : 'z';
-      cropDusterPassAxis = axis;
-      // Flip the approach direction occasionally so the plane doesn't always
-      // arrive from the same corner.
-      const flip = Math.random() < 0.5 ? -1 : 1;
-
+      const cruiseY = Math.max(renderCloudHeight + 0.4, FLIGHT_CRUISE_ALT) + (altBoost || 0);
+      const { rightX, rightZ, leftX, leftZ } = getCameraViewPassBasis();
       const lead = FLIGHT_OFFSCREEN_DIST;
-      let pts;
-      if (axis === 'x') {
-        const runZ = (minZ + maxZ) / 2;
-        const x0 = flip > 0 ? minX : maxX;
-        const x1 = flip > 0 ? maxX : minX;
-        const margin = 2.0;
-        pts = [
-          new THREE.Vector3(x0 - flip * lead, cruiseY, runZ),
-          new THREE.Vector3(x0 - flip * (lead * 0.4), cruiseY * 0.85 + dustY * 0.15, runZ),
-          new THREE.Vector3(x0 - flip * margin, dustY + 0.55, runZ),
-          new THREE.Vector3(x0, dustY, runZ),
-          new THREE.Vector3(x1, dustY, runZ),
-          new THREE.Vector3(x1 + flip * margin, dustY + 0.55, runZ),
-          new THREE.Vector3(x1 + flip * (lead * 0.4), cruiseY * 0.85 + dustY * 0.15, runZ),
-          new THREE.Vector3(x1 + flip * lead, cruiseY, runZ),
-        ];
-      } else {
-        const runX = (minX + maxX) / 2;
-        const z0 = flip > 0 ? minZ : maxZ;
-        const z1 = flip > 0 ? maxZ : minZ;
-        const margin = 2.0;
-        pts = [
-          new THREE.Vector3(runX, cruiseY, z0 - flip * lead),
-          new THREE.Vector3(runX, cruiseY * 0.85 + dustY * 0.15, z0 - flip * (lead * 0.4)),
-          new THREE.Vector3(runX, dustY + 0.55, z0 - flip * margin),
-          new THREE.Vector3(runX, dustY, z0),
-          new THREE.Vector3(runX, dustY, z1),
-          new THREE.Vector3(runX, dustY + 0.55, z1 + flip * margin),
-          new THREE.Vector3(runX, cruiseY * 0.85 + dustY * 0.15, z1 + flip * (lead * 0.4)),
-          new THREE.Vector3(runX, cruiseY, z1 + flip * lead),
-        ];
-      }
-      return new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.35);
+      const near = Math.max(4.5, FLIGHT_OFFSCREEN_DIST * 0.2);
+      const centerY = (cruiseY + dustY) * 0.5;
+      const startX = target.x + leftX * lead;
+      const startZ = target.z + leftZ * lead;
+      const endX = target.x + rightX * lead;
+      const endZ = target.z + rightZ * lead;
+      const midX = target.x;
+      const midZ = target.z;
+      return new THREE.CatmullRomCurve3([
+        new THREE.Vector3(startX, cruiseY, startZ),
+        new THREE.Vector3(target.x + leftX * (lead * 0.4), centerY, target.z + leftZ * (lead * 0.4)),
+        new THREE.Vector3(target.x + leftX * near, dustY + 0.55, target.z + leftZ * near),
+        new THREE.Vector3(midX, dustY, midZ),
+        new THREE.Vector3(target.x + rightX * near, dustY + 0.55, target.z + rightZ * near),
+        new THREE.Vector3(target.x + rightX * (lead * 0.4), centerY, target.z + rightZ * (lead * 0.4)),
+        new THREE.Vector3(endX, cruiseY, endZ),
+      ], false, 'catmullrom', 0.35);
     }
 
     // High flyover used for banner runs (and as a fallback when there are no
-    // crops to dust). Always crosses the world centred on the camera.
+    // crops to dust). Always crosses the view from left to right.
     function planFlyoverCurve(altBoost) {
-      const dir = FLIGHT_BANNER_DIR;
-      const baseAlt = Math.max(renderCloudHeight + 0.15, FLIGHT_CRUISE_ALT) + (altBoost || 0);
-      const z = target.z + (Math.random() - 0.5) * 4;
-      const near = Math.max(4.5, FLIGHT_OFFSCREEN_DIST * 0.2);
-      const start = new THREE.Vector3(target.x + dir * near, baseAlt, z);
-      const mid = new THREE.Vector3(target.x, baseAlt + 0.18, z + dir * 0.35);
-      const end = new THREE.Vector3(target.x - dir * FLIGHT_OFFSCREEN_DIST, baseAlt, z);
-      return new THREE.CatmullRomCurve3([start, mid, end], false, 'catmullrom', 0.25);
+      return planViewPassCurve(altBoost || 0);
     }
 
     function startDustingRun() {
-      const curve = planDustingCurve() || planFlyoverCurve(0);
+      const curve = planViewPassCurve(0) || planFlyoverCurve(0);
       cropDusterState.curve = curve;
       cropDusterState.curveLen = curve.getLength();
       cropDusterState.travel = 0;
@@ -12493,14 +12459,21 @@
       if (!cropDusterState.isBanner && _flightPos.y < FLIGHT_DUST_ALT + 0.55) {
         const planeX = cropDusterRoot.position.x;
         const planeZ = cropDusterRoot.position.z;
+        const tanX = _flightTan.x;
+        const tanZ = _flightTan.z;
+        const tanLen = Math.hypot(tanX, tanZ) || 1;
+        const normX = tanX / tanLen;
+        const normZ = tanZ / tanLen;
         const window = 0.6;
         for (let x = 0; x < GRID_W; x++) {
           for (let z = 0; z < GRID_D; z++) {
             const c = getWorldCell(x, z);
             if (!CROP_KINDS.has(c.kind)) continue;
             const p = tilePos(x, z);
-            const along = cropDusterPassAxis === 'x' ? p.x - planeX : p.z - planeZ;
-            if (Math.abs(along) > window) continue;
+            const dx = p.x - planeX;
+            const dz = p.z - planeZ;
+            const perp = Math.abs(dx * normZ - dz * normX);
+            if (perp > window) continue;
             if (cropDustParticles.length > 220) break;
             spawnCropDust(
               p.x + (Math.random() - 0.5) * 0.34,
