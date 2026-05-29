@@ -2480,18 +2480,18 @@
         bottom: 16px;
         left: auto;
         right: 12px;
-      transform: none;
-      flex-direction: row;
-      flex-wrap: wrap;
-      width: 185px;
-      min-width: 185px;
-      max-width: 185px;
-      height: 160px;
-      min-height: 160px;
-      max-height: 160px;
-      padding: 0 8px;
-      gap: 4px;
-      justify-content: center;
+        transform: none;
+        flex-direction: row;
+        flex-wrap: wrap;
+        width: 185px;
+        min-width: 185px;
+        max-width: 185px;
+        height: 160px;
+        min-height: 160px;
+        max-height: 160px;
+        padding: 0 8px;
+        gap: 4px;
+        justify-content: center;
         align-content: flex-start;
         overflow: hidden;
         background: rgb(27 203 203 / 18%);
@@ -6754,6 +6754,9 @@
     const homeFrontArrowGroup = new THREE.Group();
     homeFrontArrowGroup.name = 'homeFrontArrow';
     scene.add(homeFrontArrowGroup);
+    const homeEdgeBannerGroup = new THREE.Group();
+    homeEdgeBannerGroup.name = 'homeEdgeBanner';
+    scene.add(homeEdgeBannerGroup);
     const HOME_BORDER_COLOR = 0x2a1a0e;
     const HOME_BORDER_Y = 0.04;
     const homeBorderStripMat = new THREE.MeshBasicMaterial({ color: HOME_BORDER_COLOR });
@@ -6777,6 +6780,169 @@
       part.scale.setScalar(scale);
       homeFrontArrowGroup.add(part);
     }
+    // -------- home edge banners --------
+    // Lightweight, asset-free banners attached to each edge of the home
+    // grid. The textures are drawn to canvases so they stay self-contained
+    // in the single-file app.
+    const HOME_BANNER_WIDTH = 0.97;
+    const HOME_BANNER_HEIGHT = 0.32;
+    const HOME_BANNER_OFFSET = 0.1;
+    const HOME_BANNER_TOP_Y = -0.15;
+    const HOME_EDGE_BANNERS = [
+      { text: 'מלפנים', x: 1, z: 0, rotY: Math.PI / 2 },
+      { text: 'מימין', x: 0, z: -1, rotY: Math.PI },
+      { text: 'מאחור', x: -1, z: 0, rotY: -Math.PI / 2 },
+      { text: 'משמאל', x: 0, z: 1, rotY: 0 },
+    ];
+    let homeEdgeBannerMeshes = [];
+
+    function makeHomeEdgeBannerTexture(label) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1536;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#16153d';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const bg = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      bg.addColorStop(0, '#171943');
+      bg.addColorStop(0.38, '#24194f');
+      bg.addColorStop(0.72, '#3a1f59');
+      bg.addColorStop(1, '#20133f');
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const shine = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      shine.addColorStop(0, 'rgba(88, 116, 255, 0.10)');
+      shine.addColorStop(0.35, 'rgba(255, 255, 255, 0.02)');
+      shine.addColorStop(0.75, 'rgba(146, 73, 208, 0.12)');
+      shine.addColorStop(1, 'rgba(20, 8, 44, 0.24)');
+      ctx.fillStyle = shine;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const glow = ctx.createRadialGradient(
+        canvas.width * 0.53,
+        canvas.height * 0.38,
+        canvas.width * 0.08,
+        canvas.width * 0.53,
+        canvas.height * 0.38,
+        canvas.width * 0.65
+      );
+      glow.addColorStop(0, 'rgba(123, 92, 255, 0.16)');
+      glow.addColorStop(0.35, 'rgba(75, 61, 151, 0.10)');
+      glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < 140; i++) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        const r = 0.8 + Math.random() * 2.8;
+        ctx.fillStyle = `rgba(255, 255, 255, ${0.012 + Math.random() * 0.02})`;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
+      const skyline = [
+        [0.00, 0.34, 0.04, 0.44],
+        [0.06, 0.28, 0.03, 0.52],
+        [0.11, 0.20, 0.05, 0.60],
+        [0.18, 0.24, 0.04, 0.47],
+        [0.30, 0.26, 0.03, 0.50],
+        [0.78, 0.18, 0.05, 0.58],
+        [0.86, 0.22, 0.04, 0.48],
+        [0.92, 0.25, 0.03, 0.44],
+      ];
+      for (const [x0, w0, y0, h0] of skyline) {
+        ctx.fillRect(canvas.width * x0, canvas.height * y0, canvas.width * w0, canvas.height * h0);
+      }
+
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.direction = 'rtl';
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.18)';
+      ctx.shadowBlur = 4;
+      const targetWidth = canvas.width * 0.90;
+      const targetHeight = canvas.height * 0.78;
+      let size = 420;
+      for (; size >= 120; size -= 2) {
+        ctx.font = '800 ' + size + 'px Arial, sans-serif';
+        const metrics = ctx.measureText(label);
+        const textHeight = (metrics.actualBoundingBoxAscent || size * 0.8) + (metrics.actualBoundingBoxDescent || size * 0.2);
+        if (metrics.width <= targetWidth && textHeight <= targetHeight) break;
+      }
+      ctx.fillText(label, canvas.width * 0.50, canvas.height * 0.54);
+      ctx.shadowBlur = 0;
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.encoding = THREE.sRGBEncoding;
+      tex.anisotropy = (renderer.capabilities.getMaxAnisotropy
+        ? Math.min(8, renderer.capabilities.getMaxAnisotropy())
+        : 1);
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      tex.wrapS = THREE.ClampToEdgeWrapping;
+      tex.wrapT = THREE.ClampToEdgeWrapping;
+      return tex;
+    }
+
+    function buildHomeEdgeBanners() {
+      const halfW = GRID_W / 2;
+      const halfD = GRID_D / 2;
+      while (homeEdgeBannerGroup.children.length) {
+        const c = homeEdgeBannerGroup.children.pop();
+        c.traverse(o => {
+          if (o.geometry) o.geometry.dispose();
+          if (o.material) {
+            const mats = Array.isArray(o.material) ? o.material : [o.material];
+            for (const m of mats) {
+              if (m.map) m.map.dispose();
+              if (m.dispose) m.dispose();
+            }
+          }
+        });
+      }
+      homeEdgeBannerMeshes = [];
+      for (const spec of HOME_EDGE_BANNERS) {
+        const texFront = makeHomeEdgeBannerTexture(spec.text);
+        const geo = new THREE.PlaneGeometry(HOME_BANNER_WIDTH, HOME_BANNER_HEIGHT, 28, 12);
+        // Anchor the top edge at y=0 so the position controls the hang point.
+        geo.translate(0, -HOME_BANNER_HEIGHT * 0.5, 0);
+        const matFront = new THREE.MeshBasicMaterial({
+          map: texFront,
+          side: THREE.DoubleSide,
+          transparent: false,
+          depthWrite: true,
+          depthTest: true,
+        });
+        const mesh = new THREE.Group();
+        mesh.castShadow = false;
+        mesh.receiveShadow = false;
+        mesh.frustumCulled = false;
+        mesh.renderOrder = 2;
+        const front = new THREE.Mesh(geo, matFront);
+        front.position.z = 0.001;
+        front.renderOrder = 2;
+        mesh.add(front);
+        mesh.position.set(
+          spec.x === 0 ? 0 : spec.x * (halfW + HOME_BANNER_OFFSET),
+          HOME_BANNER_TOP_Y,
+          spec.z === 0 ? 0 : spec.z * (halfD + HOME_BANNER_OFFSET)
+        );
+        mesh.rotation.set(0, spec.rotY, 0);
+        homeEdgeBannerGroup.add(mesh);
+        homeEdgeBannerMeshes.push(mesh);
+      }
+    }
+
+    function tickHomeFrontBanner(time) {
+      return;
+    }
+
     function buildHomeFrontArrow() {
       while (homeFrontArrowGroup.children.length) {
         const c = homeFrontArrowGroup.children.pop();
@@ -6806,6 +6972,7 @@
       addStrip(-halfW, 0, GRID_D, 'z'); // west
       addStrip(halfW, 0, GRID_D, 'z'); // east
       buildHomeFrontArrow();
+      buildHomeEdgeBanners();
     }
     buildHomeBorder();
     function updateHomeFrontArrowVisibility() {
@@ -6814,6 +6981,7 @@
       const normalizedAzimuth = azimuthDeg < 0 ? azimuthDeg + 360 : azimuthDeg;
       const nearFront = normalizedAzimuth <= 10 || normalizedAzimuth >= 350;
       homeFrontArrowGroup.visible = !(polarDeg > 80 && nearFront);
+      homeEdgeBannerGroup.visible = true;
     }
 
     // -------- ghost worlds --------
@@ -12382,6 +12550,7 @@
       tickWeather(dt);
       updateClouds(dt);
       updateCropDuster(dt);
+      tickHomeFrontBanner(t);
       if (lastPointer && !pointerDown) {
         updateHoverAt(lastPointer.x, lastPointer.y);
       }
