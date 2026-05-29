@@ -12249,28 +12249,38 @@
       };
     }
 
+    function getCameraViewHalfSpan() {
+      const aspect = renderer && renderer.domElement ? renderer.domElement.clientWidth / Math.max(1, renderer.domElement.clientHeight) : 1;
+      if (cameraMode === 'ortho' || (cameraMode === 'ortho' && polar < 0.05)) {
+        return viewSize * aspect;
+      }
+      const cam = camera || softCam;
+      const dist = cam.position.distanceTo(target);
+      const vSpan = Math.tan((cam.fov * Math.PI / 180) / 2) * dist;
+      return vSpan * aspect;
+    }
+
     function planViewPassCurve(altBoost) {
-      const dustY = FLIGHT_DUST_ALT;
       const cruiseY = Math.max(renderCloudHeight + 0.4, FLIGHT_CRUISE_ALT) + (altBoost || 0);
       const { rightX, rightZ, leftX, leftZ } = getCameraViewPassBasis();
-      const lead = FLIGHT_OFFSCREEN_DIST;
-      const near = Math.max(4.5, FLIGHT_OFFSCREEN_DIST * 0.2);
-      const centerY = (cruiseY + dustY) * 0.5;
-      const startX = target.x + leftX * lead;
-      const startZ = target.z + leftZ * lead;
-      const endX = target.x + rightX * lead;
-      const endZ = target.z + rightZ * lead;
+      const halfSpan = getCameraViewHalfSpan();
+      const lead = Math.max(0.35, halfSpan * 0.28);
+      const edge = Math.max(0.08, halfSpan * 0.03);
+      const wireLen = 1.25;
+      const exitPad = edge + wireLen + BANNER_LEN * 2;
+      const startX = target.x + leftX * (lead + edge);
+      const startZ = target.z + leftZ * (lead + edge);
+      const endX = target.x + rightX * (lead + exitPad);
+      const endZ = target.z + rightZ * (lead + exitPad);
       const midX = target.x;
       const midZ = target.z;
       return new THREE.CatmullRomCurve3([
         new THREE.Vector3(startX, cruiseY, startZ),
-        new THREE.Vector3(target.x + leftX * (lead * 0.4), centerY, target.z + leftZ * (lead * 0.4)),
-        new THREE.Vector3(target.x + leftX * near, dustY + 0.55, target.z + leftZ * near),
-        new THREE.Vector3(midX, dustY, midZ),
-        new THREE.Vector3(target.x + rightX * near, dustY + 0.55, target.z + rightZ * near),
-        new THREE.Vector3(target.x + rightX * (lead * 0.4), centerY, target.z + rightZ * (lead * 0.4)),
+        new THREE.Vector3(target.x + leftX * lead, cruiseY, target.z + leftZ * lead),
+        new THREE.Vector3(midX, cruiseY, midZ),
+        new THREE.Vector3(target.x + rightX * lead, cruiseY, target.z + rightZ * lead),
         new THREE.Vector3(endX, cruiseY, endZ),
-      ], false, 'catmullrom', 0.35);
+      ], false, 'catmullrom', 0.1);
     }
 
     // High flyover used for banner runs (and as a fallback when there are no
@@ -12456,7 +12466,7 @@
       // Walking by cells (not just by the plane's exact xz) means a single
       // straight pass blankets every crop in the band, regardless of how
       // wide the field is on the perpendicular axis.
-      if (!cropDusterState.isBanner && _flightPos.y < FLIGHT_DUST_ALT + 0.55) {
+      if (!cropDusterState.isBanner) {
         const planeX = cropDusterRoot.position.x;
         const planeZ = cropDusterRoot.position.z;
         const tanX = _flightTan.x;
