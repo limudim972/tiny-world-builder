@@ -13788,7 +13788,7 @@
         : mode === 'right' ? degToRad(270)
           : mode === 'left' ? degToRad(90)
             : DEFAULT_AZIMUTH;
-      polar = degToRad(90);
+      polar = mode === 'numbers' ? degToRad(45) : degToRad(90);
       if (typeof updateCamera === 'function') updateCamera();
       if (typeof window.__paintMinimapAngles === 'function') window.__paintMinimapAngles();
     }
