@@ -45,6 +45,11 @@ Use this when editing crowd pathing around houses in
 - Prefer rejecting ambient route samples that land inside overlapping house
   wall buffers. A single house edge is fine; ambiguous corner corridors are
   the failure mode to avoid.
+- Also treat overlapping outer detour rings from perpendicular/adjacent houses
+  as ambiguous corner corridors. Walkers can keep moving enough to dodge
+  zero-drift stall detection while still cycling between constrained perimeter
+  waypoints there, so add bounded-loop recovery toward a clear non-corner
+  escape point.
 - Sparse-board routing should use only a light board-edge preference; avoid
   reintroducing a wide empty band around the perimeter when tuning scores.
 - On very sparse boards, short ambient routes should fall back to a longer

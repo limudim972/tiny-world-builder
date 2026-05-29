@@ -5152,6 +5152,9 @@
     const CROWD_RAIN_EXIT_OUTSET = 0.18;
     const CROWD_RAIN_EXIT_SPREAD = 0.12;
     const CROWD_RAIN_EXIT_COOLDOWN_MS = 15000;
+    const CROWD_HOUSE_CORNER_PAD = 0.08;
+    const CROWD_CORNER_LOOP_MS = 1400;
+    const CROWD_CORNER_LOOP_SPAN = 0.34;
     let crowdHouseEnvelopes = [];
     let crowdHouseEnvelopeDirty = true;
 
@@ -5579,6 +5582,24 @@
       return crowdHouseBufferOverlapCount(point, envelopes, pad) > 1;
     }
 
+    function crowdHouseOuterOverlapCount(point, envelopes, pad = CROWD_HOUSE_CORNER_PAD) {
+      if (!point || !Array.isArray(envelopes) || !envelopes.length) return 0;
+      let count = 0;
+      for (const envelope of envelopes) {
+        if (!crowdPointInsideRect(point, crowdExpandRect(envelope.outer, pad), 0)) continue;
+        count++;
+        if (count > 1) return count;
+      }
+      return count;
+    }
+
+    function crowdPointInAmbiguousHouseCorner(point, envelopes) {
+      if (!point || !Array.isArray(envelopes) || !envelopes.length) return false;
+      if (crowdFindDoorPortalForPoint(point, envelopes, 0.08)) return false;
+      if (crowdPointInLimitedHouseBuffer(point, envelopes, CROWD_HOUSE_CLEARANCE + 0.015)) return true;
+      return crowdHouseOuterOverlapCount(point, envelopes) > 1;
+    }
+
     function crowdProjectPointOutsideHouseBuffer(point, envelope, pad = CROWD_HOUSE_CLEARANCE) {
       if (!point || !envelope) return point;
       const boardRect = crowdBoardRect();
@@ -5866,12 +5887,15 @@
         if (!person || person.falling || person.hoverPaused) return;
         if (!person.route || person.route.length < 2 || !person.speed) {
           person.crowdRouteWatch = null;
+          person.crowdCornerLoopWatch = null;
           return;
         }
         if (person.routeHold > 0) {
           person.crowdRouteWatch = null;
+          person.crowdCornerLoopWatch = null;
           return;
         }
+        if (crowdSyncCornerLoopWatch(person, envelopes, now)) return;
         const watch = person.crowdRouteWatch;
         if (!watch) {
           person.crowdRouteWatch = { since: now, x: person.x, z: person.z };
@@ -5954,7 +5978,7 @@
         if (crowdFindEnvelopeWallBufferForPoint(point, envelopes, 0.03) && !crowdFindDoorPortalForPoint(point, envelopes, 0.05)) {
           point = crowdSanitizeWallBufferPoint(point, envelopes);
         }
-        if (crowdPointInLimitedHouseBuffer(point, envelopes, CROWD_HOUSE_CLEARANCE + 0.015)) continue;
+        if (crowdPointInAmbiguousHouseCorner(point, envelopes)) continue;
         if (crowdPointInOccupiedCell(point)) continue;
         if (crowdFindEnvelopeForPoint(point, envelopes, 0.001)) continue;
         const edgeScore = Math.min(
@@ -5977,7 +6001,7 @@
       for (let i = 0; i < 12; i++) {
         const cell = pathCells[(Math.random() * pathCells.length) | 0];
         const fallback = crowdSanitizeWallBufferPoint(crowdWanderPoint(cell, 0.46), envelopes);
-        if (!crowdPointInLimitedHouseBuffer(fallback, envelopes, CROWD_HOUSE_CLEARANCE + 0.015)) return fallback;
+        if (!crowdPointInAmbiguousHouseCorner(fallback, envelopes)) return fallback;
       }
       return crowdSanitizeWallBufferPoint(crowdWanderPoint(pathCells[(Math.random() * pathCells.length) | 0], 0.46), envelopes);
     }
@@ -5997,9 +6021,53 @@
           x: a.x + (b.x - a.x) * t,
           z: a.z + (b.z - a.z) * t,
         };
-        if (crowdPointInLimitedHouseBuffer(sample, envelopes, CROWD_HOUSE_CLEARANCE + 0.015)) return false;
+        if (crowdPointInAmbiguousHouseCorner(sample, envelopes)) return false;
       }
       return true;
+    }
+
+    function crowdFindAmbiguousCornerEscapePoint(seed, pathCells, envelopes) {
+      if (!seed || !Array.isArray(pathCells) || !pathCells.length) return null;
+      const board = crowdBoardRect(0.04);
+      const offsets = [
+        { x: 0, z: 0 },
+        { x: -0.34, z: 0 },
+        { x: 0.34, z: 0 },
+        { x: 0, z: -0.34 },
+        { x: 0, z: 0.34 },
+        { x: -0.34, z: -0.34 },
+        { x: 0.34, z: -0.34 },
+        { x: -0.34, z: 0.34 },
+        { x: 0.34, z: 0.34 },
+      ];
+      let best = null;
+      let bestScore = -Infinity;
+      const consider = (point, directRequired) => {
+        point = crowdClampPointToRect(point, board);
+        if (crowdPointInOccupiedCell(point)) return;
+        if (crowdFindEnvelopeForPoint(point, envelopes, 0.001)) return;
+        if (crowdPointInAmbiguousHouseCorner(point, envelopes)) return;
+        const clear = crowdSegmentClearOfHouse(seed, point, envelopes);
+        if (directRequired && !clear) return;
+        const dist = crowdDist(seed, point);
+        const score = dist + (clear ? 2 : 0);
+        if (score > bestScore) {
+          bestScore = score;
+          best = point;
+        }
+      };
+      for (const cell of pathCells) {
+        for (const offset of offsets) {
+          consider({ x: cell.x + offset.x, z: cell.z + offset.z }, true);
+        }
+      }
+      if (best) return best;
+      for (const cell of pathCells) {
+        for (const offset of offsets) {
+          consider({ x: cell.x + offset.x, z: cell.z + offset.z }, false);
+        }
+      }
+      return best;
     }
 
     function crowdFreeSpaceRoute(seed, pathCells, count, envelopes) {
@@ -6610,6 +6678,102 @@
         person.crowdRouteWatch = { since: now, x: person.x, z: person.z };
       }
       return assigned;
+    }
+
+    function crowdPointKey(point, snap = 0.08) {
+      if (!point) return '';
+      return Math.round(point.x / snap) + ',' + Math.round(point.z / snap);
+    }
+
+    function crowdEscapeAmbiguousCorner(person, houseEnvelopes, now = performance.now()) {
+      if (!crowdLayer || !crowdLayer.loaded) return false;
+      if (!person || (person.houseVisit && person.houseVisit.active)) return false;
+      if (person.rainShelter && person.rainShelter.active) return false;
+      const pathCells = collectCrowdPathCells();
+      if (!pathCells.length) return false;
+      const seed = { x: person.x, z: person.z };
+      const escape = crowdFindAmbiguousCornerEscapePoint(seed, pathCells, houseEnvelopes);
+      if (!escape) return crowdReplanAmbientRoute(person, houseEnvelopes, now);
+      const routeTargets = [escape];
+      const tail = crowdFreeSpaceRoute(
+        escape,
+        pathCells,
+        Math.min(8, Math.max(4, pathCells.length * 2)),
+        houseEnvelopes,
+      );
+      if (Array.isArray(tail)) {
+        for (const point of tail) crowdAppendPoint(routeTargets, point);
+      }
+      const route = crowdConstrainRoute(seed, routeTargets, houseEnvelopes);
+      if (!Array.isArray(route) || route.length < 2) return crowdReplanAmbientRoute(person, houseEnvelopes, now);
+      const history = Array.isArray(person.routeHistoryKeys)
+        ? person.routeHistoryKeys.slice(-CROWD_ROUTE_HISTORY_SIZE)
+        : [];
+      const assigned = crowdAssignAmbientRoute(person, {
+        route,
+        routeKey: crowdRouteShapeKey(route),
+      }, history, 0);
+      if (assigned) {
+        person.crowdCornerLoopWatch = null;
+        person.crowdRouteWatch = { since: now, x: person.x, z: person.z };
+      }
+      return assigned;
+    }
+
+    function crowdSyncCornerLoopWatch(person, houseEnvelopes, now) {
+      if (!person || !Array.isArray(person.route) || person.route.length < 2) {
+        if (person) person.crowdCornerLoopWatch = null;
+        return false;
+      }
+      const current = { x: person.x, z: person.z };
+      const target = person.route[person.routeIndex % person.route.length];
+      const inCorner = crowdPointInAmbiguousHouseCorner(current, houseEnvelopes) ||
+        crowdPointInAmbiguousHouseCorner(target, houseEnvelopes);
+      if (!inCorner) {
+        person.crowdCornerLoopWatch = null;
+        return false;
+      }
+      const targetKey = crowdPointKey(target);
+      const routeIndex = person.routeIndex || 0;
+      let watch = person.crowdCornerLoopWatch;
+      if (!watch) {
+        watch = {
+          since: now,
+          minX: person.x,
+          maxX: person.x,
+          minZ: person.z,
+          maxZ: person.z,
+          routeIndex,
+          routeIndexChanges: 0,
+          targetKey,
+          targetChanges: 0,
+        };
+        person.crowdCornerLoopWatch = watch;
+        return false;
+      }
+      watch.minX = Math.min(watch.minX, person.x);
+      watch.maxX = Math.max(watch.maxX, person.x);
+      watch.minZ = Math.min(watch.minZ, person.z);
+      watch.maxZ = Math.max(watch.maxZ, person.z);
+      if (routeIndex !== watch.routeIndex) {
+        watch.routeIndex = routeIndex;
+        watch.routeIndexChanges++;
+      }
+      if (targetKey !== watch.targetKey) {
+        watch.targetKey = targetKey;
+        watch.targetChanges++;
+      }
+      const span = Math.max(watch.maxX - watch.minX, watch.maxZ - watch.minZ);
+      if (span > CROWD_CORNER_LOOP_SPAN * 1.7) {
+        person.crowdCornerLoopWatch = null;
+        return false;
+      }
+      const compactLoop = span <= CROWD_CORNER_LOOP_SPAN;
+      const loopSignal = person.route.length <= 3 || watch.routeIndexChanges >= 2 || watch.targetChanges >= 1;
+      if (compactLoop && loopSignal && now - watch.since >= CROWD_CORNER_LOOP_MS) {
+        return crowdEscapeAmbiguousCorner(person, houseEnvelopes, now);
+      }
+      return false;
     }
 
     function syncCrowdRainShelterState(phase = 'pre') {
