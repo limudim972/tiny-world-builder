@@ -1415,6 +1415,7 @@
       flex-direction: row-reverse;
       transition: transform 0.18s ease;
       cursor: grab;
+      touch-action: none;
     }
 
     .minimap-wrap.dragging {
@@ -2566,7 +2567,6 @@
         right: auto;
         bottom: 12px;
         left: 12px;
-        cursor: default;
       }
 
       .toolbar .toolbar-menu-btn {
@@ -14145,16 +14145,14 @@
       });
 
       // -- draggable minimap --
-      // Desktop only: stored as top/left offsets so any viewport size resolves the same.
-      const MINIMAP_POS_KEY_DESKTOP = 'tinyworld:minimap.pos';
+      const MINIMAP_POS_KEY = 'tinyworld:minimap.pos';
       function applyStoredMinimapPos() {
         wrap.style.top = '';
         wrap.style.left = '';
         wrap.style.right = '';
         wrap.style.bottom = '';
-        if (window.innerWidth <= 700) return;
         try {
-          const raw = localStorage.getItem(MINIMAP_POS_KEY_DESKTOP);
+          const raw = localStorage.getItem(MINIMAP_POS_KEY);
           if (!raw) return;
           const p = JSON.parse(raw);
           if (!Number.isFinite(p.top) || !Number.isFinite(p.left)) return;
@@ -14171,9 +14169,9 @@
       }
       let mmDrag = null;
       wrap.addEventListener('pointerdown', e => {
-        if (window.innerWidth <= 700) return;
         // Don't hijack clicks on the canvas/buttons inside if any are added later.
         if (e.target.closest('button, a, input, select, textarea')) return;
+        if (e.button !== 0) return;
         const r = wrap.getBoundingClientRect();
         mmDrag = {
           startX: e.clientX,
@@ -14185,7 +14183,6 @@
         try { wrap.setPointerCapture(e.pointerId); } catch (_) { }
       });
       wrap.addEventListener('pointermove', e => {
-        if (window.innerWidth <= 700) return;
         if (!mmDrag) return;
         const dx = e.clientX - mmDrag.startX;
         const dy = e.clientY - mmDrag.startY;
@@ -14206,10 +14203,10 @@
         const moved = mmDrag.moved;
         mmDrag = null;
         wrap.classList.remove('dragging');
-        if (moved && window.innerWidth > 700) {
+        if (moved) {
           const r = wrap.getBoundingClientRect();
           try {
-            localStorage.setItem(MINIMAP_POS_KEY_DESKTOP, JSON.stringify({
+            localStorage.setItem(MINIMAP_POS_KEY, JSON.stringify({
               top: Math.round(r.top),
               left: Math.round(r.left),
             }));
